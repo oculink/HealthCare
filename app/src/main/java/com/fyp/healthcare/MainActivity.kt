@@ -78,6 +78,7 @@ class MainActivity : ComponentActivity() {
                             HealthTrendsScreen(onBackClick = { navController.popBackStack() })
                         }
                     }
+
                     composable("reminders") { TabScaffold("reminders", switchTab) { BlankScreen("Reminders") } }
                     composable("activity") { TabScaffold("activity", switchTab) { BlankScreen("Activity") } }
                     composable("profile") { TabScaffold("profile", switchTab) { BlankScreen("Profile") } }
