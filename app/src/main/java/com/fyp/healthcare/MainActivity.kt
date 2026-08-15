@@ -16,6 +16,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             HealthCareTheme {
+                val medManager = remember { MedicationManager(applicationContext) }
                 val userManager = remember { UserManager(applicationContext) }
                 val healthData = remember { HealthDataManager(applicationContext) }
                 val navController = rememberNavController()
@@ -79,7 +80,48 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
-                    composable("reminders") { TabScaffold("reminders", switchTab) { BlankScreen("Reminders") } }
+                    // Reminders tab (middle button) = Medication list
+                    composable("reminders") {
+                        TabScaffold("reminders", switchTab) {
+                            MedicationScreen(
+                                medManager = medManager,
+                                onBackClick = { navController.popBackStack() },
+                                onAddClick = { navController.navigate("add_medication") }
+                            )
+                        }
+                    }
+// Medication quick action = same list
+                    composable("medication") {
+                        TabScaffold("reminders", switchTab) {
+                            MedicationScreen(
+                                medManager = medManager,
+                                onBackClick = { navController.popBackStack() },
+                                onAddClick = { navController.navigate("add_medication") }
+                            )
+                        }
+                    }
+                    composable("add_medication") {
+                        AddMedicationScreen(
+                            medManager = medManager,
+                            onBackClick = { navController.popBackStack() },
+                            onSaved = {
+                                navController.navigate("medication_added") {
+                                    popUpTo("add_medication") { inclusive = true }
+                                }
+                            }
+                        )
+                    }
+                    composable("medication_added") {
+                        MedicationAddedScreen(
+                            medManager = medManager,
+                            onAddAnother = {
+                                navController.navigate("add_medication") {
+                                    popUpTo("medication_added") { inclusive = true }
+                                }
+                            },
+                            onBackToReminders = { navController.popBackStack() }
+                        )
+                    }
                     composable("activity") { TabScaffold("activity", switchTab) { BlankScreen("Activity") } }
                     composable("profile") { TabScaffold("profile", switchTab) { BlankScreen("Profile") } }
 
