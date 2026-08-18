@@ -1,5 +1,9 @@
 package com.fyp.healthcare
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -55,11 +59,20 @@ fun MedicationScreen(
     onBackClick: () -> Unit,
     onAddClick: () -> Unit
 ) {
-    val meds = medManager.getAll()
+    var refresh by remember { mutableStateOf(0) }
+
+    val meds = remember(refresh) {
+        medManager.getAll()
+    }
+
     val takenCount = meds.count { displayStatus(it) == "Taken" }
 
-    Column(modifier = Modifier.fillMaxSize().background(ScreenBackground)) {
-
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(ScreenBackground)
+    ) {
+        // your existing UI stays the same
         // ===== Blue top bar =====
         Row(
             modifier = Modifier
@@ -135,8 +148,13 @@ fun MedicationScreen(
                     }
                 }
             } else {
-                meds.forEach { med -> MedicationCard(med, medManager) }
-            }
+                meds.forEach { med ->
+                    MedicationCard(
+                        med = med,
+                        medManager = medManager,
+                        onStatusChanged = { refresh++ }
+                    )
+                }            }
 
             // ===== Add New Medication card =====
             Row(
@@ -166,7 +184,11 @@ fun MedicationScreen(
 }
 
 @Composable
-private fun MedicationCard(med: Medication, medManager: MedicationManager) {
+private fun MedicationCard(
+    med: Medication,
+    medManager: MedicationManager,
+    onStatusChanged: () -> Unit
+) {
     val status = displayStatus(med)
     val tint = medStatusColor(status)
 
@@ -219,7 +241,10 @@ private fun MedicationCard(med: Medication, medManager: MedicationManager) {
                 if (status == "Soon" || status == "Upcoming") {
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         Button(
-                            onClick = { medManager.setStatus(med.id, "taken") },
+                            onClick = {
+                                medManager.setStatus(med.id, "taken")
+                                onStatusChanged()
+                            },
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = GoodGreen.copy(alpha = 0.15f),
                                 contentColor = GoodGreen
@@ -229,8 +254,12 @@ private fun MedicationCard(med: Medication, medManager: MedicationManager) {
                         ) {
                             Text("✓ Taken", fontSize = 10.sp, fontWeight = FontWeight.Bold)
                         }
+
                         Button(
-                            onClick = { medManager.setStatus(med.id, "missed") },
+                            onClick = {
+                                medManager.setStatus(med.id, "missed")
+                                onStatusChanged()
+                            },
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = BadRed.copy(alpha = 0.15f),
                                 contentColor = BadRed
@@ -248,18 +277,23 @@ private fun MedicationCard(med: Medication, medManager: MedicationManager) {
 }
 
 // Pending meds become "Soon" within 1 hour of their time, "Missed" after it passes
-private fun displayStatus(med: Medication): String = when (med.status) {
-    "taken" -> "Taken"
-    "missed" -> "Missed"
-    else -> {
-        val now = Calendar.getInstance()
-        val nowMin = now.get(Calendar.HOUR_OF_DAY) * 60 + now.get(Calendar.MINUTE)
-        val p = med.time.split(":")
-        val medMin = (p.getOrNull(0)?.toIntOrNull() ?: 0) * 60 + (p.getOrNull(1)?.toIntOrNull() ?: 0)
-        when {
-            nowMin > medMin -> "Missed"
-            medMin - nowMin <= 60 -> "Soon"
-            else -> "Upcoming"
+private fun displayStatus(med: Medication): String {
+    return when (med.status.trim().lowercase()) {
+        "taken" -> "Taken"
+        "missed" -> "Missed"
+        else -> {
+            val now = Calendar.getInstance()
+            val nowMin = now.get(Calendar.HOUR_OF_DAY) * 60 + now.get(Calendar.MINUTE)
+
+            val p = med.time.trim().split(":")
+            val medMin = (p.getOrNull(0)?.toIntOrNull() ?: 0) * 60 +
+                    (p.getOrNull(1)?.toIntOrNull() ?: 0)
+
+            when {
+                nowMin > medMin -> "Missed"
+                medMin - nowMin <= 60 -> "Soon"
+                else -> "Upcoming"
+            }
         }
     }
 }

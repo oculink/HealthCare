@@ -35,6 +35,7 @@ fun BottomNavBar(currentRoute: String, onNavigate: (String) -> Unit) {
         Triple("activity", "Activity", "🏃"),
         Triple("profile", "Profile", "👤")
     )
+
     NavigationBar(containerColor = Color.White) {
         items.forEach { (route, label, emoji) ->
             NavigationBarItem(

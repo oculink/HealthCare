@@ -64,7 +64,8 @@ fun AddMedicationScreen(
     val context = LocalContext.current
 
     var name by remember { mutableStateOf("") }
-    var dosage by remember { mutableStateOf("") }
+    var dosageMg by remember { mutableStateOf("") }   // e.g. 500
+    var amount by remember { mutableStateOf("") }     // e.g. 1 tablet
     var frequency by remember { mutableStateOf("") }
     var time24 by remember { mutableStateOf("20:00") }
     var timeDisplay by remember { mutableStateOf("8:00 PM") }
@@ -119,7 +120,8 @@ fun AddMedicationScreen(
                 Spacer(Modifier.height(20.dp))
 
                 MedField(name, { name = it }, "Medication Name", "e.g. Amlodipine", "💊")
-                MedField(dosage, { dosage = it }, "Dosage", "e.g. 5mg — 1 tablet", "️")
+                MedField(dosageMg, { dosageMg = it }, "Dosage (mg)", "e.g. 500", "💊")
+                MedField(amount, { amount = it }, "Amount (tablet)", "e.g. 1", "🔢")
                 MedField(frequency, { frequency = it }, "Frequency", "e.g. Once daily", "🔄")
 
                 // ===== Reminder time (opens the phone's time picker) =====
@@ -214,14 +216,28 @@ fun AddMedicationScreen(
                 Button(
                     onClick = {
                         // TODO: this medication will also be uploaded to the SQL database
+                        val mg = dosageMg.toIntOrNull()
+                        val amt = amount.toIntOrNull()
                         when {
-                            name.isBlank() || dosage.isBlank() || frequency.isBlank() ->
+                            name.isBlank() || frequency.isBlank() ->
                                 errorMessage = "Please fill in all fields"
+                            mg == null || mg !in 1..10000 ->
+                                errorMessage = "Dosage must be a number in mg (1-10000)"
+                            amt == null || amt !in 1..20 ->
+                                errorMessage = "Amount must be a number of tablets (1-20)"
                             selectedDays.isEmpty() ->
                                 errorMessage = "Select at least one repeat day"
                             else -> {
+                                // TODO: this will also be uploaded to the SQL database
                                 val daysText = selectedDays.sorted().map { dayNames[it] }.joinToString(", ")
-                                medManager.add(name, dosage, frequency, time24, daysText)
+                                val med = medManager.add(
+                                    name,
+                                    "${mg}mg — ${amt} tablet",
+                                    frequency,
+                                    time24,
+                                    daysText
+                                )
+                                ReminderScheduler.scheduleNext(context, med) // 🔔 real phone notification
                                 onSaved()
                             }
                         }

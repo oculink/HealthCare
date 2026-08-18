@@ -63,6 +63,7 @@ fun RecordDataScreen(
     var temperature by remember { mutableStateOf("") }
     var oxygen by remember { mutableStateOf("") }
     var weight by remember { mutableStateOf("") }
+
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
     Column(modifier = Modifier.fillMaxSize().background(ScreenBackground)) {

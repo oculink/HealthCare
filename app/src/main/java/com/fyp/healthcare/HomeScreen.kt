@@ -377,11 +377,11 @@ private fun initials(name: String): String {
 }
 
 private fun statusColor(status: String?): Color = when (status) {
-    "Good" -> Color(0xFF2E9E6B)     // green
-    "Normal" -> Color(0xFF2A6DE1)   // blue
-    "Low" -> Color(0xFFFF9800)      // orange
-    "High" -> Color(0xFFE64A19)     // deep orange
-    "Critical" -> Color(0xFFD32F2F) // red
+    "Good" -> Color(0xFF2E9E6B)
+    "Normal" -> Color(0xFF2A6DE1)
+    "Low" -> Color(0xFFFF9800)
+    "High" -> Color(0xFFE64A19)
+    "Critical" -> Color(0xFFD32F2F)
     else -> LabelGray
 }
 

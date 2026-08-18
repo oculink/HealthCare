@@ -1,5 +1,8 @@
 package com.fyp.healthcare
 
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.result.contract.ActivityResultContracts
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -11,9 +14,17 @@ import androidx.navigation.compose.rememberNavController
 import com.fyp.healthcare.ui.theme.HealthCareTheme
 
 class MainActivity : ComponentActivity() {
+    private val notificationPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { /* if denied, reminders are scheduled but stay silent */ }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)
+            != PackageManager.PERMISSION_GRANTED
+        ) {
+            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
         setContent {
             HealthCareTheme {
                 val medManager = remember { MedicationManager(applicationContext) }
@@ -81,6 +92,7 @@ class MainActivity : ComponentActivity() {
                     }
 
                     // Reminders tab (middle button) = Medication list
+                    // Reminders tab = Medication list
                     composable("reminders") {
                         TabScaffold("reminders", switchTab) {
                             MedicationScreen(
@@ -90,7 +102,8 @@ class MainActivity : ComponentActivity() {
                             )
                         }
                     }
-// Medication quick action = same list
+
+// Medication quick action from Home = same medication list
                     composable("medication") {
                         TabScaffold("reminders", switchTab) {
                             MedicationScreen(
@@ -100,6 +113,7 @@ class MainActivity : ComponentActivity() {
                             )
                         }
                     }
+
                     composable("add_medication") {
                         AddMedicationScreen(
                             medManager = medManager,
@@ -111,6 +125,7 @@ class MainActivity : ComponentActivity() {
                             }
                         )
                     }
+
                     composable("medication_added") {
                         MedicationAddedScreen(
                             medManager = medManager,
@@ -150,7 +165,6 @@ class MainActivity : ComponentActivity() {
                             HealthTrendsScreen(onBackClick = { navController.popBackStack() })
                         }
                     }
-                    composable("medication") { BlankScreen("Medication") }
                     composable("emergency") { BlankScreen("Emergency") }
                 }
             }

@@ -4,7 +4,7 @@
     <selectionStates>
       <SelectionState runConfigName="app">
         <option name="selectionMode" value="DROPDOWN" />
-        <DropdownSelection timestamp="2026-08-11T13:27:54.822200959Z">
+        <DropdownSelection timestamp="2026-08-18T16:12:17.145548207Z">
           <Target type="DEFAULT_BOOT">
             <handle>
               <DeviceId pluginId="LocalEmulator" identifier="path=/home/oculink/.android/avd/Pixel_5.avd" />
