@@ -1,5 +1,6 @@
 package com.fyp.healthcare
 
+import com.fyp.healthcare.ui.theme.themed
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -59,11 +60,11 @@ import java.util.Date
 import java.util.Locale
 
 private val BrandBlue = Color(0xFF2A6DE1)
-private val CardWhite = Color(0xFFFFFFFF)
-private val ScreenBackground = Color(0xFFEFF1F6)
-private val TextDark = Color(0xFF1B1D23)
-private val LabelGray = Color(0xFF5F6673)
-private val TrackGray = Color(0xFFE5E8EE)
+private val CardWhite: Color @Composable get() = themed(Color(0xFFFFFFFF), Color(0xFF1C1D22))
+private val ScreenBackground: Color @Composable get() = themed(Color(0xFFEFF1F6), Color(0xFF121316))
+private val TextDark: Color @Composable get() = themed(Color(0xFF1B1D23), Color(0xFFE8E9EC))
+private val LabelGray: Color @Composable get() = themed(Color(0xFF5F6673), Color(0xFF9BA1AC))
+private val TrackGray: Color @Composable get() = themed(Color(0xFFE5E8EE), Color(0xFF2E3038))
 private val GoodGreen = Color(0xFF2E9E6B)
 private val AlertRed = Color(0xFFD32F2F)
 
@@ -289,6 +290,8 @@ private fun RadarActivityGauge(steps: Int?, goal: Int, modifier: Modifier = Modi
         label = "sweep",
     )
 
+    val trackColor = TrackGray   // hoist out of the DrawScope lambda (not composable)
+
     Box(modifier = modifier.size(196.dp), contentAlignment = Alignment.Center) {
         Canvas(Modifier.fillMaxSize()) {
             val stroke = 14.dp.toPx()
@@ -306,7 +309,7 @@ private fun RadarActivityGauge(steps: Int?, goal: Int, modifier: Modifier = Modi
             }
             // track
             drawCircle(
-                color = TrackGray,
+                color = trackColor,
                 radius = radius,
                 center = c,
                 style = Stroke(width = stroke, cap = StrokeCap.Round),

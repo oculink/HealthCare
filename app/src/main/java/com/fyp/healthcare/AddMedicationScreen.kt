@@ -1,5 +1,6 @@
 package com.fyp.healthcare
 
+import com.fyp.healthcare.ui.theme.themed
 import android.app.TimePickerDialog
 import android.text.format.DateFormat
 import androidx.compose.foundation.background
@@ -54,12 +55,12 @@ import androidx.compose.ui.unit.sp
 import java.util.Locale
 
 private val BrandBlue = Color(0xFF2A6DE1)
-private val CardWhite = Color(0xFFFFFFFF)
-private val ScreenBackground = Color(0xFFEFF1F6)
-private val FieldBackground = Color(0xFFEDEFF4)
-private val TextDark = Color(0xFF1B1D23)
-private val LabelGray = Color(0xFF5F6673)
-private val PlaceholderGray = Color(0xFFA6ACB8)
+private val CardWhite: Color @Composable get() = themed(Color(0xFFFFFFFF), Color(0xFF1C1D22))
+private val ScreenBackground: Color @Composable get() = themed(Color(0xFFEFF1F6), Color(0xFF121316))
+private val FieldBackground: Color @Composable get() = themed(Color(0xFFEDEFF4), Color(0xFF262730))
+private val TextDark: Color @Composable get() = themed(Color(0xFF1B1D23), Color(0xFFE8E9EC))
+private val LabelGray: Color @Composable get() = themed(Color(0xFF5F6673), Color(0xFF9BA1AC))
+private val PlaceholderGray: Color @Composable get() = themed(Color(0xFFA6ACB8), Color(0xFF6A7079))
 
 /**
  * Handles both "add" and "edit" — pass [editId] to load an existing medication.

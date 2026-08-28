@@ -21,15 +21,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.sp
+import com.fyp.healthcare.ui.theme.themed
 
 // Blank page for features that aren't built yet
 @Composable
 fun BlankScreen(title: String) {
     Box(
-        modifier = Modifier.fillMaxSize().background(Color(0xFFEFF1F6)),
+        modifier = Modifier.fillMaxSize().background(themed(Color(0xFFEFF1F6), Color(0xFF121316))),
         contentAlignment = Alignment.Center
     ) {
-        Text("$title — coming soon", color = Color.Gray, fontSize = 16.sp)
+        Text("$title — coming soon", color = themed(Color(0xFF8A8F98), Color(0xFF8A8F98)), fontSize = 16.sp)
     }
 }
 
@@ -44,7 +45,7 @@ fun BottomNavBar(currentRoute: String, onNavigate: (String) -> Unit) {
         Triple("profile", "Profile", Icons.Filled.Person)
     )
 
-    NavigationBar(containerColor = Color.White) {
+    NavigationBar(containerColor = themed(Color.White, Color(0xFF1C1D22))) {
         items.forEach { (route, label, icon: ImageVector) ->
             NavigationBarItem(
                 selected = currentRoute == route,

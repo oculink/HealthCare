@@ -1,5 +1,6 @@
 package com.fyp.healthcare
 
+import com.fyp.healthcare.ui.theme.themed
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -63,10 +64,10 @@ import java.util.Locale
 
 private val BrandBlue = Color(0xFF2A6DE1)
 private val BrandBlueDark = Color(0xFF1E50C8)
-private val CardWhite = Color(0xFFFFFFFF)
-private val ScreenBackground = Color(0xFFEFF1F6)
-private val TextDark = Color(0xFF1B1D23)
-private val LabelGray = Color(0xFF5F6673)
+private val CardWhite: Color @Composable get() = themed(Color(0xFFFFFFFF), Color(0xFF1C1D22))
+private val ScreenBackground: Color @Composable get() = themed(Color(0xFFEFF1F6), Color(0xFF121316))
+private val TextDark: Color @Composable get() = themed(Color(0xFF1B1D23), Color(0xFFE8E9EC))
+private val LabelGray: Color @Composable get() = themed(Color(0xFF5F6673), Color(0xFF9BA1AC))
 private val GoodGreen = Color(0xFF2E9E6B)
 private val BadRed = Color(0xFFD32F2F)
 
@@ -410,6 +411,7 @@ private fun StatusPill(state: DoseState, tint: Color) {
     }
 }
 
+@Composable
 private fun stateColor(state: DoseState): Color = when (state) {
     DoseState.TAKEN -> GoodGreen
     DoseState.MISSED -> BadRed

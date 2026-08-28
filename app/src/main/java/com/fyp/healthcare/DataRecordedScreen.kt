@@ -1,5 +1,6 @@
 package com.fyp.healthcare
 
+import com.fyp.healthcare.ui.theme.themed
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -30,11 +31,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 private val BrandBlue = Color(0xFF2A6DE1)
-private val BrandBlueLight = Color(0xFFCFE0FA)
-private val CardWhite = Color(0xFFFFFFFF)
-private val ScreenBackground = Color(0xFFEFF1F6)
-private val TextDark = Color(0xFF1B1D23)
-private val LabelGray = Color(0xFF5F6673)
+private val BrandBlueLight: Color @Composable get() = themed(Color(0xFFCFE0FA), Color(0xFF2A3A57))
+private val CardWhite: Color @Composable get() = themed(Color(0xFFFFFFFF), Color(0xFF1C1D22))
+private val ScreenBackground: Color @Composable get() = themed(Color(0xFFEFF1F6), Color(0xFF121316))
+private val TextDark: Color @Composable get() = themed(Color(0xFF1B1D23), Color(0xFFE8E9EC))
+private val LabelGray: Color @Composable get() = themed(Color(0xFF5F6673), Color(0xFF9BA1AC))
 private val SuccessGreen = Color(0xFF22B573)
 
 @Composable
