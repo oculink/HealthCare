@@ -12,7 +12,20 @@
           "package_name": "com.fyp.healthcare"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "199544011605-dff35fd9t0j8a7n89ef8ibjico5ov4bb.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.fyp.healthcare",
+            "certificate_hash": "e17963dfef0e4041dfd427e156384ed26089617f"
+          }
+        },
+        {
+          "client_id": "199544011605-ko0du9nrn6sfj9jtgmbe39e5fccnunqt.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyCUbYSPfpawq4SfNLWkqKx_r7PX7CkumoA"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "199544011605-ko0du9nrn6sfj9jtgmbe39e5fccnunqt.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
