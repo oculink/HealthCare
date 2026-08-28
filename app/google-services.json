@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "199544011605",
+    "project_id": "finalyearproject-f1e53",
+    "storage_bucket": "finalyearproject-f1e53.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:199544011605:android:ba6fbff375b604f1e34ddc",
+        "android_client_info": {
+          "package_name": "com.fyp.healthcare"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCUbYSPfpawq4SfNLWkqKx_r7PX7CkumoA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
