@@ -25,7 +25,6 @@ import androidx.compose.material.icons.filled.Bloodtype
 import androidx.compose.material.icons.filled.Cookie
 import androidx.compose.material.icons.filled.DeviceThermostat
 import androidx.compose.material.icons.filled.MonitorHeart
-import androidx.compose.material.icons.filled.MonitorWeight
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -71,7 +70,6 @@ fun RecordDataScreen(
     var heartRate by remember { mutableStateOf("") }
     var temperature by remember { mutableStateOf("") }
     var oxygen by remember { mutableStateOf("") }
-    var weight by remember { mutableStateOf("") }
 
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
@@ -121,7 +119,6 @@ fun RecordDataScreen(
             ReadingField(heartRate, { heartRate = it }, "Heart Rate", "e.g. 72 BPM", Icons.Filled.MonitorHeart, KeyboardType.Number)
             ReadingField(temperature, { temperature = it }, "Temperature", "e.g. 36.6 °C", Icons.Filled.DeviceThermostat, KeyboardType.Decimal)
             ReadingField(oxygen, { oxygen = it }, "Oxygen Level", "e.g. 98 %", Icons.Filled.Air, KeyboardType.Number)
-            ReadingField(weight, { weight = it }, "Weight", "e.g. 65 kg", Icons.Filled.MonitorWeight, KeyboardType.Decimal)
 
             errorMessage?.let {
                 Text(
@@ -162,16 +159,12 @@ fun RecordDataScreen(
                     if (temp == null || temp !in 30.0..45.0)
                         problems.add("Temperature must be a number between 30 and 45")
 
-                    val wt = weight.toDoubleOrNull()
-                    if (wt == null || wt !in 1.0..300.0)
-                        problems.add("Weight must be a number between 1 and 300")
-
                     if (problems.isNotEmpty()) {
                         errorMessage = problems.first()
                     } else {
                         healthData.saveReadings(
                             bloodPressure, bloodSugar, heartRate,
-                            temperature, oxygen, weight
+                            temperature, oxygen
                         )
                         onSaved()
                     }

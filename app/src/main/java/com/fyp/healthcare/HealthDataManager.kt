@@ -20,13 +20,14 @@ class HealthDataManager(context: Context) {
     private val prefs: SharedPreferences =
         context.getSharedPreferences("health_data", Context.MODE_PRIVATE)
 
+    // Weight is NOT recorded here — it's part of the health profile (set at onboarding,
+    // editable in Settings). The Record Data screen only takes point-in-time vitals.
     fun saveReadings(
         bloodPressure: String,
         bloodSugar: String,
         heartRate: String,
         temperature: String,
         oxygen: String,
-        weight: String
     ) {
         prefs.edit()
             .putString("blood_pressure", bloodPressure)
@@ -34,11 +35,10 @@ class HealthDataManager(context: Context) {
             .putString("heart_rate", heartRate)
             .putString("temperature", temperature)
             .putString("oxygen", oxygen)
-            .putString("weight", weight)
             .apply()
 
-        appendHistory(bloodPressure, bloodSugar, heartRate, temperature, oxygen, weight)
-        pushReading(bloodPressure, bloodSugar, heartRate, temperature, oxygen, weight)
+        appendHistory(bloodPressure, bloodSugar, heartRate, temperature, oxygen)
+        pushReading(bloodPressure, bloodSugar, heartRate, temperature, oxygen)
     }
 
     fun getBloodPressure(): String? = prefs.getString("blood_pressure", null)
@@ -46,7 +46,6 @@ class HealthDataManager(context: Context) {
     fun getHeartRate(): String? = prefs.getString("heart_rate", null)
     fun getTemperature(): String? = prefs.getString("temperature", null)
     fun getOxygen(): String? = prefs.getString("oxygen", null)
-    fun getWeight(): String? = prefs.getString("weight", null)
 
     // ---- local history ----
 
@@ -58,7 +57,6 @@ class HealthDataManager(context: Context) {
         val heartRate: String,
         val temperature: String,
         val oxygen: String,
-        val weight: String,
     ) {
         val heartRateBpm: Int? get() = heartRate.trim().toIntOrNull()
         val bloodSugarValue: Float? get() = bloodSugar.trim().toFloatOrNull()
@@ -69,7 +67,7 @@ class HealthDataManager(context: Context) {
 
     private fun appendHistory(
         bloodPressure: String, bloodSugar: String, heartRate: String,
-        temperature: String, oxygen: String, weight: String,
+        temperature: String, oxygen: String,
     ) {
         val arr = rawHistory()
         arr.put(
@@ -80,7 +78,6 @@ class HealthDataManager(context: Context) {
                 put("hr", heartRate)
                 put("temp", temperature)
                 put("ox", oxygen)
-                put("wt", weight)
             }
         )
         // keep the list bounded — a couple of years of daily readings is plenty
@@ -109,7 +106,6 @@ class HealthDataManager(context: Context) {
                     heartRate = o.optString("hr"),
                     temperature = o.optString("temp"),
                     oxygen = o.optString("ox"),
-                    weight = o.optString("wt"),
                 )
             )
         }
@@ -120,7 +116,7 @@ class HealthDataManager(context: Context) {
 
     private fun pushReading(
         bloodPressure: String, bloodSugar: String, heartRate: String,
-        temperature: String, oxygen: String, weight: String,
+        temperature: String, oxygen: String,
         countInCommunity: Boolean = true,
     ) {
         Cloud.userDoc?.collection("readings")?.add(
@@ -130,7 +126,6 @@ class HealthDataManager(context: Context) {
                 "heartRate" to heartRate,
                 "temperature" to temperature,
                 "oxygen" to oxygen,
-                "weight" to weight,
                 // serverTimestamp is authoritative once synced; clientTime is always present
                 // (even offline / before the server round-trip) so trends can sort/aggregate.
                 "recordedAt" to FieldValue.serverTimestamp(),
@@ -174,7 +169,6 @@ class HealthDataManager(context: Context) {
                 heartRate = d.getString("heartRate").orEmpty(),
                 temperature = d.getString("temperature").orEmpty(),
                 oxygen = d.getString("oxygen").orEmpty(),
-                weight = d.getString("weight").orEmpty(),
             )
         }.sortedBy { it.timestamp }
     }
@@ -183,7 +177,7 @@ class HealthDataManager(context: Context) {
     fun syncLatestToCloud() {
         val any = listOf(
             getBloodPressure(), getBloodSugar(), getHeartRate(),
-            getTemperature(), getOxygen(), getWeight(),
+            getTemperature(), getOxygen(),
         ).any { it != null }
         if (!any) return
         // Backlog only mirrors the latest snapshot — don't fold it into the community
@@ -191,7 +185,7 @@ class HealthDataManager(context: Context) {
         // one-off snapshot that shouldn't skew the average).
         pushReading(
             getBloodPressure().orEmpty(), getBloodSugar().orEmpty(), getHeartRate().orEmpty(),
-            getTemperature().orEmpty(), getOxygen().orEmpty(), getWeight().orEmpty(),
+            getTemperature().orEmpty(), getOxygen().orEmpty(),
             countInCommunity = false,
         )
     }
