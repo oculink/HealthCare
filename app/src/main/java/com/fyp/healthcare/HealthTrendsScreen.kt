@@ -12,13 +12,16 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.SwapVert
+import androidx.compose.material.icons.filled.Timeline
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -77,13 +80,13 @@ fun HealthTrendsScreen(onBackClick: () -> Unit) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .statusBarsPadding()
                 .background(BrandBlue)
+                .statusBarsPadding()
                 .height(56.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = onBackClick) {
-                Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
             }
             Text(
                 "Health Trends",
@@ -120,13 +123,24 @@ fun HealthTrendsScreen(onBackClick: () -> Unit) {
                     modifier = Modifier.weight(1f)
                 )
                 // TODO: later lets the user switch which metric the chart shows
-                Text(
-                    "⇅ Change",
-                    color = BrandBlue,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Medium,
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.clickable { /* TODO later */ }
-                )
+                ) {
+                    Icon(
+                        Icons.Filled.SwapVert,
+                        contentDescription = null,
+                        tint = BrandBlue,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    Text(
+                        "Change",
+                        color = BrandBlue,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
             }
 
             // Chart card — blank until SQL data arrives
@@ -146,7 +160,12 @@ fun HealthTrendsScreen(onBackClick: () -> Unit) {
                     contentAlignment = Alignment.Center
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("📈", fontSize = 28.sp) // TODO: replace with real line chart
+                        Icon(
+                            Icons.Filled.Timeline,
+                            contentDescription = null,
+                            tint = LabelGray,
+                            modifier = Modifier.size(32.dp)
+                        ) // TODO: replace with real line chart
                         Spacer(Modifier.height(6.dp))
                         Text(
                             "No trend data yet",

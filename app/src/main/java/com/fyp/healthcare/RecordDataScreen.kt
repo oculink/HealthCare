@@ -1,7 +1,7 @@
 package com.fyp.healthcare
 
-import androidx.compose.foundation.text.KeyboardOptions      // ✅ foundation.text
-import androidx.compose.ui.text.input.KeyboardType          // ✅ ui.text.input
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -18,7 +18,14 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Air
+import androidx.compose.material.icons.filled.Bloodtype
+import androidx.compose.material.icons.filled.Cookie
+import androidx.compose.material.icons.filled.DeviceThermostat
+import androidx.compose.material.icons.filled.MonitorHeart
+import androidx.compose.material.icons.filled.MonitorWeight
+import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -35,6 +42,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -72,13 +80,13 @@ fun RecordDataScreen(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .statusBarsPadding()
                 .background(BrandBlue)
+                .statusBarsPadding()
                 .height(56.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = onBackClick) {
-                Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
             }
             Text(
                 "Record Health Data",
@@ -107,12 +115,12 @@ fun RecordDataScreen(
             Text("All data is securely saved & analyzed", fontSize = 12.sp, color = LabelGray)
             Spacer(Modifier.height(20.dp))
 
-            ReadingField(bloodPressure, { bloodPressure = it }, "Blood Pressure", "e.g. 120/80 mmHg", "🩸", KeyboardType.Phone)
-            ReadingField(bloodSugar, { bloodSugar = it }, "Blood Sugar", "e.g. 95 mg/dL", "🍬", KeyboardType.Decimal)
-            ReadingField(heartRate, { heartRate = it }, "Heart Rate", "e.g. 72 BPM", "💚", KeyboardType.Number)
-            ReadingField(temperature, { temperature = it }, "Temperature", "e.g. 36.6 °C", "🌡️", KeyboardType.Decimal)
-            ReadingField(oxygen, { oxygen = it }, "Oxygen Level", "e.g. 98 %", "💙", KeyboardType.Number)
-            ReadingField(weight, { weight = it }, "Weight", "e.g. 65 kg", "⚖️", KeyboardType.Decimal)
+            ReadingField(bloodPressure, { bloodPressure = it }, "Blood Pressure", "e.g. 120/80 mmHg", Icons.Filled.Bloodtype, KeyboardType.Phone)
+            ReadingField(bloodSugar, { bloodSugar = it }, "Blood Sugar", "e.g. 95 mg/dL", Icons.Filled.Cookie, KeyboardType.Decimal)
+            ReadingField(heartRate, { heartRate = it }, "Heart Rate", "e.g. 72 BPM", Icons.Filled.MonitorHeart, KeyboardType.Number)
+            ReadingField(temperature, { temperature = it }, "Temperature", "e.g. 36.6 °C", Icons.Filled.DeviceThermostat, KeyboardType.Decimal)
+            ReadingField(oxygen, { oxygen = it }, "Oxygen Level", "e.g. 98 %", Icons.Filled.Air, KeyboardType.Number)
+            ReadingField(weight, { weight = it }, "Weight", "e.g. 65 kg", Icons.Filled.MonitorWeight, KeyboardType.Decimal)
 
             errorMessage?.let {
                 Text(
@@ -171,7 +179,9 @@ fun RecordDataScreen(
                 shape = RoundedCornerShape(14.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = BrandBlue)
             ) {
-                Text("💾  Save Readings", fontSize = 16.sp, color = Color.White)
+                Icon(Icons.Filled.Save, contentDescription = null, tint = Color.White)
+                Spacer(Modifier.width(8.dp))
+                Text("Save Readings", fontSize = 16.sp, color = Color.White)
             }
         }
     }
@@ -183,7 +193,7 @@ private fun ReadingField(
     onValueChange: (String) -> Unit,
     label: String,
     placeholder: String,
-    emoji: String, // TODO: replace with asset image later
+    icon: ImageVector,
     keyboardType: KeyboardType = KeyboardType.Text
 ) {
     Text(label, fontSize = 13.sp, fontWeight = FontWeight.Medium, color = LabelGray)
@@ -194,7 +204,7 @@ private fun ReadingField(
         modifier = Modifier.fillMaxWidth(),
         singleLine = true,
         placeholder = { Text(placeholder, color = PlaceholderGray) },
-        leadingIcon = { Text(emoji, fontSize = 16.sp, modifier = Modifier.padding(start = 12.dp)) },
+        leadingIcon = { Icon(icon, contentDescription = null, tint = LabelGray, modifier = Modifier.padding(start = 12.dp)) },
         keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
         shape = RoundedCornerShape(12.dp),
         colors = OutlinedTextFieldDefaults.colors(

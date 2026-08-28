@@ -10,12 +10,22 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.LocalPharmacy
+import androidx.compose.material.icons.filled.Medication
+import androidx.compose.material.icons.filled.Repeat
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -37,10 +47,11 @@ private val MedOrange = Color(0xFFF59E0B)
 @Composable
 fun MedicationAddedScreen(
     medManager: MedicationManager,
+    medId: Long,
     onAddAnother: () -> Unit,
     onBackToReminders: () -> Unit
 ) {
-    val med = medManager.getAll().lastOrNull()
+    val med = remember(medId) { medManager.get(medId) }
 
     Column(
         modifier = Modifier
@@ -61,7 +72,12 @@ fun MedicationAddedScreen(
                 modifier = Modifier.size(110.dp).clip(CircleShape).background(MedOrange),
                 contentAlignment = Alignment.Center
             ) {
-                Text("💊", fontSize = 44.sp) // TODO: replace with asset image
+                Icon(
+                    Icons.Filled.Medication,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(52.dp)
+                )
             }
         }
 
@@ -94,16 +110,22 @@ fun MedicationAddedScreen(
                 .background(CardWhite)
                 .padding(16.dp)
         ) {
-            Text(
-                "💊 ${med?.name ?: "--"} ${med?.dosage ?: ""}",
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold,
-                color = TextDark
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Filled.Medication, contentDescription = null, tint = TextDark, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(6.dp))
+                Text(
+                    med?.name ?: "--",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TextDark
+                )
+            }
             Spacer(Modifier.height(6.dp))
-            Text("⏰ Reminder: ${formatTime12(med?.time ?: "20:00")}", fontSize = 12.sp, color = LabelGray)
+            SummaryLine(Icons.Filled.LocalPharmacy, med?.dosageText ?: "--")
             Spacer(Modifier.height(4.dp))
-            Text("🔄 Repeat: ${med?.days ?: "--"}", fontSize = 12.sp, color = LabelGray)
+            SummaryLine(Icons.Filled.Schedule, "Reminder: ${med?.let { formatTime12(it.time) } ?: "--"}")
+            Spacer(Modifier.height(4.dp))
+            SummaryLine(Icons.Filled.Repeat, "Repeat: ${med?.let { daysLabel(it.days) } ?: "--"}")
             Spacer(Modifier.height(8.dp))
             Box(
                 modifier = Modifier
@@ -111,7 +133,11 @@ fun MedicationAddedScreen(
                     .background(GoodGreen.copy(alpha = 0.12f))
                     .padding(horizontal = 12.dp, vertical = 4.dp)
             ) {
-                Text("✓ Confirmed", fontSize = 10.sp, color = GoodGreen, fontWeight = FontWeight.Medium)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = GoodGreen, modifier = Modifier.size(12.dp))
+                    Spacer(Modifier.width(4.dp))
+                    Text("Confirmed", fontSize = 10.sp, color = GoodGreen, fontWeight = FontWeight.Medium)
+                }
             }
         }
 
@@ -136,5 +162,14 @@ fun MedicationAddedScreen(
         ) {
             Text("Back to Reminders", fontSize = 15.sp, fontWeight = FontWeight.Medium)
         }
+    }
+}
+
+@Composable
+private fun SummaryLine(icon: androidx.compose.ui.graphics.vector.ImageVector, text: String) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(icon, contentDescription = null, tint = LabelGray, modifier = Modifier.size(14.dp))
+        Spacer(Modifier.width(6.dp))
+        Text(text, fontSize = 12.sp, color = LabelGray)
     }
 }

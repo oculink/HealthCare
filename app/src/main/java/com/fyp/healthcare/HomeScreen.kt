@@ -21,14 +21,31 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.DirectionsWalk
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
+import androidx.compose.material.icons.filled.Air
+import androidx.compose.material.icons.filled.Bedtime
+import androidx.compose.material.icons.filled.Bloodtype
+import androidx.compose.material.icons.filled.EditNote
+import androidx.compose.material.icons.filled.Emergency
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.LocalFireDepartment
+import androidx.compose.material.icons.filled.Medication
+import androidx.compose.material.icons.filled.MonitorHeart
+import androidx.compose.material.icons.filled.WbCloudy
+import androidx.compose.material.icons.filled.WbSunny
+import androidx.compose.material.icons.filled.WbTwilight
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -107,14 +124,23 @@ fun HomeScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        "${greetingEmoji(part)}  Good $part,",
-                        color = Color.White.copy(alpha = 0.9f),
-                        fontSize = 13.sp
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            greetingIcon(part),
+                            contentDescription = null,
+                            tint = Color.White.copy(alpha = 0.9f),
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Spacer(Modifier.width(6.dp))
+                        Text(
+                            "Good $part,",
+                            color = Color.White.copy(alpha = 0.9f),
+                            fontSize = 13.sp
+                        )
+                    }
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        "$fullName 👋", // TODO: emoji will be replaced with asset image
+                        fullName,
                         color = Color.White,
                         fontSize = 22.sp,
                         fontWeight = FontWeight.Bold
@@ -155,8 +181,15 @@ fun HomeScreen(
                             .background(LabelGray)
                     )
                     Spacer(Modifier.width(10.dp))
+                    Icon(
+                        Icons.Filled.Info,
+                        contentDescription = null,
+                        tint = LabelGray,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(Modifier.width(6.dp))
                     Text(
-                        "⚠️ No health data yet — record your first readings",
+                        "No health data yet — record your first readings",
                         color = LabelGray,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Medium,
@@ -167,9 +200,9 @@ fun HomeScreen(
 
             // ===== Vitals cards (numbers/status are null for now) =====
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                VitalCard("💚", heartRate, "BPM", heartStatus, Color(0xFF2E9E6B), Modifier.weight(1f))
-                VitalCard("🩸", bloodPressure, "mmHg", bpStatus, Color(0xFFD32F2F), Modifier.weight(1f))
-                VitalCard("💙", oxygen, "%", oxygenStatus, Color(0xFF2A6DE1), Modifier.weight(1f))
+                VitalCard(Icons.Filled.MonitorHeart, heartRate, "BPM", heartStatus, Color(0xFF2E9E6B), Modifier.weight(1f))
+                VitalCard(Icons.Filled.Bloodtype, bloodPressure, "mmHg", bpStatus, Color(0xFFD32F2F), Modifier.weight(1f))
+                VitalCard(Icons.Filled.Air, oxygen, "%", oxygenStatus, Color(0xFF2A6DE1), Modifier.weight(1f))
             }
 
             // ===== Quick Actions =====
@@ -178,10 +211,10 @@ fun HomeScreen(
                 modifier = Modifier.height(IntrinsicSize.Max), // all cards match the tallest one
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                QuickActionCard("📊", "Record Data", Color(0xFF2A6DE1), Modifier.weight(1f)) { onNavigate("record_data") }
-                QuickActionCard("📈", "View Trends", Color(0xFF2E9E6B), Modifier.weight(1f)) { onNavigate("view_trends") }
-                QuickActionCard("💊", "Medication", Color(0xFFFF9800), Modifier.weight(1f)) { onNavigate("medication") }
-                QuickActionCard("🆘", "Emergency", Color(0xFFD32F2F), Modifier.weight(1f)) { onNavigate("emergency") }
+                QuickActionCard(Icons.Filled.EditNote, "Record Data", Color(0xFF2A6DE1), Modifier.weight(1f)) { onNavigate("record_data") }
+                QuickActionCard(Icons.AutoMirrored.Filled.TrendingUp, "View Trends", Color(0xFF2E9E6B), Modifier.weight(1f)) { onNavigate("view_trends") }
+                QuickActionCard(Icons.Filled.Medication, "Medication", Color(0xFFFF9800), Modifier.weight(1f)) { onNavigate("medication") }
+                QuickActionCard(Icons.Filled.Emergency, "Emergency", Color(0xFFD32F2F), Modifier.weight(1f)) { onNavigate("emergency") }
             }
 
             // ===== Today's Summary =====
@@ -193,11 +226,11 @@ fun HomeScreen(
                     .background(CardWhite)
                     .padding(horizontal = 20.dp)
             ) {
-                SummaryRow("👣", "Steps Walked", steps)
+                SummaryRow(Icons.AutoMirrored.Filled.DirectionsWalk, "Steps Walked", steps)
                 Box(Modifier.fillMaxWidth().height(1.dp).background(Color(0xFFE5E8EE)))
-                SummaryRow("🔥", "Calories", calories)
+                SummaryRow(Icons.Filled.LocalFireDepartment, "Calories", calories)
                 Box(Modifier.fillMaxWidth().height(1.dp).background(Color(0xFFE5E8EE)))
-                SummaryRow("🌙", "Sleep", sleep)
+                SummaryRow(Icons.Filled.Bedtime, "Sleep", sleep)
             }
 
             // ===== Family Caregiver (static placeholder for now) =====
@@ -255,7 +288,7 @@ fun HomeScreen(
 
 @Composable
 private fun VitalCard(
-    emoji: String,
+    icon: ImageVector,
     value: String?,
     unit: String,
     status: String?,
@@ -277,7 +310,7 @@ private fun VitalCard(
                 .background(tint.copy(alpha = 0.12f)),
             contentAlignment = Alignment.Center
         ) {
-            Text(emoji, fontSize = 18.sp) // TODO: replace with asset image
+            Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(20.dp))
         }
         Text(value ?: "--", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextDark)
         Text(unit, fontSize = 11.sp, color = LabelGray)
@@ -299,7 +332,7 @@ private fun VitalCard(
 
 @Composable
 private fun QuickActionCard(
-    emoji: String,
+    icon: ImageVector,
     label: String,
     tint: Color,
     modifier: Modifier = Modifier,
@@ -322,19 +355,19 @@ private fun QuickActionCard(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically) // ...and center content in it
         ) {
-            Text(emoji, fontSize = 22.sp) // TODO: replace with asset image
+            Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(24.dp))
             Text(label, fontSize = 11.sp, color = LabelGray, textAlign = TextAlign.Center)
         }
     }
 }
 
 @Composable
-private fun SummaryRow(emoji: String, label: String, value: String?) {
+private fun SummaryRow(icon: ImageVector, label: String, value: String?) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(emoji, fontSize = 16.sp) // TODO: replace with asset image
+        Icon(icon, contentDescription = null, tint = LabelGray, modifier = Modifier.size(18.dp))
         Spacer(Modifier.width(12.dp))
         Text(label, fontSize = 13.sp, color = LabelGray, modifier = Modifier.weight(1f))
         Text(value ?: "--", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = TextDark)
@@ -356,11 +389,11 @@ private fun dayPart(): String {
     }
 }
 
-private fun greetingEmoji(part: String): String = when (part) {
-    "Morning" -> "☀️"
-    "Afternoon" -> "🌤️"
-    "Evening" -> "🌇"
-    else -> "🌙"
+private fun greetingIcon(part: String): ImageVector = when (part) {
+    "Morning" -> Icons.Filled.WbSunny
+    "Afternoon" -> Icons.Filled.WbCloudy
+    "Evening" -> Icons.Filled.WbTwilight
+    else -> Icons.Filled.Bedtime
 }
 
 private fun todayDate(): String =

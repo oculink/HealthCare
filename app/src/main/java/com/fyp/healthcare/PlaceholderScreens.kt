@@ -4,6 +4,13 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.DirectionsRun
+import androidx.compose.material.icons.filled.Alarm
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.MonitorHeart
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
@@ -12,6 +19,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.sp
 
 // Blank page for features that aren't built yet
@@ -29,19 +37,19 @@ fun BlankScreen(title: String) {
 @Composable
 fun BottomNavBar(currentRoute: String, onNavigate: (String) -> Unit) {
     val items = listOf(
-        Triple("home", "Home", "🏠"),
-        Triple("health", "Health", "❤️"),
-        Triple("reminders", "Reminders", "⏰"),
-        Triple("activity", "Activity", "🏃"),
-        Triple("profile", "Profile", "👤")
+        Triple("home", "Home", Icons.Filled.Home),
+        Triple("health", "Health", Icons.Filled.MonitorHeart),
+        Triple("reminders", "Reminders", Icons.Filled.Alarm),
+        Triple("activity", "Activity", Icons.AutoMirrored.Filled.DirectionsRun),
+        Triple("profile", "Profile", Icons.Filled.Person)
     )
 
     NavigationBar(containerColor = Color.White) {
-        items.forEach { (route, label, emoji) ->
+        items.forEach { (route, label, icon: ImageVector) ->
             NavigationBarItem(
                 selected = currentRoute == route,
                 onClick = { onNavigate(route) },
-                icon = { Text(emoji, fontSize = 20.sp) },
+                icon = { Icon(icon, contentDescription = label) },
                 label = { Text(label, fontSize = 11.sp) }
             )
         }

@@ -1,6 +1,7 @@
 package com.fyp.healthcare
 
 import android.app.TimePickerDialog
+import android.text.format.DateFormat
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -19,9 +20,14 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Medication
+import androidx.compose.material.icons.filled.Numbers
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -38,13 +44,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import java.text.SimpleDateFormat
-import java.util.Calendar
 import java.util.Locale
 
 private val BrandBlue = Color(0xFF2A6DE1)
@@ -55,25 +61,29 @@ private val TextDark = Color(0xFF1B1D23)
 private val LabelGray = Color(0xFF5F6673)
 private val PlaceholderGray = Color(0xFFA6ACB8)
 
+/**
+ * Handles both "add" and "edit" — pass [editId] to load an existing medication.
+ */
 @Composable
 fun AddMedicationScreen(
     medManager: MedicationManager,
+    editId: Long?,
     onBackClick: () -> Unit,
-    onSaved: () -> Unit
+    onSaved: (Long) -> Unit,
 ) {
     val context = LocalContext.current
+    val editing = remember(editId) { editId?.let { medManager.get(it) } }
+    val isEdit = editing != null
 
-    var name by remember { mutableStateOf("") }
-    var dosageMg by remember { mutableStateOf("") }   // e.g. 500
-    var amount by remember { mutableStateOf("") }     // e.g. 1 tablet
-    var frequency by remember { mutableStateOf("") }
-    var time24 by remember { mutableStateOf("20:00") }
-    var timeDisplay by remember { mutableStateOf("8:00 PM") }
-    var selectedDays by remember { mutableStateOf(setOf(1, 2, 3, 4, 5)) } // Mon-Fri default
+    var name by remember { mutableStateOf(editing?.name ?: "") }
+    var dosageMg by remember { mutableStateOf(editing?.dosageMg?.takeIf { it > 0 }?.toString() ?: "") }
+    var amount by remember { mutableStateOf(editing?.amount?.takeIf { it > 0 }?.toString() ?: "") }
+    var time24 by remember { mutableStateOf(editing?.time ?: "20:00") }
+    var timeDisplay by remember { mutableStateOf(formatTime12(editing?.time ?: "20:00")) }
+    var selectedDays by remember { mutableStateOf(editing?.days ?: setOf(1, 2, 3, 4, 5)) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
     val dayLetters = listOf("S", "M", "T", "W", "T", "F", "S")
-    val dayNames = listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
 
     Column(modifier = Modifier.fillMaxSize().background(ScreenBackground)) {
 
@@ -84,18 +94,18 @@ fun AddMedicationScreen(
                 .background(BrandBlue)
                 .statusBarsPadding()
                 .height(56.dp),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             IconButton(onClick = onBackClick) {
-                Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
             }
             Text(
-                "Add Medication",
+                if (isEdit) "Edit Medication" else "Add Medication",
                 color = Color.White,
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center,
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
             )
             Spacer(Modifier.width(48.dp))
         }
@@ -105,24 +115,29 @@ fun AddMedicationScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp)
+                .padding(16.dp),
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(24.dp))
                     .background(CardWhite)
-                    .padding(20.dp)
+                    .padding(20.dp),
             ) {
                 Text("Medication Details", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = TextDark)
                 Spacer(Modifier.height(4.dp))
                 Text("Fill in the details for your reminder", fontSize = 12.sp, color = LabelGray)
                 Spacer(Modifier.height(20.dp))
 
-                MedField(name, { name = it }, "Medication Name", "e.g. Amlodipine", "💊")
-                MedField(dosageMg, { dosageMg = it }, "Dosage (mg)", "e.g. 500", "💊")
-                MedField(amount, { amount = it }, "Amount (tablet)", "e.g. 1", "🔢")
-                MedField(frequency, { frequency = it }, "Frequency", "e.g. Once daily", "🔄")
+                MedField(name, { name = it }, "Medication Name", "e.g. Amlodipine", Icons.Filled.Medication)
+                MedField(
+                    dosageMg, { dosageMg = it.filter(Char::isDigit) },
+                    "Dosage (mg)", "e.g. 500", Icons.Filled.Medication, KeyboardType.Number,
+                )
+                MedField(
+                    amount, { amount = it.filter(Char::isDigit) },
+                    "Amount per dose (tablets)", "e.g. 1", Icons.Filled.Numbers, KeyboardType.Number,
+                )
 
                 // ===== Reminder time (opens the phone's time picker) =====
                 Text("Reminder Time", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = LabelGray)
@@ -131,32 +146,27 @@ fun AddMedicationScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(16.dp))
-                        .background(CardWhite)
+                        .background(FieldBackground)
                         .clickable {
-                            val cal = Calendar.getInstance()
                             TimePickerDialog(
                                 context,
                                 { _, hour, minute ->
                                     time24 = String.format(Locale.getDefault(), "%02d:%02d", hour, minute)
-                                    val c = Calendar.getInstance().apply {
-                                        set(Calendar.HOUR_OF_DAY, hour)
-                                        set(Calendar.MINUTE, minute)
-                                    }
-                                    timeDisplay = SimpleDateFormat("h:mm a", Locale.getDefault()).format(c.time)
+                                    timeDisplay = formatTime12(time24)
                                 },
-                                cal.get(Calendar.HOUR_OF_DAY),
-                                cal.get(Calendar.MINUTE),
-                                false
+                                time24.substringBefore(":").toIntOrNull() ?: 20,
+                                time24.substringAfter(":").toIntOrNull() ?: 0,
+                                DateFormat.is24HourFormat(context),
                             ).show()
                         }
                         .padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Box(
                         modifier = Modifier.size(44.dp).clip(CircleShape).background(Color(0xFFFDEAEA)),
-                        contentAlignment = Alignment.Center
+                        contentAlignment = Alignment.Center,
                     ) {
-                        Text("⏰", fontSize = 20.sp)
+                        Icon(Icons.Filled.Schedule, contentDescription = null, tint = Color(0xFFD32F2F))
                     }
                     Spacer(Modifier.width(12.dp))
                     Column {
@@ -174,9 +184,9 @@ fun AddMedicationScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(16.dp))
-                        .background(CardWhite)
+                        .background(FieldBackground)
                         .padding(12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     dayLetters.forEachIndexed { index, letter ->
                         val selected = index in selectedDays
@@ -185,21 +195,24 @@ fun AddMedicationScreen(
                                 .weight(1f)
                                 .aspectRatio(1f)
                                 .clip(CircleShape)
-                                .background(if (selected) BrandBlue else FieldBackground)
+                                .background(if (selected) BrandBlue else CardWhite)
                                 .clickable {
-                                    selectedDays = if (selected) selectedDays - index else selectedDays + index
+                                    selectedDays =
+                                        if (selected) selectedDays - index else selectedDays + index
                                 },
-                            contentAlignment = Alignment.Center
+                            contentAlignment = Alignment.Center,
                         ) {
                             Text(
                                 letter,
                                 color = if (selected) Color.White else LabelGray,
                                 fontSize = 13.sp,
-                                fontWeight = FontWeight.Bold
+                                fontWeight = FontWeight.Bold,
                             )
                         }
                     }
                 }
+                Spacer(Modifier.height(6.dp))
+                Text(daysLabel(selectedDays), fontSize = 11.sp, color = LabelGray)
                 Spacer(Modifier.height(16.dp))
 
                 errorMessage?.let {
@@ -208,45 +221,49 @@ fun AddMedicationScreen(
                         color = Color(0xFFD32F2F),
                         fontSize = 13.sp,
                         modifier = Modifier.fillMaxWidth(),
-                        textAlign = TextAlign.Center
+                        textAlign = TextAlign.Center,
                     )
                     Spacer(Modifier.height(8.dp))
                 }
 
                 Button(
                     onClick = {
-                        // TODO: this medication will also be uploaded to the SQL database
                         val mg = dosageMg.toIntOrNull()
                         val amt = amount.toIntOrNull()
-                        when {
-                            name.isBlank() || frequency.isBlank() ->
-                                errorMessage = "Please fill in all fields"
-                            mg == null || mg !in 1..10000 ->
-                                errorMessage = "Dosage must be a number in mg (1-10000)"
-                            amt == null || amt !in 1..20 ->
-                                errorMessage = "Amount must be a number of tablets (1-20)"
-                            selectedDays.isEmpty() ->
-                                errorMessage = "Select at least one repeat day"
-                            else -> {
-                                // TODO: this will also be uploaded to the SQL database
-                                val daysText = selectedDays.sorted().map { dayNames[it] }.joinToString(", ")
-                                val med = medManager.add(
-                                    name,
-                                    "${mg}mg — ${amt} tablet",
-                                    frequency,
-                                    time24,
-                                    daysText
-                                )
-                                ReminderScheduler.scheduleNext(context, med) // 🔔 real phone notification
-                                onSaved()
-                            }
+                        errorMessage = when {
+                            name.isBlank() -> "Enter a medication name"
+                            mg == null || mg !in 1..10_000 -> "Dosage must be 1–10000 mg"
+                            amt == null || amt !in 1..20 -> "Amount must be 1–20 tablets"
+                            selectedDays.isEmpty() -> "Pick at least one repeat day"
+                            else -> null
                         }
+                        if (errorMessage != null) return@Button
+
+                        val saved = if (isEdit) {
+                            editing!!.copy(
+                                name = name,
+                                dosageMg = mg!!,
+                                amount = amt!!,
+                                time = time24,
+                                days = selectedDays,
+                            ).also { medManager.update(it) }
+                        } else {
+                            medManager.add(name, mg!!, amt!!, time24, selectedDays)
+                        }
+                        ReminderScheduler.scheduleNext(context, saved)
+                        onSaved(saved.id)
                     },
                     modifier = Modifier.fillMaxWidth().height(52.dp),
                     shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = BrandBlue)
+                    colors = ButtonDefaults.buttonColors(containerColor = BrandBlue),
                 ) {
-                    Text("💊  Save Medication", fontSize = 16.sp, color = Color.White)
+                    Icon(Icons.Filled.Check, contentDescription = null, tint = Color.White)
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        if (isEdit) "Save Changes" else "Save Medication",
+                        fontSize = 16.sp,
+                        color = Color.White,
+                    )
                 }
             }
         }
@@ -259,7 +276,8 @@ private fun MedField(
     onValueChange: (String) -> Unit,
     label: String,
     placeholder: String,
-    emoji: String // TODO: replace with asset image later
+    icon: ImageVector,
+    keyboardType: KeyboardType = KeyboardType.Text,
 ) {
     Text(label, fontSize = 13.sp, fontWeight = FontWeight.Medium, color = LabelGray)
     Spacer(Modifier.height(6.dp))
@@ -269,14 +287,15 @@ private fun MedField(
         modifier = Modifier.fillMaxWidth(),
         singleLine = true,
         placeholder = { Text(placeholder, color = PlaceholderGray) },
-        leadingIcon = { Text(emoji, fontSize = 16.sp, modifier = Modifier.padding(start = 12.dp)) },
+        leadingIcon = { Icon(icon, contentDescription = null, tint = LabelGray, modifier = Modifier.padding(start = 12.dp)) },
+        keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
         shape = RoundedCornerShape(12.dp),
         colors = OutlinedTextFieldDefaults.colors(
             focusedContainerColor = FieldBackground,
             unfocusedContainerColor = FieldBackground,
             focusedBorderColor = Color.Transparent,
-            unfocusedBorderColor = Color.Transparent
-        )
+            unfocusedBorderColor = Color.Transparent,
+        ),
     )
     Spacer(Modifier.height(14.dp))
 }
