@@ -2,6 +2,7 @@ package com.fyp.healthcare
 
 import android.content.Context
 import android.content.SharedPreferences
+import com.google.firebase.firestore.FieldValue
 import org.json.JSONArray
 import org.json.JSONObject
 import java.text.SimpleDateFormat
@@ -104,14 +105,20 @@ class MedicationManager(context: Context) {
     fun add(name: String, dosageMg: Int, amount: Int, time: String, days: Set<Int>): Medication {
         val med = Medication(newId(), name.trim(), dosageMg, amount, time, days)
         save(load() + med)
+        pushMed(med)
         return med
     }
 
     fun update(med: Medication) {
-        save(load().map { if (it.id == med.id) med.copy(name = med.name.trim()) else it })
+        val fixed = med.copy(name = med.name.trim())
+        save(load().map { if (it.id == fixed.id) fixed else it })
+        pushMed(fixed)
     }
 
-    fun delete(id: Long) = save(load().filterNot { it.id == id })
+    fun delete(id: Long) {
+        save(load().filterNot { it.id == id })
+        Cloud.userDoc?.collection("medications")?.document(id.toString())?.delete()
+    }
 
     /** action = "taken" | "missed" | null (null = clear the entry, i.e. "undo"). */
     fun logStatus(id: Long, action: String?, date: String = dateKey()) {
@@ -121,6 +128,24 @@ class MedicationManager(context: Context) {
                 if (action == null) remove(date) else put(date, action)
             })
         })
+        get(id)?.let { pushMed(it) }
+    }
+
+    fun syncAllToCloud() = load().forEach { pushMed(it) }
+
+    private fun pushMed(m: Medication) {
+        Cloud.userDoc?.collection("medications")?.document(m.id.toString())?.set(
+            mapOf(
+                "id" to m.id,
+                "name" to m.name,
+                "dosageMg" to m.dosageMg,
+                "amount" to m.amount,
+                "time" to m.time,
+                "days" to m.days.sorted(),
+                "log" to m.log,
+                "updatedAt" to FieldValue.serverTimestamp(),
+            )
+        )
     }
 
     private fun newId(): Long {

@@ -1,6 +1,7 @@
 package com.fyp.healthcare
 
 import android.content.Context
+import com.google.firebase.firestore.SetOptions
 
 /**
  * Data for the Activity Monitoring screen.
@@ -34,8 +35,15 @@ class ActivityDataManager(context: Context) {
 
     fun stepGoal(): Int = prefs.getInt(KEY_GOAL, DEFAULT_STEP_GOAL)
 
-    fun setStepGoal(goal: Int) =
+    fun setStepGoal(goal: Int) {
         prefs.edit().putInt(KEY_GOAL, goal.coerceIn(1_000, 50_000)).apply()
+        syncToCloud()
+    }
+
+    /** Mirror the step goal onto users/{uid}. */
+    fun syncToCloud() {
+        Cloud.userDoc?.set(mapOf("stepGoal" to stepGoal()), SetOptions.merge())
+    }
 
     // ---------- from the mmWave radar (null until connected) ----------
 
