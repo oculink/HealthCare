@@ -25,6 +25,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.fyp.healthcare.ui.theme.AppTheme
 import com.fyp.healthcare.ui.theme.HealthCareTheme
 
 class MainActivity : ComponentActivity() {
@@ -33,6 +34,7 @@ class MainActivity : ComponentActivity() {
     ) { /* if denied, reminders are scheduled but stay silent */ }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        AppTheme.init(applicationContext)
         // Edge-to-edge with light (white) status-bar icons on every API level, since the top
         // of every screen sits on the brand-blue header / backdrop.
         enableEdgeToEdge(
@@ -44,9 +46,12 @@ class MainActivity : ComponentActivity() {
             notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
         if (savedInstanceState == null) {
-            // re-arm every medication reminder in case the app was force-stopped
-            // or a dose time slipped past while it was closed
-            Thread { ReminderScheduler.syncAll(applicationContext) }.start()
+            Thread {
+                // re-arm every medication reminder in case the app was force-stopped
+                ReminderScheduler.syncAll(applicationContext)
+                // push any data saved before cloud sync / while offline (runs once per account)
+                Cloud.pushBacklog(applicationContext)
+            }.start()
         }
         setContent {
             HealthCareTheme {
@@ -54,10 +59,12 @@ class MainActivity : ComponentActivity() {
                 val userManager = remember { UserManager(applicationContext) }
                 val healthData = remember { HealthDataManager(applicationContext) }
                 val activityData = remember { ActivityDataManager(applicationContext) }
+                val profileManager = remember { ProfileManager(applicationContext) }
                 val navController = rememberNavController()
 
-                val startDestination =
-                    if (userManager.getLoggedInUser() != null) "home" else "login"
+                // where to land once authenticated: onboarding until the profile is filled in
+                val afterAuth = { if (profileManager.isOnboarded()) "home" else "onboarding" }
+                val startDestination = if (userManager.isSignedIn()) afterAuth() else "signin"
 
                 val switchTab: (String) -> Unit = { route ->
                     navController.navigate(route) {
@@ -75,26 +82,28 @@ class MainActivity : ComponentActivity() {
                 NavHost(navController = navController, startDestination = startDestination) {
 
                     // ===== Auth =====
-                    composable("login") {
-                        LoginScreen(
+                    composable("signin") {
+                        SignInScreen(
                             userManager = userManager,
-                            onLoginSuccess = {
-                                navController.navigate("home") {
-                                    popUpTo("login") { inclusive = true }
+                            onSignedIn = {
+                                Thread { Cloud.pushBacklog(applicationContext) }.start()
+                                navController.navigate(afterAuth()) {
+                                    popUpTo("signin") { inclusive = true }
                                 }
                             },
-                            onRegisterClick = { navController.navigate("register") }
                         )
                     }
-                    composable("register") {
-                        RegisterScreen(
+                    composable("onboarding") {
+                        EditProfileScreen(
                             userManager = userManager,
-                            onRegisterSuccess = {
+                            profileManager = profileManager,
+                            firstRun = true,
+                            onBackClick = {},
+                            onSaved = {
                                 navController.navigate("home") {
-                                    popUpTo("login") { inclusive = true }
+                                    popUpTo("onboarding") { inclusive = true }
                                 }
                             },
-                            onSignInClick = { navController.popBackStack() }
                         )
                     }
 
@@ -103,20 +112,18 @@ class MainActivity : ComponentActivity() {
                         TabScaffold("home", switchTab) {
                             HomeScreen(
                                 userManager = userManager,
+                                profileManager = profileManager,
                                 healthData = healthData,
-                                onLogoutClick = {
-                                    userManager.clearSession()
-                                    navController.navigate("login") {
-                                        popUpTo("home") { inclusive = true }
-                                    }
-                                },
                                 onNavigate = { navController.navigate(it) }
                             )
                         }
                     }
                     composable("health") {
                         TabScaffold("health", switchTab) {
-                            HealthTrendsScreen(onBackClick = { navController.popBackStack() })
+                            HealthTrendsScreen(
+                                healthData = healthData,
+                                onBackClick = { navController.popBackStack() },
+                            )
                         }
                     }
 
@@ -182,7 +189,32 @@ class MainActivity : ComponentActivity() {
                             )
                         }
                     }
-                    composable("profile") { TabScaffold("profile", switchTab) { BlankScreen("Profile") } }
+                    composable("profile") {
+                        TabScaffold("profile", switchTab) {
+                            ProfileScreen(
+                                userManager = userManager,
+                                profileManager = profileManager,
+                                activity = activityData,
+                                onEditProfile = { navController.navigate("edit_profile") },
+                                onSignOut = {
+                                    userManager.signOut(applicationContext)
+                                    navController.navigate("signin") {
+                                        popUpTo("home") { inclusive = true }
+                                    }
+                                },
+                                onBackClick = { navController.popBackStack() },
+                            )
+                        }
+                    }
+                    composable("edit_profile") {
+                        EditProfileScreen(
+                            userManager = userManager,
+                            profileManager = profileManager,
+                            firstRun = false,
+                            onBackClick = { navController.popBackStack() },
+                            onSaved = { navController.popBackStack() },
+                        )
+                    }
 
                     // ===== Record Data flow =====
                     composable("record_data") {
@@ -206,7 +238,10 @@ class MainActivity : ComponentActivity() {
                     // ===== Other quick actions (blank for now) =====
                     composable("view_trends") {
                         TabScaffold("health", switchTab) {
-                            HealthTrendsScreen(onBackClick = { navController.popBackStack() })
+                            HealthTrendsScreen(
+                                healthData = healthData,
+                                onBackClick = { navController.popBackStack() },
+                            )
                         }
                     }
                     composable("emergency") { BlankScreen("Emergency") }
