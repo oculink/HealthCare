@@ -1,5 +1,6 @@
 package com.fyp.healthcare
 
+import com.fyp.healthcare.ui.theme.themed
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.background
@@ -57,28 +58,28 @@ import java.util.Locale
 
 private val BrandBlue = Color(0xFF2A6DE1)
 private val BrandBlueDark = Color(0xFF1E50C8)
-private val CardWhite = Color(0xFFFFFFFF)
-private val ScreenBackground = Color(0xFFEFF1F6)
-private val TextDark = Color(0xFF1B1D23)
-private val LabelGray = Color(0xFF5F6673)
+private val CardWhite: Color @Composable get() = themed(Color(0xFFFFFFFF), Color(0xFF1C1D22))
+private val ScreenBackground: Color @Composable get() = themed(Color(0xFFEFF1F6), Color(0xFF121316))
+private val TextDark: Color @Composable get() = themed(Color(0xFF1B1D23), Color(0xFFE8E9EC))
+private val LabelGray: Color @Composable get() = themed(Color(0xFF5F6673), Color(0xFF9BA1AC))
 
 /**
  * FUTURE ROADMAP (HOME):
  * - Will replace emojis into images/icons (asset images) in the future.
  * - VitalStatus ranges are simplified adult averages — verify/cite medical sources later.
- * - Logout button on top middle is for TESTING — keep it until proper session handling exists.
+ * - Tapping the blue header card opens the Profile page (sign out lives there now).
  */
 
 @Composable
 fun HomeScreen(
     userManager: UserManager,
+    profileManager: ProfileManager,
     healthData: HealthDataManager,
-    onLogoutClick: () -> Unit,
     onNavigate: (String) -> Unit
 ) {
-    // Name comes from the sign up page
-    val fullName = userManager.getLoggedInUser()
-        ?.let { userManager.getFullName(it) } ?: "Guest"
+    // Preferred name from onboarding, falling back to the Google account name
+    val fullName = profileManager.get().name
+        .ifBlank { userManager.currentAccount()?.name ?: "there" }
 
     // TODO: replace with real data later.
     // This null state will also be reused for the offline state later.
@@ -114,11 +115,12 @@ fun HomeScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
 
-            // ===== Header card =====
+            // ===== Header card (tap -> Profile) =====
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(20.dp))
+                    .clickable { onNavigate("profile") }
                     .background(BrandBlue)
                     .padding(20.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -152,16 +154,13 @@ fun HomeScreen(
                         fontSize = 12.sp
                     )
                 }
-                // Avatar with initials of the name
-                Box(
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(CircleShape)
-                        .background(BrandBlueDark),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(initials(fullName), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                }
+                // Google account photo, falling back to the name initials
+                AccountAvatar(
+                    photoUrl = userManager.currentAccount()?.photoUrl,
+                    initials = initials(fullName),
+                    size = 48.dp,
+                    background = BrandBlueDark,
+                )
             }
 
             // ===== Alert banner (only shows while there is no data yet) =====
@@ -266,20 +265,6 @@ fun HomeScreen(
                     Text("View", fontSize = 12.sp)
                 }
             }
-        }
-
-        // ===== Logout button — KEEP on top middle for testing =====
-        Button(
-            onClick = onLogoutClick,
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .statusBarsPadding()
-                .padding(top = 4.dp),
-            shape = RoundedCornerShape(10.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE53935)),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp)
-        ) {
-            Text("Logout", fontSize = 11.sp, color = Color.White)
         }
     }
 }
@@ -409,6 +394,7 @@ private fun initials(name: String): String {
     }
 }
 
+@Composable
 private fun statusColor(status: String?): Color = when (status) {
     "Good" -> Color(0xFF2E9E6B)
     "Normal" -> Color(0xFF2A6DE1)
