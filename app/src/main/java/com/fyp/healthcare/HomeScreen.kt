@@ -4,11 +4,11 @@ import com.fyp.healthcare.ui.theme.themed
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -37,8 +37,6 @@ import androidx.compose.material.icons.filled.MonitorHeart
 import androidx.compose.material.icons.filled.WbCloudy
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material.icons.filled.WbTwilight
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -62,6 +60,7 @@ private val CardWhite: Color @Composable get() = themed(Color(0xFFFFFFFF), Color
 private val ScreenBackground: Color @Composable get() = themed(Color(0xFFEFF1F6), Color(0xFF121316))
 private val TextDark: Color @Composable get() = themed(Color(0xFF1B1D23), Color(0xFFE8E9EC))
 private val LabelGray: Color @Composable get() = themed(Color(0xFF5F6673), Color(0xFF9BA1AC))
+private val HairlineBorder: Color @Composable get() = themed(Color(0xFFE7EAF0), Color(0xFF2A2C33))
 
 /**
  * FUTURE ROADMAP (HOME):
@@ -208,7 +207,7 @@ fun HomeScreen(
             Text("Quick Actions", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextDark)
             Row(
                 modifier = Modifier.height(IntrinsicSize.Max), // all cards match the tallest one
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 QuickActionCard(Icons.Filled.EditNote, "Record Data", Color(0xFF2A6DE1), Modifier.weight(1f)) { onNavigate("record_data") }
                 QuickActionCard(Icons.AutoMirrored.Filled.TrendingUp, "View Trends", Color(0xFF2E9E6B), Modifier.weight(1f)) { onNavigate("view_trends") }
@@ -232,39 +231,7 @@ fun HomeScreen(
                 SummaryRow(Icons.Filled.Bedtime, "Sleep", sleep)
             }
 
-            // ===== Family Caregiver (static placeholder for now) =====
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(CardWhite)
-                    .padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(
-                    modifier = Modifier.size(44.dp).clip(CircleShape).background(Color(0xFFDCE7FB)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text("FA", color = BrandBlue, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                }
-                Spacer(Modifier.width(12.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text("Family Caregiver", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = TextDark)
-                    Spacer(Modifier.height(2.dp))
-                    Text("● Monitoring Active", fontSize = 12.sp, color = Color(0xFF2E9E6B)) // TODO: real status later
-                }
-                Button(
-                    onClick = { /* TODO */ },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFFDCE7FB),
-                        contentColor = BrandBlue
-                    ),
-                    shape = RoundedCornerShape(10.dp),
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp)
-                ) {
-                    Text("View", fontSize = 12.sp)
-                }
-            }
+            // Family Caregiver card removed for now — a new design is planned for it.
         }
     }
 }
@@ -326,23 +293,32 @@ private fun QuickActionCard(
     Column(
         modifier = modifier
             .fillMaxHeight() // stretch to the Row's max height
-            .clip(RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(18.dp))
             .background(CardWhite)
-            .clickable { onClick() },
-        horizontalAlignment = Alignment.CenterHorizontally
+            .border(1.dp, HairlineBorder, RoundedCornerShape(18.dp))
+            .clickable { onClick() }
+            .padding(vertical = 16.dp, horizontal = 6.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterVertically)
     ) {
-        Box(Modifier.fillMaxWidth().height(4.dp).background(tint))
-        Column(
+        // Rounded "squircle" badge holds the icon in its own accent colour
+        Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f) // fill leftover space...
-                .padding(12.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically) // ...and center content in it
+                .size(46.dp)
+                .clip(RoundedCornerShape(15.dp))
+                .background(tint.copy(alpha = 0.14f)),
+            contentAlignment = Alignment.Center
         ) {
-            Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(24.dp))
-            Text(label, fontSize = 11.sp, color = LabelGray, textAlign = TextAlign.Center)
+            Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(23.dp))
         }
+        Text(
+            label,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = TextDark,
+            textAlign = TextAlign.Center,
+            lineHeight = 13.sp
+        )
     }
 }
 
