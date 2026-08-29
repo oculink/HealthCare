@@ -3,6 +3,8 @@ package com.fyp.healthcare
 import android.content.Context
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.SetOptions
+import org.json.JSONArray
+import org.json.JSONObject
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -15,6 +17,15 @@ import java.util.Locale
  *
  * TODO (FUTURE - SQL): sync to the account so the caregiver can see it too.
  */
+/** One person to call in an emergency. Shown on the Emergency Profile screen. */
+data class EmergencyContact(
+    val name: String = "",
+    val relation: String = "",   // "Wife", "Son", "Doctor", ...
+    val phone: String = "",
+) {
+    val isBlank: Boolean get() = name.isBlank() && phone.isBlank()
+}
+
 data class HealthProfile(
     val name: String = "",
     val bloodType: String = "",
@@ -22,6 +33,9 @@ data class HealthProfile(
     val weightKg: String = "",
     val birthDate: String = "",     // ISO "yyyy-MM-dd"
     val sex: String = "",           // "" | "Male" | "Female" | "Other"
+    val allergies: List<String> = emptyList(),       // e.g. ["Penicillin", "Seafood"]
+    val conditions: List<String> = emptyList(),      // e.g. ["Diabetic", "Hypertension"]
+    val emergencyContacts: List<EmergencyContact> = emptyList(),
 ) {
     /** Age in whole years, or null if the birth date isn't set / valid. */
     val age: Int?
@@ -70,9 +84,15 @@ class ProfileManager(context: Context) {
         weightKg = prefs.getString(K_WEIGHT, "").orEmpty(),
         birthDate = prefs.getString(K_BIRTH, "").orEmpty(),
         sex = prefs.getString(K_SEX, "").orEmpty(),
+        allergies = splitTags(prefs.getString(K_ALLERGIES, "").orEmpty()),
+        conditions = splitTags(prefs.getString(K_CONDITIONS, "").orEmpty()),
+        emergencyContacts = parseContacts(prefs.getString(K_CONTACTS, "").orEmpty()),
     )
 
     fun save(p: HealthProfile) {
+        val contacts = p.emergencyContacts
+            .map { EmergencyContact(it.name.trim(), it.relation.trim(), it.phone.trim()) }
+            .filterNot { it.isBlank }
         prefs.edit()
             .putString(K_NAME, p.name.trim())
             .putString(K_BLOOD, p.bloodType.trim())
@@ -80,8 +100,11 @@ class ProfileManager(context: Context) {
             .putString(K_WEIGHT, p.weightKg.trim())
             .putString(K_BIRTH, p.birthDate.trim())
             .putString(K_SEX, p.sex.trim())
+            .putString(K_ALLERGIES, joinTags(p.allergies))
+            .putString(K_CONDITIONS, joinTags(p.conditions))
+            .putString(K_CONTACTS, serializeContacts(contacts))
             .apply()
-        syncToCloud(p)
+        syncToCloud(p.copy(emergencyContacts = contacts))
     }
 
     /** Mirror the profile fields onto users/{uid}. */
@@ -94,6 +117,11 @@ class ProfileManager(context: Context) {
                 "heightCm" to p.heightCm.trim(),
                 "weightKg" to p.weightKg.trim(),
                 "bloodType" to p.bloodType.trim(),
+                "allergies" to p.allergies,
+                "conditions" to p.conditions,
+                "emergencyContacts" to p.emergencyContacts.map {
+                    mapOf("name" to it.name, "relation" to it.relation, "phone" to it.phone)
+                },
                 "profileUpdatedAt" to FieldValue.serverTimestamp(),
             ),
             SetOptions.merge(),
@@ -107,8 +135,45 @@ class ProfileManager(context: Context) {
         const val K_WEIGHT = "weight_kg"
         const val K_BIRTH = "birth_date"
         const val K_SEX = "sex"
+        const val K_ALLERGIES = "allergies"
+        const val K_CONDITIONS = "conditions"
+        const val K_CONTACTS = "emergency_contacts_v1"
     }
 }
+
+// ----- tag lists (allergies / conditions) are stored as one comma-separated string -----
+
+fun splitTags(raw: String): List<String> =
+    raw.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+
+fun joinTags(tags: List<String>): String =
+    tags.map { it.trim() }.filter { it.isNotEmpty() }.joinToString(", ")
+
+// ----- emergency contacts are stored as a small JSON array -----
+
+private fun serializeContacts(contacts: List<EmergencyContact>): String {
+    val arr = JSONArray()
+    contacts.forEach { c ->
+        arr.put(JSONObject().apply {
+            put("name", c.name)
+            put("relation", c.relation)
+            put("phone", c.phone)
+        })
+    }
+    return arr.toString()
+}
+
+private fun parseContacts(raw: String): List<EmergencyContact> = runCatching {
+    val arr = JSONArray(raw.ifBlank { "[]" })
+    (0 until arr.length()).map { i ->
+        val o = arr.getJSONObject(i)
+        EmergencyContact(
+            name = o.optString("name"),
+            relation = o.optString("relation"),
+            phone = o.optString("phone"),
+        )
+    }
+}.getOrDefault(emptyList())
 
 /** "Ahmad Rizal Hassan" -> "AR" */
 fun profileInitials(name: String): String {

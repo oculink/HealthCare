@@ -186,7 +186,7 @@ fun ProfileScreen(
                 }
             }
 
-            // ===== Emergency contacts (placeholder) =====
+            // ===== Emergency contacts =====
             SectionLabel("Emergency Contacts")
             Column(
                 modifier = Modifier
@@ -198,10 +198,28 @@ fun ProfileScreen(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     IconCircle(Icons.Filled.ContactPhone, BrandBlue)
                     Spacer(Modifier.width(12.dp))
-                    Column {
-                        Text("No contacts added", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = TextDark)
-                        Spacer(Modifier.height(2.dp))
-                        Text("Add people to call in an emergency — coming soon", fontSize = 12.sp, color = LabelGray)
+                    Column(modifier = Modifier.weight(1f)) {
+                        val contacts = profile.emergencyContacts
+                        if (contacts.isEmpty()) {
+                            Text("No contacts added", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = TextDark)
+                            Spacer(Modifier.height(2.dp))
+                            Text("Add people to call in an emergency", fontSize = 12.sp, color = LabelGray)
+                        } else {
+                            Text(
+                                "${contacts.size} contact${if (contacts.size == 1) "" else "s"}",
+                                fontSize = 14.sp, fontWeight = FontWeight.Bold, color = TextDark,
+                            )
+                            Spacer(Modifier.height(2.dp))
+                            Text(
+                                contacts.joinToString(", ") { it.name.ifBlank { it.relation } },
+                                fontSize = 12.sp, color = LabelGray,
+                            )
+                        }
+                    }
+                    TextButton(onClick = onEditProfile) {
+                        Icon(Icons.Filled.Edit, contentDescription = null, tint = BrandBlue, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text(if (profile.emergencyContacts.isEmpty()) "Add" else "Edit", fontSize = 13.sp, color = BrandBlue, fontWeight = FontWeight.Bold)
                     }
                 }
             }

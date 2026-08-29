@@ -23,9 +23,11 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -36,6 +38,7 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -86,6 +89,9 @@ fun EditProfileScreen(
     var bloodType by remember { mutableStateOf(existing.bloodType) }
     var heightCm by remember { mutableStateOf(existing.heightCm) }
     var weightKg by remember { mutableStateOf(existing.weightKg) }
+    var allergies by remember { mutableStateOf(joinTags(existing.allergies)) }
+    var conditions by remember { mutableStateOf(joinTags(existing.conditions)) }
+    val contacts = remember { mutableStateListOf<EmergencyContact>().apply { addAll(existing.emergencyContacts) } }
     var error by remember { mutableStateOf<String?>(null) }
 
     // Onboarding can't be skipped with the back gesture.
@@ -224,6 +230,40 @@ fun EditProfileScreen(
                 Field("Weight (kg)", weightKg, { weightKg = it.filter { c -> c.isDigit() || c == '.' }.take(5) }, "e.g. 68", KeyboardType.Decimal)
                 Field("Blood type (optional)", bloodType, { bloodType = it.take(3).uppercase() }, "e.g. O+")
 
+                SectionDivider("Emergency Profile")
+
+                Field("Allergies (optional)", allergies, { allergies = it }, "e.g. Penicillin, Seafood")
+                Field("Medical conditions (optional)", conditions, { conditions = it }, "e.g. Diabetic, Hypertension")
+
+                Text("Emergency contacts", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = LabelGray)
+                Spacer(Modifier.height(2.dp))
+                Text("People to call from your Emergency Profile", fontSize = 11.sp, color = PlaceholderGray)
+                Spacer(Modifier.height(10.dp))
+
+                contacts.forEachIndexed { index, contact ->
+                    ContactEditor(
+                        contact = contact,
+                        onChange = { contacts[index] = it },
+                        onRemove = { contacts.removeAt(index) },
+                    )
+                }
+                if (contacts.size < 5) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable { contacts.add(EmergencyContact()) }
+                            .padding(vertical = 10.dp),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(Icons.Filled.Add, contentDescription = null, tint = BrandBlue, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text("Add contact", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = BrandBlue)
+                    }
+                }
+                Spacer(Modifier.height(4.dp))
+
                 error?.let {
                     Spacer(Modifier.height(4.dp))
                     Text(it, color = ErrRed, fontSize = 13.sp, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
@@ -254,6 +294,9 @@ fun EditProfileScreen(
                                 weightKg = weightKg,
                                 birthDate = birthDate,
                                 sex = sex,
+                                allergies = splitTags(allergies),
+                                conditions = splitTags(conditions),
+                                emergencyContacts = contacts.toList(),
                             )
                         )
                         onSaved()
@@ -271,6 +314,69 @@ fun EditProfileScreen(
             Spacer(Modifier.height(16.dp))
         }
     }
+}
+
+@Composable
+private fun SectionDivider(title: String) {
+    Spacer(Modifier.height(2.dp))
+    Box(Modifier.fillMaxWidth().height(1.dp).background(FieldBackground))
+    Spacer(Modifier.height(16.dp))
+    Text(title, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = TextDark)
+    Spacer(Modifier.height(14.dp))
+}
+
+@Composable
+private fun ContactEditor(
+    contact: EmergencyContact,
+    onChange: (EmergencyContact) -> Unit,
+    onRemove: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(FieldBackground)
+            .padding(12.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("Contact", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = LabelGray, modifier = Modifier.weight(1f))
+            IconButton(onClick = onRemove, modifier = Modifier.size(28.dp)) {
+                Icon(Icons.Filled.Close, contentDescription = "Remove contact", tint = LabelGray, modifier = Modifier.size(16.dp))
+            }
+        }
+        Spacer(Modifier.height(4.dp))
+        MiniField(contact.name, { onChange(contact.copy(name = it)) }, "Name")
+        Spacer(Modifier.height(8.dp))
+        MiniField(contact.relation, { onChange(contact.copy(relation = it)) }, "Relationship (e.g. Wife, Doctor)")
+        Spacer(Modifier.height(8.dp))
+        MiniField(contact.phone, { onChange(contact.copy(phone = it.filter { c -> c.isDigit() || c in "+ -" })) }, "Phone number", KeyboardType.Phone)
+    }
+    Spacer(Modifier.height(10.dp))
+}
+
+@Composable
+private fun MiniField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    placeholder: String,
+    keyboardType: KeyboardType = KeyboardType.Text,
+) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        modifier = Modifier.fillMaxWidth(),
+        singleLine = true,
+        placeholder = { Text(placeholder, color = PlaceholderGray, fontSize = 13.sp) },
+        textStyle = androidx.compose.ui.text.TextStyle(fontSize = 14.sp, color = TextDark),
+        keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
+        shape = RoundedCornerShape(10.dp),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedContainerColor = CardWhite,
+            unfocusedContainerColor = CardWhite,
+            focusedBorderColor = BrandBlue.copy(alpha = 0.4f),
+            unfocusedBorderColor = Color.Transparent,
+        ),
+    )
 }
 
 @Composable
