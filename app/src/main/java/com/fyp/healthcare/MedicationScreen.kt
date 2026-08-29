@@ -23,8 +23,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.EventBusy
@@ -93,8 +91,8 @@ fun MedicationScreen(
         }
     }
 
-    fun logAction(id: Long, action: String?) {
-        medManager.logStatus(id, action)
+    fun logAction(id: Long, time: String, action: String?) {
+        medManager.logStatus(id, action, doseKey(Calendar.getInstance(), time))
         medManager.get(id)?.let { ReminderScheduler.scheduleNext(context, it) }
         refresh++
     }
@@ -105,9 +103,13 @@ fun MedicationScreen(
         refresh++
     }
 
-    val todayMeds = meds.filter { it.isScheduledOn(now) }
-    val otherMeds = meds.filterNot { it.isScheduledOn(now) }
-    val takenToday = todayMeds.count { it.stateNow(now) == DoseState.TAKEN }
+    val todayIdx = now.get(Calendar.DAY_OF_WEEK) - 1
+    // one entry per (medication, time) scheduled today, earliest first
+    val todayDoses = meds
+        .flatMap { m -> m.timesOn(todayIdx).map { m to it } }
+        .sortedWith(compareBy({ hhmmMinutes(it.second) }, { it.first.name.lowercase() }))
+    val otherMeds = meds.filter { it.scheduledDays.isNotEmpty() && todayIdx !in it.scheduledDays }
+    val takenToday = todayDoses.count { (m, t) -> m.slotState(t, now) == DoseState.TAKEN }
 
     Column(
         modifier = Modifier
@@ -172,14 +174,14 @@ fun MedicationScreen(
                     modifier = Modifier.weight(1f),
                 )
                 Text(
-                    "$takenToday of ${todayMeds.size} taken",
+                    "$takenToday of ${todayDoses.size} taken",
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium,
-                    color = if (todayMeds.isNotEmpty() && takenToday == todayMeds.size) GoodGreen else LabelGray,
+                    color = if (todayDoses.isNotEmpty() && takenToday == todayDoses.size) GoodGreen else LabelGray,
                 )
             }
 
-            if (todayMeds.isEmpty()) {
+            if (todayDoses.isEmpty()) {
                 Text(
                     "Nothing scheduled for today.",
                     fontSize = 13.sp,
@@ -187,8 +189,8 @@ fun MedicationScreen(
                     modifier = Modifier.padding(vertical = 4.dp),
                 )
             } else {
-                todayMeds.forEach { med ->
-                    MedicationCard(med, now, ::logAction, onEditClick, ::deleteMed)
+                todayDoses.forEach { (med, time) ->
+                    DoseCard(med, time, now, ::logAction, onEditClick, ::deleteMed)
                 }
             }
 
@@ -196,7 +198,7 @@ fun MedicationScreen(
                 Spacer(Modifier.height(4.dp))
                 Text("Other Days", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = TextDark)
                 otherMeds.forEach { med ->
-                    MedicationCard(med, now, ::logAction, onEditClick, ::deleteMed)
+                    MedSummaryCard(med, onEditClick, ::deleteMed)
                 }
             }
 
@@ -266,24 +268,36 @@ private fun EmptyState(onAddClick: () -> Unit) {
     }
 }
 
+/** One card for one dose of one medication that's due today at [time]. */
 @Composable
-private fun MedicationCard(
+private fun DoseCard(
     med: Medication,
+    time: String,
     now: Calendar,
-    onAction: (Long, String?) -> Unit,
+    onAction: (Long, String, String?) -> Unit,
     onEdit: (Long) -> Unit,
     onDelete: (Long) -> Unit,
 ) {
-    val state = med.stateNow(now)
+    val state = med.slotState(time, now)
     val tint = stateColor(state)
     var menuOpen by remember { mutableStateOf(false) }
     var confirmDelete by remember { mutableStateOf(false) }
+    // (button label, log action) the user tapped — held until they confirm the popup
+    var pendingAction by remember { mutableStateOf<Pair<String, String?>?>(null) }
+
+    // A logged dose recolours the whole card: green when taken, red when missed.
+    val cardOverlay = when (state) {
+        DoseState.TAKEN -> GoodGreen.copy(alpha = 0.28f)
+        DoseState.MISSED -> BadRed.copy(alpha = 0.28f)
+        else -> Color.Transparent
+    }
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(20.dp))
             .background(CardWhite)
+            .background(cardOverlay)
             .alpha(if (state == DoseState.OFF) 0.6f else 1f)
             .padding(16.dp),
     ) {
@@ -292,25 +306,28 @@ private fun MedicationCard(
                 modifier = Modifier.size(44.dp).clip(CircleShape).background(tint.copy(alpha = 0.12f)),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(Icons.Filled.Medication, contentDescription = null, tint = tint, modifier = Modifier.size(22.dp))
+                Icon(med.medRoute.icon, contentDescription = null, tint = tint, modifier = Modifier.size(22.dp))
             }
             Spacer(Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(med.name, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = TextDark)
-                Spacer(Modifier.height(2.dp))
+                Text(
+                    formatTime12(time),
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = if (state == DoseState.SOON) BrandBlue else TextDark,
+                )
+                Spacer(Modifier.height(1.dp))
+                Text(med.name, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = TextDark)
                 Text(med.dosageText, fontSize = 12.sp, color = LabelGray)
-                Spacer(Modifier.height(2.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Filled.Schedule, contentDescription = null, tint = LabelGray, modifier = Modifier.size(12.dp))
-                    Spacer(Modifier.width(4.dp))
-                    Text(
-                        "${formatTime12(med.time)} · ${daysLabel(med.days)}",
-                        fontSize = 11.sp,
-                        color = LabelGray,
-                    )
+                if (med.description.isNotBlank()) {
+                    Text(med.description, fontSize = 11.sp, color = LabelGray)
                 }
             }
-            StatusPill(state, tint)
+            // "Taken" / "Missed" no longer get a pill here — the card colour + the
+            // chip by the buttons carry that. Other states still show their pill.
+            if (state != DoseState.TAKEN && state != DoseState.MISSED) {
+                StatusPill(state, tint)
+            }
             Box {
                 IconButton(onClick = { menuOpen = true }, modifier = Modifier.size(28.dp)) {
                     Icon(Icons.Filled.MoreVert, contentDescription = "More", tint = LabelGray)
@@ -341,7 +358,22 @@ private fun MedicationCard(
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
+                if (state == DoseState.TAKEN || state == DoseState.MISSED) {
+                    val (chipColor, chipLabel) =
+                        if (state == DoseState.TAKEN) GoodGreen to "Taken" else BadRed to "Missed"
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(chipColor.copy(alpha = 0.15f))
+                            .padding(horizontal = 10.dp, vertical = 4.dp),
+                    ) {
+                        Text(chipLabel, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = chipColor)
+                    }
+                    // push the action button(s) to the far right
+                    Spacer(Modifier.weight(1f))
+                }
                 actions.forEachIndexed { index, (label, action) ->
                     val primary = index == actions.lastIndex && action != null
                     val color = when (action) {
@@ -351,7 +383,7 @@ private fun MedicationCard(
                     }
                     if (primary) {
                         Button(
-                            onClick = { onAction(med.id, action) },
+                            onClick = { pendingAction = label to action },
                             colors = ButtonDefaults.buttonColors(containerColor = color),
                             shape = RoundedCornerShape(10.dp),
                             contentPadding = PaddingValues(horizontal = 14.dp, vertical = 4.dp),
@@ -360,7 +392,7 @@ private fun MedicationCard(
                         }
                     } else {
                         TextButton(
-                            onClick = { onAction(med.id, action) },
+                            onClick = { pendingAction = label to action },
                             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
                         ) {
                             Text(label, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = color)
@@ -386,16 +418,117 @@ private fun MedicationCard(
             },
         )
     }
+
+    pendingAction?.let { (label, action) ->
+        val doseLabel = "${med.name} · ${formatTime12(time)}"
+        val (title, body, confirmColor) = when (action) {
+            "taken" -> Triple(
+                "Mark as taken?",
+                "Log the $doseLabel dose as taken.",
+                GoodGreen,
+            )
+            "missed" -> Triple(
+                "Skip this dose?",
+                "Mark the $doseLabel dose as skipped.",
+                BadRed,
+            )
+            else -> Triple(
+                "Undo?",
+                "Clear the log for $doseLabel — it'll show as due again.",
+                BrandBlue,
+            )
+        }
+        AlertDialog(
+            onDismissRequest = { pendingAction = null },
+            title = { Text(title) },
+            text = { Text(body) },
+            confirmButton = {
+                TextButton(onClick = { onAction(med.id, time, action); pendingAction = null }) {
+                    Text(label, color = confirmColor, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingAction = null }) { Text("Cancel") }
+            },
+        )
+    }
+}
+
+/** Info-only card for a medication with no dose today (shows the weekly plan). */
+@Composable
+private fun MedSummaryCard(
+    med: Medication,
+    onEdit: (Long) -> Unit,
+    onDelete: (Long) -> Unit,
+) {
+    var menuOpen by remember { mutableStateOf(false) }
+    var confirmDelete by remember { mutableStateOf(false) }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(20.dp))
+            .background(CardWhite)
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            modifier = Modifier.size(40.dp).clip(CircleShape).background(BrandBlue.copy(alpha = 0.10f)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(med.medRoute.icon, contentDescription = null, tint = BrandBlue, modifier = Modifier.size(20.dp))
+        }
+        Spacer(Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(med.name, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = TextDark)
+            Text(med.dosageText, fontSize = 12.sp, color = LabelGray)
+            Spacer(Modifier.height(2.dp))
+            Text(med.scheduleSummary(), fontSize = 11.sp, color = LabelGray)
+        }
+        Box {
+            IconButton(onClick = { menuOpen = true }, modifier = Modifier.size(28.dp)) {
+                Icon(Icons.Filled.MoreVert, contentDescription = "More", tint = LabelGray)
+            }
+            DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                DropdownMenuItem(
+                    text = { Text("Edit") },
+                    leadingIcon = { Icon(Icons.Filled.Edit, contentDescription = null) },
+                    onClick = { menuOpen = false; onEdit(med.id) },
+                )
+                DropdownMenuItem(
+                    text = { Text("Delete", color = BadRed) },
+                    leadingIcon = { Icon(Icons.Filled.Delete, contentDescription = null, tint = BadRed) },
+                    onClick = { menuOpen = false; confirmDelete = true },
+                )
+            }
+        }
+    }
+
+    if (confirmDelete) {
+        AlertDialog(
+            onDismissRequest = { confirmDelete = false },
+            title = { Text("Delete ${med.name}?") },
+            text = { Text("This removes the medication and cancels its reminder.") },
+            confirmButton = {
+                TextButton(onClick = { confirmDelete = false; onDelete(med.id) }) {
+                    Text("Delete", color = BadRed, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmDelete = false }) { Text("Cancel") }
+            },
+        )
+    }
 }
 
 @Composable
 private fun StatusPill(state: DoseState, tint: Color) {
+    // TAKEN / MISSED are shown by recolouring the card + a chip near the buttons.
     val (icon, label) = when (state) {
-        DoseState.TAKEN -> Icons.Filled.Check to "Taken"
-        DoseState.MISSED -> Icons.Filled.Close to "Missed"
         DoseState.SOON -> Icons.Filled.Schedule to "Due now"
         DoseState.UPCOMING -> Icons.Filled.Schedule to "Upcoming"
         DoseState.OFF -> Icons.Filled.EventBusy to "Not today"
+        DoseState.TAKEN, DoseState.MISSED -> return
     }
     Box(
         modifier = Modifier

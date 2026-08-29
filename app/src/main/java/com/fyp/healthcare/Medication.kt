@@ -10,49 +10,110 @@ import java.util.Calendar
 import java.util.Locale
 
 /**
- * One medication reminder.
+ * How a medication is taken. Drives the labels/units on the Add Medication form
+ * (strength unit + what "one dose" is counted in) and how [Medication.dosageText] reads.
+ */
+enum class MedRoute(
+    val label: String,
+    val strengthUnit: String,   // unit shown next to the strength field ("" = no strength field)
+    val doseLabel: String,      // label for the "amount per dose" field
+    val doseNoun: String,       // singular noun used in dosageText
+) {
+    ORAL("Oral", "mg", "Tablets / capsules per dose", "tablet"),
+    TOPICAL("Topical (cream / gel)", "%", "Applications per dose", "application"),
+    INJECTABLE("Injectable", "mg/mL", "mL per dose", "mL"),
+    INHALED("Inhaled", "mcg/puff", "Puffs per dose", "puff"),
+    SUBLINGUAL("Sublingual / buccal", "mg", "Tablets per dose", "tablet"),
+    NASAL("Nasal spray", "mcg/spray", "Sprays per dose", "spray"),
+    RECTAL("Rectal / vaginal", "mg", "Units per dose", "suppository"),
+    OPHTHALMIC("Eye / ear drops", "%", "Drops per dose", "drop"),
+    TRANSDERMAL("Transdermal patch", "mcg/hr", "Patches", "patch"),
+    OTHER("Other", "", "Amount per dose", "dose");
+
+    companion object {
+        fun of(name: String?): MedRoute = entries.firstOrNull { it.name == name } ?: ORAL
+    }
+}
+
+/**
+ * One medication and its weekly reminder schedule.
  *
- * [days] uses 0 = Sunday .. 6 = Saturday (matches Calendar.DAY_OF_WEEK - 1).
- * [log] records what the user did on a given calendar day:
- *   "yyyy-MM-dd" -> "taken" | "missed".
- * A day that isn't in the log is still pending (and shows as "Missed" on its own
- * once enough time has passed — see [stateNow]).
+ * [schedule] maps a day (0 = Sunday .. 6 = Saturday) to the list of times ("HH:mm")
+ * the dose is due that day. A day that isn't a key (or has an empty list) is skipped.
+ * So a medication can be, e.g. Mon 06:00 & 17:00, Tue 08:00, Fri 06:00/14:00/20:00.
+ *
+ * [log] records what the user did for one specific dose:
+ *   "yyyy-MM-dd HH:mm" -> "taken" | "missed".
+ * A dose that isn't in the log is still pending (and shows as "Missed" on its own
+ * once enough time has passed — see [slotState]).
  */
 data class Medication(
     val id: Long,
     val name: String,
-    val dosageMg: Int,
-    val amount: Int,            // tablets / capsules per dose
-    val time: String,          // 24h "HH:mm"
-    val days: Set<Int>,
+    val strength: String,      // number only, e.g. "500" / "0.05"; "" when not specified
+    val amount: Int,           // how many units per dose (tablets / puffs / drops / patches …)
+    val schedule: Map<Int, List<String>> = emptyMap(),
     val log: Map<String, String> = emptyMap(),
+    val description: String = "",   // "what it's for" note — from the catalogue or typed by the user
+    val route: String = "ORAL",     // MedRoute name
 ) {
-    val hour: Int get() = time.substringBefore(":").trim().toIntOrNull() ?: 0
-    val minute: Int get() = time.substringAfter(":").trim().toIntOrNull() ?: 0
-    val minutesOfDay: Int get() = hour * 60 + minute
+    val medRoute: MedRoute get() = MedRoute.of(route)
+
+    /** Days (0=Sun..6=Sat) this medication is scheduled on. */
+    val scheduledDays: Set<Int>
+        get() = schedule.filterValues { it.isNotEmpty() }.keys
+
+    /** Sorted, de-duplicated times for a given day. */
+    fun timesOn(day: Int): List<String> =
+        schedule[day].orEmpty().distinct().sortedBy(::hhmmMinutes)
+
+    /** Every distinct time across the week, earliest first. */
+    val allTimes: List<String>
+        get() = schedule.values.flatten().distinct().sortedBy(::hhmmMinutes)
+
+    val earliestMinutes: Int
+        get() = allTimes.firstOrNull()?.let(::hhmmMinutes) ?: 0
+
+    /** Non-empty days with their times, ordered Sun→Sat. */
+    fun weeklyPlan(): List<Pair<Int, List<String>>> =
+        (0..6).mapNotNull { d -> timesOn(d).takeIf { it.isNotEmpty() }?.let { d to it } }
 
     val dosageText: String
-        get() = "${dosageMg}mg · $amount " + if (amount == 1) "tablet" else "tablets"
+        get() {
+            val r = medRoute
+            val noun = if (amount == 1) r.doseNoun else "${r.doseNoun}s"
+            val count = "$amount $noun"
+            if (strength.isBlank()) return count
+            val s = when {
+                r.strengthUnit.isEmpty() -> strength
+                r.strengthUnit == "%" -> "$strength%"
+                else -> "$strength ${r.strengthUnit}"
+            }
+            return "$s · $count"
+        }
 
-    fun isScheduledOn(cal: Calendar): Boolean = (cal.get(Calendar.DAY_OF_WEEK) - 1) in days
-    fun actionOn(date: String): String? = log[date]
+    fun isScheduledOn(cal: Calendar): Boolean =
+        (cal.get(Calendar.DAY_OF_WEEK) - 1) in scheduledDays
+
+    fun actionOn(doseKey: String): String? = log[doseKey]
 }
 
 enum class DoseState { TAKEN, MISSED, SOON, UPCOMING, OFF }
 
-private const val SOON_BEFORE_MIN = 60   // "Soon" starts 60 min before the dose time
+private const val SOON_BEFORE_MIN = 60   // "Due now" starts 60 min before the dose time
 private const val LATE_GRACE_MIN = 120   // still actionable up to 120 min after; then auto-"Missed"
 
-/** Status of *today's* dose for this med. */
-fun Medication.stateNow(now: Calendar = Calendar.getInstance()): DoseState {
-    when (actionOn(dateKey(now))) {
+/** State of one specific dose slot ([time], "HH:mm") for today. */
+fun Medication.slotState(time: String, now: Calendar = Calendar.getInstance()): DoseState {
+    when (log[doseKey(now, time)]) {
         "taken" -> return DoseState.TAKEN
         "missed" -> return DoseState.MISSED
     }
-    if (!isScheduledOn(now)) return DoseState.OFF
+    val today = now.get(Calendar.DAY_OF_WEEK) - 1
+    if (time !in timesOn(today)) return DoseState.OFF
 
     val nowMin = now.get(Calendar.HOUR_OF_DAY) * 60 + now.get(Calendar.MINUTE)
-    val diff = minutesOfDay - nowMin           // > 0 means the dose is still in the future
+    val diff = hhmmMinutes(time) - nowMin           // > 0 means the dose is still ahead
     return when {
         diff > SOON_BEFORE_MIN -> DoseState.UPCOMING
         diff >= -LATE_GRACE_MIN -> DoseState.SOON
@@ -60,18 +121,44 @@ fun Medication.stateNow(now: Calendar = Calendar.getInstance()): DoseState {
     }
 }
 
-private val DAY_ABBR = listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
+/** A one-line human summary of the whole weekly schedule. */
+fun Medication.scheduleSummary(): String {
+    val plan = weeklyPlan()
+    if (plan.isEmpty()) return "No reminder times set"
+    val sameEveryDay = plan.map { it.second }.distinct().size == 1
+    return if (sameEveryDay) {
+        "${daysLabel(scheduledDays)} · " + plan.first().second.joinToString(", ") { formatTime12(it) }
+    } else {
+        plan.joinToString("   ·   ") { (d, ts) ->
+            "${DAY_NAMES_SHORT[d]} " + ts.joinToString(", ") { formatTime12(it) }
+        }
+    }
+}
+
+val DAY_NAMES_SHORT = listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
+val DAY_NAMES_LONG =
+    listOf("Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday")
+
+/** "HH:mm" -> minutes past midnight. */
+fun hhmmMinutes(t: String): Int {
+    val p = t.split(":")
+    return (p.getOrNull(0)?.trim()?.toIntOrNull() ?: 0) * 60 +
+        (p.getOrNull(1)?.trim()?.toIntOrNull() ?: 0)
+}
 
 fun daysLabel(days: Set<Int>): String = when {
     days.isEmpty() -> "—"
     days.size == 7 -> "Every day"
     days == setOf(1, 2, 3, 4, 5) -> "Weekdays"
     days == setOf(0, 6) -> "Weekends"
-    else -> days.sorted().joinToString(", ") { DAY_ABBR[it] }
+    else -> days.sorted().joinToString(", ") { DAY_NAMES_SHORT[it] }
 }
 
 fun dateKey(cal: Calendar = Calendar.getInstance()): String =
     SimpleDateFormat("yyyy-MM-dd", Locale.US).format(cal.time)
+
+/** Log key for one dose: "2026-08-29 06:00". */
+fun doseKey(cal: Calendar, time: String): String = "${dateKey(cal)} $time"
 
 /** "20:00" -> "8:00 PM" */
 fun formatTime12(time24: String): String {
@@ -87,7 +174,7 @@ class MedicationManager(context: Context) {
 
     // =====================================================================
     // TODO (FUTURE - SQL DATABASE):
-    //  Each medication AND every entry in `log` (taken/missed per day) also
+    //  Each medication AND every entry in `log` (taken/missed per dose) also
     //  syncs to the server, so the family caregiver account can see the
     //  patient's schedule and full adherence history.
     //  For now everything is stored locally as JSON in SharedPreferences.
@@ -96,23 +183,35 @@ class MedicationManager(context: Context) {
     private val prefs: SharedPreferences =
         context.getSharedPreferences("medications", Context.MODE_PRIVATE)
 
-    /** All meds, always sorted by time-of-day (then name). */
+    /** All meds, earliest daily dose first (then name). */
     fun getAll(): List<Medication> =
-        load().sortedWith(compareBy({ it.minutesOfDay }, { it.name.lowercase() }))
+        load().sortedWith(compareBy({ it.earliestMinutes }, { it.name.lowercase() }))
 
     fun get(id: Long): Medication? = load().firstOrNull { it.id == id }
 
-    fun add(name: String, dosageMg: Int, amount: Int, time: String, days: Set<Int>): Medication {
-        val med = Medication(newId(), name.trim(), dosageMg, amount, time, days)
-        save(load() + med)
-        pushMed(med)
-        return med
+    /** An id for a not-yet-saved draft (used by the two-step Add flow). */
+    fun nextId(): Long = newId()
+
+    /** Insert a new medication or replace an existing one (matched by id). */
+    fun upsert(med: Medication): Medication {
+        val fixed = med.copy(
+            name = med.name.trim(),
+            strength = med.strength.trim(),
+            description = med.description.trim(),
+        )
+        val all = load()
+        val next = if (all.any { it.id == fixed.id }) {
+            all.map { if (it.id == fixed.id) fixed else it }
+        } else {
+            all + fixed
+        }
+        save(next)
+        pushMed(fixed)
+        return fixed
     }
 
     fun update(med: Medication) {
-        val fixed = med.copy(name = med.name.trim())
-        save(load().map { if (it.id == fixed.id) fixed else it })
-        pushMed(fixed)
+        upsert(med)
     }
 
     fun delete(id: Long) {
@@ -120,12 +219,12 @@ class MedicationManager(context: Context) {
         Cloud.userDoc?.collection("medications")?.document(id.toString())?.delete()
     }
 
-    /** action = "taken" | "missed" | null (null = clear the entry, i.e. "undo"). */
-    fun logStatus(id: Long, action: String?, date: String = dateKey()) {
+    /** action = "taken" | "missed" | null (null clears the entry — i.e. "undo"). */
+    fun logStatus(id: Long, action: String?, doseKey: String) {
         save(load().map { m ->
             if (m.id != id) m
             else m.copy(log = m.log.toMutableMap().apply {
-                if (action == null) remove(date) else put(date, action)
+                if (action == null) remove(doseKey) else put(doseKey, action)
             })
         })
         get(id)?.let { pushMed(it) }
@@ -138,11 +237,13 @@ class MedicationManager(context: Context) {
             mapOf(
                 "id" to m.id,
                 "name" to m.name,
-                "dosageMg" to m.dosageMg,
+                "strength" to m.strength,
+                "route" to m.route,
                 "amount" to m.amount,
-                "time" to m.time,
-                "days" to m.days.sorted(),
+                "schedule" to m.schedule.mapKeys { it.key.toString() },
+                "scheduledDays" to m.scheduledDays.sorted(),
                 "log" to m.log,
+                "description" to m.description,
                 "updatedAt" to FieldValue.serverTimestamp(),
             )
         )
@@ -174,11 +275,14 @@ class MedicationManager(context: Context) {
             arr.put(JSONObject().apply {
                 put("id", m.id)
                 put("name", m.name)
-                put("dosageMg", m.dosageMg)
+                put("strength", m.strength)
+                put("route", m.route)
                 put("amount", m.amount)
-                put("time", m.time)
-                put("days", JSONArray(m.days.sorted()))
+                put("schedule", JSONObject().apply {
+                    m.schedule.forEach { (d, times) -> put(d.toString(), JSONArray(times)) }
+                })
                 put("log", JSONObject().apply { m.log.forEach { (k, v) -> put(k, v) } })
+                put("desc", m.description)
             })
         }
         prefs.edit().putString(KEY, arr.toString()).apply()
@@ -189,22 +293,43 @@ class MedicationManager(context: Context) {
         (0 until arr.length()).map { i ->
             val o = arr.getJSONObject(i)
 
-            val daysArr = o.optJSONArray("days")
-            val days = if (daysArr == null) emptySet()
-            else (0 until daysArr.length()).map { daysArr.getInt(it) }.toSet()
+            val legacyTime = o.optString("time", "")
+
+            val schedObj = o.optJSONObject("schedule")
+            val schedule: Map<Int, List<String>> = if (schedObj != null) {
+                schedObj.keys().asSequence().mapNotNull { k ->
+                    val day = k.toIntOrNull() ?: return@mapNotNull null
+                    val times = schedObj.optJSONArray(k) ?: return@mapNotNull null
+                    day to (0 until times.length()).map { times.getString(it) }
+                }.toMap()
+            } else {
+                // older records had a single "time" + "days" array
+                val t = legacyTime.ifBlank { "08:00" }
+                val daysArr = o.optJSONArray("days")
+                val days = if (daysArr == null) emptySet()
+                    else (0 until daysArr.length()).map { daysArr.getInt(it) }.toSet()
+                days.associateWith { listOf(t) }
+            }
 
             val logObj = o.optJSONObject("log")
-            val log = if (logObj == null) emptyMap()
-            else logObj.keys().asSequence().associateWith { logObj.getString(it) }
+            val rawLog: Map<String, String> = if (logObj == null) emptyMap()
+                else logObj.keys().asSequence().associateWith { logObj.getString(it) }
+            // migrate legacy per-day log keys ("yyyy-MM-dd") to per-dose ("yyyy-MM-dd HH:mm")
+            val log = if (schedObj == null && legacyTime.isNotBlank()) {
+                rawLog.mapKeys { (k, _) -> if (k.contains(' ')) k else "$k $legacyTime" }
+            } else rawLog
 
             Medication(
                 id = o.getLong("id"),
                 name = o.getString("name"),
-                dosageMg = o.optInt("dosageMg", 0),
+                strength = o.optString("strength").ifBlank {
+                    o.optInt("dosageMg", 0).takeIf { it > 0 }?.toString().orEmpty()
+                },
+                route = o.optString("route", "ORAL").ifBlank { "ORAL" },
                 amount = o.optInt("amount", 1),
-                time = o.optString("time", "20:00"),
-                days = days,
+                schedule = schedule,
                 log = log,
+                description = o.optString("desc"),
             )
         }
     }.getOrDefault(emptyList())
@@ -220,15 +345,14 @@ class MedicationManager(context: Context) {
             val p = line.split("|")
             if (p.size < 7) return@mapNotNull null
             val days = p[5].split(",")
-                .mapNotNull { DAY_ABBR.indexOf(it.trim()).takeIf { idx -> idx >= 0 } }
+                .mapNotNull { DAY_NAMES_SHORT.indexOf(it.trim()).takeIf { idx -> idx >= 0 } }
                 .toSet()
             Medication(
                 id = p[0].toLongOrNull() ?: System.currentTimeMillis(),
                 name = p[1],
-                dosageMg = mgRe.find(p[2])?.groupValues?.get(1)?.toIntOrNull() ?: 0,
+                strength = mgRe.find(p[2])?.groupValues?.get(1).orEmpty(),
                 amount = amtRe.find(p[2])?.groupValues?.get(1)?.toIntOrNull() ?: 1,
-                time = p[4],
-                days = days,
+                schedule = days.associateWith { listOf(p[4]) },
             )
         }
     }

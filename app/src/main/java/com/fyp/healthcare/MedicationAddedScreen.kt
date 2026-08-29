@@ -112,7 +112,7 @@ fun MedicationAddedScreen(
                 .padding(16.dp)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Filled.Medication, contentDescription = null, tint = TextDark, modifier = Modifier.size(16.dp))
+                Icon(med?.medRoute?.icon ?: Icons.Filled.Medication, contentDescription = null, tint = TextDark, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.width(6.dp))
                 Text(
                     med?.name ?: "--",
@@ -124,9 +124,7 @@ fun MedicationAddedScreen(
             Spacer(Modifier.height(6.dp))
             SummaryLine(Icons.Filled.LocalPharmacy, med?.dosageText ?: "--")
             Spacer(Modifier.height(4.dp))
-            SummaryLine(Icons.Filled.Schedule, "Reminder: ${med?.let { formatTime12(it.time) } ?: "--"}")
-            Spacer(Modifier.height(4.dp))
-            SummaryLine(Icons.Filled.Repeat, "Repeat: ${med?.let { daysLabel(it.days) } ?: "--"}")
+            SummaryLine(Icons.Filled.Schedule, med?.scheduleSummary() ?: "--")
             Spacer(Modifier.height(8.dp))
             Box(
                 modifier = Modifier

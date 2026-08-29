@@ -69,48 +69,57 @@ class ReminderWorker(
 
     override suspend fun doWork(): Result {
         val medId = inputData.getLong(KEY_MED_ID, -1L)
+        val time = inputData.getString(KEY_TIME).orEmpty()
         if (medId == -1L) return Result.success()
 
         // med was deleted -> nothing to fire, chain stops here
         val med = MedicationManager(applicationContext).get(medId) ?: return Result.success()
 
-        // don't nag if the user already logged this dose today
-        if (med.actionOn(dateKey()) == null) {
+        // don't nag if the user already logged this exact dose
+        val doseKey = doseKey(java.util.Calendar.getInstance(), time)
+        if (time.isNotBlank() && med.actionOn(doseKey) == null) {
             NotificationHelper.show(
                 context = applicationContext,
-                notificationId = medId.toInt(),
+                notificationId = (medId.toInt() * 31) + hhmmMinutes(time),
                 title = "Time for ${med.name}",
-                text = "${med.dosageText} • ${formatTime12(med.time)}",
+                text = "${med.dosageText} • ${formatTime12(time)}",
             )
         }
 
-        // queue the next matching day
+        // queue the next dose slot
         ReminderScheduler.scheduleNext(applicationContext, med)
         return Result.success()
     }
 
     companion object {
         const val KEY_MED_ID = "med_id"
+        const val KEY_TIME = "dose_time"
     }
 }
 
 // ===== Figures out WHEN to fire =====
 object ReminderScheduler {
 
-    /** (Re)schedule the single next fire for this med; cancels it if there's no upcoming day. */
+    /** (Re)schedule the single next dose fire for this med; cancels it if nothing is upcoming. */
     fun scheduleNext(context: Context, med: Medication) {
-        val fireAt = nextOccurrence(med)
-        if (fireAt == null) {
+        val next = nextOccurrence(med)
+        if (next == null) {
             cancel(context, med.id)
             return
         }
+        val (fireAt, time) = next
 
         val delay = fireAt - System.currentTimeMillis()
         if (delay <= 0) return
 
         val request = OneTimeWorkRequestBuilder<ReminderWorker>()
             .setInitialDelay(delay, TimeUnit.MILLISECONDS)
-            .setInputData(workDataOf(ReminderWorker.KEY_MED_ID to med.id))
+            .setInputData(
+                workDataOf(
+                    ReminderWorker.KEY_MED_ID to med.id,
+                    ReminderWorker.KEY_TIME to time,
+                )
+            )
             .addTag(TAG)
             .build()
 
@@ -133,21 +142,29 @@ object ReminderScheduler {
     private fun workName(id: Long) = "med_reminder_$id"
     private const val TAG = "med_reminder"
 
-    // next date+time that matches the med's repeat days & time
-    private fun nextOccurrence(med: Medication): Long? {
-        if (med.days.isEmpty()) return null
+    // soonest (date+time, "HH:mm") across every day/slot in the med's weekly schedule
+    private fun nextOccurrence(med: Medication): Pair<Long, String>? {
+        if (med.scheduledDays.isEmpty()) return null
         val now = Calendar.getInstance()
+        var best: Pair<Long, String>? = null
 
         for (offset in 0..7) {
-            val c = (now.clone() as Calendar).apply {
-                add(Calendar.DAY_OF_YEAR, offset)
-                set(Calendar.HOUR_OF_DAY, med.hour)
-                set(Calendar.MINUTE, med.minute)
-                set(Calendar.SECOND, 0)
-                set(Calendar.MILLISECOND, 0)
+            val day = (now.clone() as Calendar).apply { add(Calendar.DAY_OF_YEAR, offset) }
+            val dow = day.get(Calendar.DAY_OF_WEEK) - 1
+            for (t in med.timesOn(dow)) {
+                val c = (day.clone() as Calendar).apply {
+                    set(Calendar.HOUR_OF_DAY, hhmmMinutes(t) / 60)
+                    set(Calendar.MINUTE, hhmmMinutes(t) % 60)
+                    set(Calendar.SECOND, 0)
+                    set(Calendar.MILLISECOND, 0)
+                }
+                if (c.timeInMillis > now.timeInMillis &&
+                    (best == null || c.timeInMillis < best!!.first)
+                ) {
+                    best = c.timeInMillis to t
+                }
             }
-            if (med.isScheduledOn(c) && c.timeInMillis > now.timeInMillis) return c.timeInMillis
         }
-        return null
+        return best
     }
 }

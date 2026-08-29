@@ -1,16 +1,12 @@
 package com.fyp.healthcare
 
 import com.fyp.healthcare.ui.theme.themed
-import android.app.TimePickerDialog
-import android.text.format.DateFormat
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -19,24 +15,27 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Medication
 import androidx.compose.material.icons.filled.Numbers
-import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -52,7 +51,6 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import java.util.Locale
 
 private val BrandBlue = Color(0xFF2A6DE1)
 private val CardWhite: Color @Composable get() = themed(Color(0xFFFFFFFF), Color(0xFF1C1D22))
@@ -63,28 +61,61 @@ private val LabelGray: Color @Composable get() = themed(Color(0xFF5F6673), Color
 private val PlaceholderGray: Color @Composable get() = themed(Color(0xFFA6ACB8), Color(0xFF6A7079))
 
 /**
- * Handles both "add" and "edit" — pass [editId] to load an existing medication.
+ * Step 1 of adding/editing a medication: name, route, strength, amount, description.
+ * "Next" hands a draft [Medication] (schedule still empty) to [onNext] — the Reminder
+ * Times screen fills in the weekly schedule and does the actual save.
+ *
+ * The medication name can be chosen from [MedicationCatalog] via the picker screen
+ * ([onChooseMedication]); its result comes back through [pickedName] / [pickedDescription]
+ * / [pickedCustom], which the host clears via [onPickConsumed] once applied.
  */
 @Composable
 fun AddMedicationScreen(
     medManager: MedicationManager,
     editId: Long?,
     onBackClick: () -> Unit,
-    onSaved: (Long) -> Unit,
+    onNext: (Medication) -> Unit,
+    onChooseMedication: () -> Unit = {},
+    pickedName: String? = null,
+    pickedDescription: String? = null,
+    pickedRoute: String? = null,
+    pickedCustom: Boolean = false,
+    onPickConsumed: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val editing = remember(editId) { editId?.let { medManager.get(it) } }
     val isEdit = editing != null
 
     var name by remember { mutableStateOf(editing?.name ?: "") }
-    var dosageMg by remember { mutableStateOf(editing?.dosageMg?.takeIf { it > 0 }?.toString() ?: "") }
-    var amount by remember { mutableStateOf(editing?.amount?.takeIf { it > 0 }?.toString() ?: "") }
-    var time24 by remember { mutableStateOf(editing?.time ?: "20:00") }
-    var timeDisplay by remember { mutableStateOf(formatTime12(editing?.time ?: "20:00")) }
-    var selectedDays by remember { mutableStateOf(editing?.days ?: setOf(1, 2, 3, 4, 5)) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
+    var description by remember { mutableStateOf(editing?.description ?: "") }
+    var route by remember { mutableStateOf(MedRoute.of(editing?.route)) }
+    // true = show an editable name field; false = show the "choose from list" selector.
+    var customMode by remember { mutableStateOf(isEdit) }
 
-    val dayLetters = listOf("S", "M", "T", "W", "T", "F", "S")
+    // Apply a result coming back from the medication picker.
+    LaunchedEffect(pickedName, pickedDescription, pickedRoute, pickedCustom) {
+        when {
+            pickedCustom -> {
+                name = ""
+                description = ""
+                route = MedRoute.OTHER
+                customMode = true
+                onPickConsumed()
+            }
+            pickedName != null -> {
+                name = pickedName
+                description = pickedDescription.orEmpty()
+                route = MedRoute.of(pickedRoute)
+                customMode = true
+                onPickConsumed()
+            }
+        }
+    }
+
+    var strength by remember { mutableStateOf(editing?.strength ?: "") }
+    var amount by remember { mutableStateOf(editing?.amount?.takeIf { it > 0 }?.toString() ?: "") }
+    var routeMenuOpen by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
 
     Column(modifier = Modifier.fillMaxSize().background(ScreenBackground)) {
 
@@ -130,91 +161,117 @@ fun AddMedicationScreen(
                 Text("Fill in the details for your reminder", fontSize = 12.sp, color = LabelGray)
                 Spacer(Modifier.height(20.dp))
 
-                MedField(name, { name = it }, "Medication Name", "e.g. Amlodipine", Icons.Filled.Medication)
-                MedField(
-                    dosageMg, { dosageMg = it.filter(Char::isDigit) },
-                    "Dosage (mg)", "e.g. 500", Icons.Filled.Medication, KeyboardType.Number,
-                )
-                MedField(
-                    amount, { amount = it.filter(Char::isDigit) },
-                    "Amount per dose (tablets)", "e.g. 1", Icons.Filled.Numbers, KeyboardType.Number,
-                )
-
-                // ===== Reminder time (opens the phone's time picker) =====
-                Text("Reminder Time", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = LabelGray)
+                // ===== Medication name: pick from the catalogue, or type your own =====
+                Text("Medication Name", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = LabelGray)
                 Spacer(Modifier.height(6.dp))
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(FieldBackground)
-                        .clickable {
-                            TimePickerDialog(
-                                context,
-                                { _, hour, minute ->
-                                    time24 = String.format(Locale.getDefault(), "%02d:%02d", hour, minute)
-                                    timeDisplay = formatTime12(time24)
-                                },
-                                time24.substringBefore(":").toIntOrNull() ?: 20,
-                                time24.substringAfter(":").toIntOrNull() ?: 0,
-                                DateFormat.is24HourFormat(context),
-                            ).show()
-                        }
-                        .padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Box(
-                        modifier = Modifier.size(44.dp).clip(CircleShape).background(Color(0xFFFDEAEA)),
-                        contentAlignment = Alignment.Center,
+                if (customMode) {
+                    OutlinedTextField(
+                        value = name,
+                        onValueChange = { name = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        placeholder = { Text("e.g. Amlodipine", color = PlaceholderGray) },
+                        leadingIcon = { Icon(Icons.Filled.Medication, contentDescription = null, tint = LabelGray, modifier = Modifier.padding(start = 12.dp)) },
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = FieldBackground,
+                            unfocusedContainerColor = FieldBackground,
+                            focusedBorderColor = Color.Transparent,
+                            unfocusedBorderColor = Color.Transparent,
+                        ),
+                    )
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        "Choose from medication list",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = BrandBlue,
+                        modifier = Modifier.clickable { onChooseMedication() },
+                    )
+                } else {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(FieldBackground)
+                            .clickable { onChooseMedication() }
+                            .padding(horizontal = 12.dp, vertical = 16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Icon(Icons.Filled.Schedule, contentDescription = null, tint = Color(0xFFD32F2F))
-                    }
-                    Spacer(Modifier.width(12.dp))
-                    Column {
-                        Text("Set Reminder Time", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = TextDark)
-                        Spacer(Modifier.height(2.dp))
-                        Text(timeDisplay, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = BrandBlue)
+                        Icon(Icons.Filled.Medication, contentDescription = null, tint = LabelGray, modifier = Modifier.size(20.dp))
+                        Spacer(Modifier.width(10.dp))
+                        Text(
+                            name.ifBlank { "Choose medication" },
+                            fontSize = 15.sp,
+                            color = if (name.isBlank()) PlaceholderGray else TextDark,
+                            modifier = Modifier.weight(1f),
+                        )
+                        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = LabelGray)
                     }
                 }
                 Spacer(Modifier.height(14.dp))
 
-                // ===== Repeat days =====
-                Text("Repeat Days", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = LabelGray)
+                // ===== How it's taken (picks the units for the fields below) =====
+                Text("How it's taken", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = LabelGray)
                 Spacer(Modifier.height(6.dp))
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(FieldBackground)
-                        .padding(12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    dayLetters.forEachIndexed { index, letter ->
-                        val selected = index in selectedDays
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .aspectRatio(1f)
-                                .clip(CircleShape)
-                                .background(if (selected) BrandBlue else CardWhite)
-                                .clickable {
-                                    selectedDays =
-                                        if (selected) selectedDays - index else selectedDays + index
-                                },
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Text(
-                                letter,
-                                color = if (selected) Color.White else LabelGray,
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Bold,
+                Box {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(FieldBackground)
+                            .clickable { routeMenuOpen = true }
+                            .padding(horizontal = 12.dp, vertical = 16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(route.icon, contentDescription = null, tint = LabelGray, modifier = Modifier.size(20.dp))
+                        Spacer(Modifier.width(10.dp))
+                        Text(route.label, fontSize = 15.sp, color = TextDark, modifier = Modifier.weight(1f))
+                        Icon(Icons.Filled.ArrowDropDown, contentDescription = null, tint = LabelGray)
+                    }
+                    DropdownMenu(expanded = routeMenuOpen, onDismissRequest = { routeMenuOpen = false }) {
+                        MedRoute.entries.forEach { r ->
+                            DropdownMenuItem(
+                                text = { Text(r.label) },
+                                leadingIcon = { Icon(r.icon, contentDescription = null, modifier = Modifier.size(20.dp)) },
+                                onClick = { route = r; routeMenuOpen = false },
                             )
                         }
                     }
                 }
-                Spacer(Modifier.height(6.dp))
-                Text(daysLabel(selectedDays), fontSize = 11.sp, color = LabelGray)
-                Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(14.dp))
+
+                MedField(
+                    description, { description = it },
+                    "Description (optional)", "What it's for, e.g. Blood pressure",
+                    Icons.Filled.Description, singleLine = false,
+                )
+
+                val strengthLabel = when {
+                    route == MedRoute.OTHER -> "Strength / amount (optional)"
+                    route.strengthUnit.isEmpty() -> "Strength (optional)"
+                    else -> "Strength (${route.strengthUnit})"
+                }
+                val strengthHint = when (route) {
+                    MedRoute.ORAL, MedRoute.SUBLINGUAL, MedRoute.RECTAL -> "e.g. 500"
+                    MedRoute.INHALED, MedRoute.NASAL -> "e.g. 100"
+                    MedRoute.TRANSDERMAL -> "e.g. 25"
+                    MedRoute.TOPICAL, MedRoute.OPHTHALMIC -> "e.g. 0.5"
+                    MedRoute.INJECTABLE -> "e.g. 100"
+                    MedRoute.OTHER -> "e.g. 5 mg, 1 sachet"
+                }
+                MedField(
+                    strength,
+                    { strength = if (route == MedRoute.OTHER) it else it.filter { c -> c.isDigit() || c == '.' } },
+                    strengthLabel, strengthHint, Icons.Filled.Medication,
+                    if (route == MedRoute.OTHER) KeyboardType.Text else KeyboardType.Decimal,
+                )
+                MedField(
+                    amount, { amount = it.filter(Char::isDigit) },
+                    route.doseLabel, "e.g. 1", Icons.Filled.Numbers, KeyboardType.Number,
+                )
+
+                Spacer(Modifier.height(2.dp))
 
                 errorMessage?.let {
                     Text(
@@ -229,42 +286,40 @@ fun AddMedicationScreen(
 
                 Button(
                     onClick = {
-                        val mg = dosageMg.toIntOrNull()
                         val amt = amount.toIntOrNull()
+                        // strength is optional; when given (and not the free-text "Other"
+                        // route) it must be a positive number
+                        val strengthOk = strength.isBlank() ||
+                            route == MedRoute.OTHER ||
+                            (strength.toDoubleOrNull()?.let { it > 0.0 } == true)
                         errorMessage = when {
                             name.isBlank() -> "Enter a medication name"
-                            mg == null || mg !in 1..10_000 -> "Dosage must be 1–10000 mg"
-                            amt == null || amt !in 1..20 -> "Amount must be 1–20 tablets"
-                            selectedDays.isEmpty() -> "Pick at least one repeat day"
+                            !strengthOk -> "Strength must be a positive number"
+                            amt == null || amt !in 1..99 -> "${route.doseLabel} must be a number between 1 and 99"
                             else -> null
                         }
                         if (errorMessage != null) return@Button
 
-                        val saved = if (isEdit) {
-                            editing!!.copy(
-                                name = name,
-                                dosageMg = mg!!,
+                        onNext(
+                            Medication(
+                                id = editing?.id ?: medManager.nextId(),
+                                name = name.trim(),
+                                strength = strength.trim(),
                                 amount = amt!!,
-                                time = time24,
-                                days = selectedDays,
-                            ).also { medManager.update(it) }
-                        } else {
-                            medManager.add(name, mg!!, amt!!, time24, selectedDays)
-                        }
-                        ReminderScheduler.scheduleNext(context, saved)
-                        onSaved(saved.id)
+                                schedule = editing?.schedule ?: emptyMap(),
+                                log = editing?.log ?: emptyMap(),
+                                description = description.trim(),
+                                route = route.name,
+                            )
+                        )
                     },
                     modifier = Modifier.fillMaxWidth().height(52.dp),
                     shape = RoundedCornerShape(14.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = BrandBlue),
                 ) {
-                    Icon(Icons.Filled.Check, contentDescription = null, tint = Color.White)
+                    Text("Next", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White)
                     Spacer(Modifier.width(8.dp))
-                    Text(
-                        if (isEdit) "Save Changes" else "Save Medication",
-                        fontSize = 16.sp,
-                        color = Color.White,
-                    )
+                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = Color.White)
                 }
             }
         }
@@ -279,6 +334,7 @@ private fun MedField(
     placeholder: String,
     icon: ImageVector,
     keyboardType: KeyboardType = KeyboardType.Text,
+    singleLine: Boolean = true,
 ) {
     Text(label, fontSize = 13.sp, fontWeight = FontWeight.Medium, color = LabelGray)
     Spacer(Modifier.height(6.dp))
@@ -286,7 +342,8 @@ private fun MedField(
         value = value,
         onValueChange = onValueChange,
         modifier = Modifier.fillMaxWidth(),
-        singleLine = true,
+        singleLine = singleLine,
+        minLines = if (singleLine) 1 else 2,
         placeholder = { Text(placeholder, color = PlaceholderGray) },
         leadingIcon = { Icon(icon, contentDescription = null, tint = LabelGray, modifier = Modifier.padding(start = 12.dp)) },
         keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
