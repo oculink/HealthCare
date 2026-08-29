@@ -16,7 +16,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsTopHeight
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -62,15 +67,25 @@ class MainActivity : ComponentActivity() {
                 val profileManager = remember { ProfileManager(applicationContext) }
                 val navController = rememberNavController()
 
+                // draft carried between the two Add-Medication steps (details -> schedule)
+                var medDraft by remember { mutableStateOf<Medication?>(null) }
+                var medDraftIsEdit by remember { mutableStateOf(false) }
+
                 // where to land once authenticated: onboarding until the profile is filled in
                 val afterAuth = { if (profileManager.isOnboarded()) "home" else "onboarding" }
                 val startDestination = if (userManager.isSignedIn()) afterAuth() else "signin"
 
+                // Bottom-nav tab switch. Pop back to Home and remember each tab's
+                // state, but never *restore* Home itself. Quick actions (View Trends,
+                // Medication, Profile) are plain-navigated on top of Home, so their
+                // routes get saved under Home's key when popped — restoring that
+                // sub-stack would immediately re-push the screen the user just left,
+                // making the Home tab button look like it does nothing.
                 val switchTab: (String) -> Unit = { route ->
                     navController.navigate(route) {
                         popUpTo("home") { saveState = true }
                         launchSingleTop = true
-                        restoreState = true
+                        restoreState = route != "home"
                     }
                 }
 
@@ -141,16 +156,35 @@ class MainActivity : ComponentActivity() {
                     composable("reminders") { medicationList() }
                     composable("medication") { medicationList() }
 
-                    composable("add_medication") {
+                    composable("add_medication") { entry ->
+                        val pName by entry.savedStateHandle
+                            .getStateFlow<String?>("med_pick_name", null).collectAsState()
+                        val pDesc by entry.savedStateHandle
+                            .getStateFlow<String?>("med_pick_desc", null).collectAsState()
+                        val pRoute by entry.savedStateHandle
+                            .getStateFlow<String?>("med_pick_route", null).collectAsState()
+                        val pCustom by entry.savedStateHandle
+                            .getStateFlow("med_pick_custom", false).collectAsState()
                         AddMedicationScreen(
                             medManager = medManager,
                             editId = null,
+                            onChooseMedication = { navController.navigate("medication_catalog") },
+                            pickedName = pName,
+                            pickedDescription = pDesc,
+                            pickedRoute = pRoute,
+                            pickedCustom = pCustom,
+                            onPickConsumed = {
+                                entry.savedStateHandle["med_pick_name"] = null
+                                entry.savedStateHandle["med_pick_desc"] = null
+                                entry.savedStateHandle["med_pick_route"] = null
+                                entry.savedStateHandle["med_pick_custom"] = false
+                            },
                             onBackClick = { navController.popBackStack() },
-                            onSaved = { id ->
-                                navController.navigate("medication_added/$id") {
-                                    popUpTo("add_medication") { inclusive = true }
-                                }
-                            }
+                            onNext = { draft ->
+                                medDraft = draft
+                                medDraftIsEdit = false
+                                navController.navigate("medication_schedule")
+                            },
                         )
                     }
 
@@ -158,11 +192,77 @@ class MainActivity : ComponentActivity() {
                         "edit_medication/{medId}",
                         arguments = listOf(navArgument("medId") { type = NavType.LongType })
                     ) { entry ->
+                        val pName by entry.savedStateHandle
+                            .getStateFlow<String?>("med_pick_name", null).collectAsState()
+                        val pDesc by entry.savedStateHandle
+                            .getStateFlow<String?>("med_pick_desc", null).collectAsState()
+                        val pRoute by entry.savedStateHandle
+                            .getStateFlow<String?>("med_pick_route", null).collectAsState()
+                        val pCustom by entry.savedStateHandle
+                            .getStateFlow("med_pick_custom", false).collectAsState()
                         AddMedicationScreen(
                             medManager = medManager,
                             editId = entry.arguments?.getLong("medId"),
+                            onChooseMedication = { navController.navigate("medication_catalog") },
+                            pickedName = pName,
+                            pickedDescription = pDesc,
+                            pickedRoute = pRoute,
+                            pickedCustom = pCustom,
+                            onPickConsumed = {
+                                entry.savedStateHandle["med_pick_name"] = null
+                                entry.savedStateHandle["med_pick_desc"] = null
+                                entry.savedStateHandle["med_pick_route"] = null
+                                entry.savedStateHandle["med_pick_custom"] = false
+                            },
                             onBackClick = { navController.popBackStack() },
-                            onSaved = { navController.popBackStack() }
+                            onNext = { draft ->
+                                medDraft = draft
+                                medDraftIsEdit = true
+                                navController.navigate("medication_schedule")
+                            },
+                        )
+                    }
+
+                    composable("medication_schedule") {
+                        val draft = medDraft
+                        if (draft == null) {
+                            LaunchedEffect(Unit) { navController.popBackStack() }
+                        } else {
+                            MedicationScheduleScreen(
+                                draft = draft,
+                                isEdit = medDraftIsEdit,
+                                onBackClick = { navController.popBackStack() },
+                                onSave = { finalMed ->
+                                    val saved = medManager.upsert(finalMed)
+                                    ReminderScheduler.scheduleNext(applicationContext, saved)
+                                    // NOTE: don't clear medDraft here — nulling it recomposes this
+                                    // destination (still briefly on the stack) into its null-guard,
+                                    // which would pop the confirmation screen we're navigating to.
+                                    navController.navigate("medication_added/${saved.id}") {
+                                        popUpTo("reminders") { inclusive = false }
+                                    }
+                                },
+                            )
+                        }
+                    }
+
+                    composable("medication_catalog") {
+                        MedicationPickerScreen(
+                            onPickEntry = { medName, medDesc, medRoute ->
+                                navController.previousBackStackEntry?.savedStateHandle?.let {
+                                    it["med_pick_name"] = medName
+                                    it["med_pick_desc"] = medDesc
+                                    it["med_pick_route"] = medRoute
+                                    it["med_pick_custom"] = false
+                                }
+                                navController.popBackStack()
+                            },
+                            onEnterManually = {
+                                navController.previousBackStackEntry?.savedStateHandle
+                                    ?.set("med_pick_custom", true)
+                                navController.popBackStack()
+                            },
+                            onBackClick = { navController.popBackStack() },
                         )
                     }
 
@@ -244,7 +344,15 @@ class MainActivity : ComponentActivity() {
                             )
                         }
                     }
-                    composable("emergency") { BlankScreen("Emergency") }
+                    composable("emergency") {
+                        EmergencyProfileScreen(
+                            userManager = userManager,
+                            profileManager = profileManager,
+                            medManager = medManager,
+                            onBackClick = { navController.popBackStack() },
+                            onEditProfile = { navController.navigate("edit_profile") },
+                        )
+                    }
                 }
 
                     // Opaque backdrop behind the transparent, edge-to-edge status bar so the top
