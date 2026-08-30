@@ -40,6 +40,9 @@ import androidx.compose.material.icons.filled.WbTwilight
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -56,6 +59,7 @@ import java.util.Locale
 
 private val BrandBlue = Color(0xFF2A6DE1)
 private val BrandBlueDark = Color(0xFF1E50C8)
+private val MonitoringGreen = Color(0xFF5DE0A6) // bright mint — reads on the blue header
 private val CardWhite: Color @Composable get() = themed(Color(0xFFFFFFFF), Color(0xFF1C1D22))
 private val ScreenBackground: Color @Composable get() = themed(Color(0xFFEFF1F6), Color(0xFF121316))
 private val TextDark: Color @Composable get() = themed(Color(0xFF1B1D23), Color(0xFFE8E9EC))
@@ -74,11 +78,30 @@ fun HomeScreen(
     userManager: UserManager,
     profileManager: ProfileManager,
     healthData: HealthDataManager,
-    onNavigate: (String) -> Unit
+    onNavigate: (String) -> Unit,
 ) {
+    // re-read the managers whenever CloudHydrator refreshes the local cache
+    val dataVersion = Session.dataVersion
+
     // Preferred name from onboarding, falling back to the Google account name
-    val fullName = profileManager.get().name
+    val fullName = remember(dataVersion) { profileManager.get().name }
         .ifBlank { userManager.currentAccount()?.name ?: "there" }
+
+    // In caretaker mode the header greets the CAREGIVER (the signed-in account) and shows a
+    // "Monitoring {patient}" line; otherwise it greets the patient themselves.
+    val caretakerMode = Session.isCaretakerMode
+    val headerName = if (caretakerMode) userManager.currentAccount()?.name ?: "Caregiver" else fullName
+    val headerPhoto = userManager.currentAccount()?.photoUrl
+
+    // caregivers linked to this account (patient view of the Monitoring card)
+    val caretakers by produceState(
+        initialValue = emptyList<FamilyLink.CaretakerInfo>(),
+        key1 = dataVersion,
+        key2 = Session.controlledPatientUid,
+    ) {
+        value = if (Session.isCaretakerMode) emptyList()
+        else runCatching { FamilyLink.linkedCaretakers() }.getOrDefault(emptyList())
+    }
 
     // TODO: replace with real data later.
     // This null state will also be reused for the offline state later.
@@ -141,11 +164,29 @@ fun HomeScreen(
                     }
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        fullName,
+                        headerName,
                         color = Color.White,
                         fontSize = 22.sp,
                         fontWeight = FontWeight.Bold
                     )
+                    if (caretakerMode) {
+                        Spacer(Modifier.height(5.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                Modifier
+                                    .size(8.dp)
+                                    .clip(CircleShape)
+                                    .background(MonitoringGreen)
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            Text(
+                                "Monitoring ${Session.controlledPatientName.ifBlank { "patient" }}",
+                                color = MonitoringGreen,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                        }
+                    }
                     Spacer(Modifier.height(4.dp))
                     Text(
                         todayDate(), // date from the phone
@@ -153,10 +194,10 @@ fun HomeScreen(
                         fontSize = 12.sp
                     )
                 }
-                // Google account photo, falling back to the name initials
+                // Google account photo of the signed-in user (the caregiver in caretaker mode)
                 AccountAvatar(
-                    photoUrl = userManager.currentAccount()?.photoUrl,
-                    initials = initials(fullName),
+                    photoUrl = headerPhoto,
+                    initials = initials(headerName),
                     size = 48.dp,
                     background = BrandBlueDark,
                 )
@@ -231,7 +272,8 @@ fun HomeScreen(
                 SummaryRow(Icons.Filled.Bedtime, "Sleep", sleep)
             }
 
-            // Family Caregiver card removed for now — a new design is planned for it.
+            // ===== Monitoring status (Family Caregiver link) =====
+            MonitoringStatusCard(caretakers = caretakers)
         }
     }
 }

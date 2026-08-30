@@ -72,8 +72,10 @@ class ReminderWorker(
         val time = inputData.getString(KEY_TIME).orEmpty()
         if (medId == -1L) return Result.success()
 
-        // med was deleted -> nothing to fire, chain stops here
-        val med = MedicationManager(applicationContext).get(medId) ?: return Result.success()
+        // med was deleted -> nothing to fire, chain stops here.
+        // forSelf: reminders always come from THIS account's own medication list.
+        val med = MedicationManager(applicationContext, forSelf = true).get(medId)
+            ?: return Result.success()
 
         // don't nag if the user already logged this exact dose
         val doseKey = doseKey(java.util.Calendar.getInstance(), time)
@@ -87,7 +89,7 @@ class ReminderWorker(
         }
 
         // queue the next dose slot
-        ReminderScheduler.scheduleNext(applicationContext, med)
+        ReminderScheduler.scheduleNext(applicationContext, med, force = true)
         return Result.success()
     }
 
@@ -100,8 +102,15 @@ class ReminderWorker(
 // ===== Figures out WHEN to fire =====
 object ReminderScheduler {
 
-    /** (Re)schedule the single next dose fire for this med; cancels it if nothing is upcoming. */
-    fun scheduleNext(context: Context, med: Medication) {
+    /**
+     * (Re)schedule the single next dose fire for this med; cancels it if nothing is upcoming.
+     *
+     * Skipped while in caretaker mode (unless [force]) — medication reminders belong to the
+     * signed-in account, never a linked patient. [syncAll] / [ReminderWorker] pass force=true
+     * because they only ever operate on this account's own list.
+     */
+    fun scheduleNext(context: Context, med: Medication, force: Boolean = false) {
+        if (Session.isCaretakerMode && !force) return
         val next = nextOccurrence(med)
         if (next == null) {
             cancel(context, med.id)
@@ -136,7 +145,8 @@ object ReminderScheduler {
 
     /** Re-arm every med's reminder. Safe (and cheap) to call on every app launch. */
     fun syncAll(context: Context) {
-        MedicationManager(context).getAll().forEach { scheduleNext(context, it) }
+        MedicationManager(context, forSelf = true).getAll()
+            .forEach { scheduleNext(context, it, force = true) }
     }
 
     private fun workName(id: Long) = "med_reminder_$id"

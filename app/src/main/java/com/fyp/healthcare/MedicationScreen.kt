@@ -78,10 +78,11 @@ fun MedicationScreen(
 ) {
     val context = LocalContext.current
 
-    // bumping this re-reads storage and re-evaluates every dose's state
+    // bumping this re-reads storage and re-evaluates every dose's state;
+    // Session.dataVersion changes when CloudHydrator refreshes the cache
     var refresh by remember { mutableStateOf(0) }
-    val meds = remember(refresh) { medManager.getAll() }
-    val now = remember(refresh) { Calendar.getInstance() }
+    val meds = remember(refresh, Session.dataVersion) { medManager.getAll() }
+    val now = remember(refresh, Session.dataVersion) { Calendar.getInstance() }
 
     // keep "Soon" -> "Missed" etc. moving while the screen is open
     LaunchedEffect(Unit) {

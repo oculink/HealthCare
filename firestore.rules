@@ -1,0 +1,87 @@
+// CareApp — Firestore security rules.
+//
+// Paste this into  Firebase console → Firestore Database → Rules → Publish.
+// It REPLACES the current rules and covers every path the app touches:
+//   users/{uid}                         health profile + role + family-link fields
+//   users/{uid}/readings/{auto}         recorded vitals
+//   users/{uid}/medications/{id}        medications + adherence log
+//   familyCodes/{CODE}                  family-caregiver link codes  (doc id IS the code)
+//   stats/vitals                        anonymous community aggregate
+//
+// Caretaker access model:
+//   - A patient's user doc lists `caretakerUids`. Anyone in that list can read/write the
+//     patient's data (that IS the caregiver capability).
+//   - To GET into that list, a caretaker must know the patient's family code: knowing the
+//     code lets them append their uid to familyCodes/{CODE}.caretakerUids, and the user-doc
+//     rule then accepts them attaching themselves (cross-checking that same code doc).
+//   - The patient can revoke anyone (they own their user doc + their code doc). A caretaker
+//     can only ever add or remove THEIR OWN uid.
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function isSelf(uid) { return signedIn() && request.auth.uid == uid; }
+    function caretakerUidsOf(uid) {
+      return get(/databases/$(database)/documents/users/$(uid)).data.get('caretakerUids', []);
+    }
+    function isCaretakerOf(uid) { return signedIn() && request.auth.uid in caretakerUidsOf(uid); }
+
+    match /users/{uid} {
+      allow read:   if isSelf(uid) || isCaretakerOf(uid);
+      allow create: if isSelf(uid);
+      allow delete: if isSelf(uid);
+      allow update: if isSelf(uid)
+        || isCaretakerOf(uid)
+        || (
+             // a new caretaker attaching themselves: touches only the caretaker fields, and
+             // only if they already appear in the matching family-code document
+             request.resource.data.diff(resource.data).affectedKeys()
+               .hasOnly(['caretakerUids', 'caretakers'])
+             && 'familyCode' in resource.data
+             && request.auth.uid in get(
+                  /databases/$(database)/documents/familyCodes/$(resource.data.familyCode)
+                ).data.get('caretakerUids', [])
+           );
+
+      match /{document=**} {
+        allow read, write: if isSelf(uid) || isCaretakerOf(uid);
+      }
+    }
+
+    match /familyCodes/{code} {
+      allow get:    if signedIn();
+      allow list:   if false;
+      allow create: if signedIn() && request.resource.data.patientUid == request.auth.uid;
+      allow delete: if signedIn() && resource.data.patientUid == request.auth.uid;
+      allow update: if signedIn() && (
+          // the patient owns their code document
+          resource.data.patientUid == request.auth.uid
+          // OR a caretaker toggling ONLY their own uid in caretakerUids (add or remove)
+          || (
+               request.resource.data.diff(resource.data).affectedKeys().hasOnly(['caretakerUids'])
+               && (
+                    ( request.resource.data.caretakerUids.removeAll(resource.data.caretakerUids)
+                        .hasOnly([request.auth.uid])
+                      && resource.data.caretakerUids.removeAll(request.resource.data.caretakerUids)
+                        .size() == 0 )
+                    ||
+                    ( resource.data.caretakerUids.removeAll(request.resource.data.caretakerUids)
+                        .hasOnly([request.auth.uid])
+                      && request.resource.data.caretakerUids.removeAll(resource.data.caretakerUids)
+                        .size() == 0 )
+                  )
+             )
+        );
+    }
+
+    // Anonymous, aggregate-only community stats:
+    //   stats/vitals                  all-time count/sum/min/max per metric
+    //   stats/vitals/daily/{yyyy-MM-dd} per-day count/sum (Health Trends chart)
+    // {document=**} so the `daily` subcollection is covered too.
+    match /stats/{document=**} {
+      allow read, write: if signedIn();
+    }
+  }
+}

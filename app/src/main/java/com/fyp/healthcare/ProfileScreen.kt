@@ -47,6 +47,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -74,6 +75,7 @@ fun ProfileScreen(
     profileManager: ProfileManager,
     activity: ActivityDataManager,
     onEditProfile: () -> Unit,
+    onOpenFamilyCaregiver: () -> Unit,
     onSignOut: () -> Unit,
     onBackClick: () -> Unit,
 ) {
@@ -81,8 +83,24 @@ fun ProfileScreen(
     val email = account?.email
 
     var refresh by remember { mutableStateOf(0) }
-    val profile = remember(refresh) { profileManager.get() }
-    val stepGoal = remember(refresh) { activity.stepGoal() }
+    val dataVersion = Session.dataVersion
+    val profile = remember(refresh, dataVersion) { profileManager.get() }
+    val stepGoal = remember(refresh, dataVersion) { activity.stepGoal() }
+
+    val linkedCaretakerCount by produceState(
+        initialValue = 0,
+        key1 = dataVersion,
+        key2 = Session.controlledPatientUid,
+    ) {
+        value = if (Session.isCaretakerMode) 0
+        else runCatching { FamilyLink.linkedCaretakers().size }.getOrDefault(0)
+    }
+    val familyCaregiverValue = when {
+        Session.isCaretakerMode -> Session.controlledPatientName.ifBlank { "Linked" }
+        linkedCaretakerCount == 1 -> "1 linked"
+        linkedCaretakerCount > 1 -> "$linkedCaretakerCount linked"
+        else -> "Set up"
+    }
     val name = profile.name.ifBlank { account?.name ?: "Guest" }
 
     val context = LocalContext.current
@@ -124,6 +142,31 @@ fun ProfileScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
+            if (Session.isCaretakerMode) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(BrandBlue.copy(alpha = 0.10f))
+                        .padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        Icons.Filled.FamilyRestroom,
+                        contentDescription = null,
+                        tint = BrandBlue,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        "Viewing ${Session.controlledPatientName.ifBlank { "the patient" }}'s account — " +
+                            "changes save to their profile.",
+                        fontSize = 12.sp,
+                        color = TextDark,
+                    )
+                }
+            }
+
             // ===== Account =====
             Row(
                 modifier = Modifier
@@ -134,7 +177,7 @@ fun ProfileScreen(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 AccountAvatar(
-                    photoUrl = account?.photoUrl,
+                    photoUrl = if (Session.isCaretakerMode) Session.controlledPatientPhoto else account?.photoUrl,
                     initials = profileInitials(name),
                     size = 56.dp,
                     background = BrandBlue,
@@ -143,7 +186,12 @@ fun ProfileScreen(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(name, fontSize = 17.sp, fontWeight = FontWeight.Bold, color = TextDark)
                     Spacer(Modifier.height(2.dp))
-                    Text(email ?: "Not signed in", fontSize = 12.sp, color = LabelGray)
+                    Text(
+                        if (Session.isCaretakerMode) "Patient account · managed by you"
+                        else email ?: "Not signed in",
+                        fontSize = 12.sp,
+                        color = LabelGray,
+                    )
                 }
             }
 
@@ -232,7 +280,12 @@ fun ProfileScreen(
                     .clip(RoundedCornerShape(20.dp))
                     .background(CardWhite),
             ) {
-                NavRow(Icons.Filled.FamilyRestroom, "Family Caregiver", "Not linked")
+                NavRow(
+                    Icons.Filled.FamilyRestroom,
+                    "Family Caregiver",
+                    familyCaregiverValue,
+                    onClick = onOpenFamilyCaregiver,
+                )
                 Divider()
                 NavRow(Icons.Filled.Radar, "mmWave Radar Sensor", "Not connected")
             }

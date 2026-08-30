@@ -18,7 +18,7 @@ import org.json.JSONObject
 
 class HealthDataManager(context: Context) {
     private val prefs: SharedPreferences =
-        context.getSharedPreferences("health_data", Context.MODE_PRIVATE)
+        context.getSharedPreferences(scopedPrefsName("health_data"), Context.MODE_PRIVATE)
 
     // Weight is NOT recorded here — it's part of the health profile (set at onboarding,
     // editable in Settings). The Record Data screen only takes point-in-time vitals.
@@ -171,6 +171,43 @@ class HealthDataManager(context: Context) {
                 oxygen = d.getString("oxygen").orEmpty(),
             )
         }.sortedBy { it.timestamp }
+    }
+
+    /**
+     * Replace the local store with [readings] pulled from Firestore (hydration on app open /
+     * when a caretaker links). Does NOT re-push to the cloud — this is a download.
+     */
+    fun hydrateLocal(readings: List<Reading>) {
+        if (readings.isEmpty()) return
+        val sorted = readings.sortedBy { it.timestamp }
+
+        val arr = JSONArray()
+        sorted.takeLast(MAX_HISTORY).forEach { r ->
+            arr.put(
+                JSONObject().apply {
+                    put("ts", r.timestamp)
+                    put("bp", r.bloodPressure)
+                    put("bs", r.bloodSugar)
+                    put("hr", r.heartRate)
+                    put("temp", r.temperature)
+                    put("ox", r.oxygen)
+                }
+            )
+        }
+
+        // "latest reading of each type" — newest non-blank value wins, per field
+        val newestFirst = sorted.asReversed()
+        fun latest(select: (Reading) -> String): String? =
+            newestFirst.map(select).firstOrNull { it.isNotBlank() }
+
+        prefs.edit()
+            .putString(KEY_HISTORY, arr.toString())
+            .putString("blood_pressure", latest { it.bloodPressure })
+            .putString("blood_sugar", latest { it.bloodSugar })
+            .putString("heart_rate", latest { it.heartRate })
+            .putString("temperature", latest { it.temperature })
+            .putString("oxygen", latest { it.oxygen })
+            .apply()
     }
 
     /** Backlog: if anything was recorded before cloud sync, push the current latest as one reading. */

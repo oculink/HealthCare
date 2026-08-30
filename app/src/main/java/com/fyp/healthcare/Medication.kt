@@ -3,6 +3,7 @@ package com.fyp.healthcare
 import android.content.Context
 import android.content.SharedPreferences
 import com.google.firebase.firestore.FieldValue
+import com.google.firebase.firestore.Source
 import org.json.JSONArray
 import org.json.JSONObject
 import java.text.SimpleDateFormat
@@ -170,18 +171,26 @@ fun formatTime12(time24: String): String {
     return SimpleDateFormat("h:mm a", Locale.getDefault()).format(cal.time)
 }
 
-class MedicationManager(context: Context) {
+/**
+ * @param forSelf when true, always use the signed-in account's own store (base prefs file),
+ *        ignoring caretaker mode. Used by the reminder scheduler / worker so a caretaker's
+ *        phone only ever fires its own medication notifications, never a linked patient's.
+ */
+class MedicationManager(context: Context, forSelf: Boolean = false) {
 
     // =====================================================================
-    // TODO (FUTURE - SQL DATABASE):
     //  Each medication AND every entry in `log` (taken/missed per dose) also
-    //  syncs to the server, so the family caregiver account can see the
-    //  patient's schedule and full adherence history.
-    //  For now everything is stored locally as JSON in SharedPreferences.
+    //  syncs to Firestore (users/{uid}/medications), so a linked family
+    //  caregiver can see and manage the patient's schedule + adherence.
+    //  Locally it is stored as JSON in SharedPreferences; in caretaker mode
+    //  the patient's copy lives in a separate `medications__<patientUid>` file.
     // =====================================================================
 
     private val prefs: SharedPreferences =
-        context.getSharedPreferences("medications", Context.MODE_PRIVATE)
+        context.getSharedPreferences(
+            if (forSelf) "medications" else scopedPrefsName("medications"),
+            Context.MODE_PRIVATE,
+        )
 
     /** All meds, earliest daily dose first (then name). */
     fun getAll(): List<Medication> =
@@ -231,6 +240,39 @@ class MedicationManager(context: Context) {
     }
 
     fun syncAllToCloud() = load().forEach { pushMed(it) }
+
+    /** Replace the local list with [meds] pulled from Firestore (hydration). No re-push. */
+    fun hydrateLocal(meds: List<Medication>) = save(meds)
+
+    /**
+     * Read the medication list straight from Firestore (users/{uid}/medications) — the inverse
+     * of [pushMed]. Used to hydrate the local cache on app open / when a caretaker links.
+     */
+    suspend fun cloudList(fromServer: Boolean): List<Medication> {
+        val col = Cloud.userDoc?.collection("medications") ?: return emptyList()
+        val snap = col.get(if (fromServer) Source.SERVER else Source.CACHE).awaitResult()
+        return snap.documents.mapNotNull { d ->
+            val id = d.getLong("id") ?: d.id.toLongOrNull() ?: return@mapNotNull null
+            @Suppress("UNCHECKED_CAST")
+            val schedRaw = (d.get("schedule") as? Map<String, List<*>>).orEmpty()
+            val schedule = schedRaw.mapNotNull { (k, v) ->
+                val day = k.toIntOrNull() ?: return@mapNotNull null
+                day to v.mapNotNull { it as? String }
+            }.toMap()
+            @Suppress("UNCHECKED_CAST")
+            val log = (d.get("log") as? Map<String, String>).orEmpty()
+            Medication(
+                id = id,
+                name = d.getString("name").orEmpty(),
+                strength = d.getString("strength").orEmpty(),
+                amount = (d.getLong("amount") ?: 1L).toInt().coerceAtLeast(1),
+                schedule = schedule,
+                log = log,
+                description = d.getString("description").orEmpty(),
+                route = d.getString("route")?.ifBlank { "ORAL" } ?: "ORAL",
+            )
+        }
+    }
 
     private fun pushMed(m: Medication) {
         Cloud.userDoc?.collection("medications")?.document(m.id.toString())?.set(

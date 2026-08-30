@@ -29,7 +29,7 @@ import com.google.firebase.firestore.SetOptions
  */
 class ActivityDataManager(context: Context) {
 
-    private val prefs = context.getSharedPreferences("activity", Context.MODE_PRIVATE)
+    private val prefs = context.getSharedPreferences(scopedPrefsName("activity"), Context.MODE_PRIVATE)
 
     // ---------- real settings (not radar) ----------
 
@@ -43,6 +43,12 @@ class ActivityDataManager(context: Context) {
     /** Mirror the step goal onto users/{uid}. */
     fun syncToCloud() {
         Cloud.userDoc?.set(mapOf("stepGoal" to stepGoal()), SetOptions.merge())
+    }
+
+    /** Overwrite the local step goal from a cloud copy (hydration). No re-push. */
+    fun hydrateLocal(goal: Int?) {
+        if (goal == null) return
+        prefs.edit().putInt(KEY_GOAL, goal.coerceIn(1_000, 50_000)).apply()
     }
 
     // ---------- from the mmWave radar (null until connected) ----------

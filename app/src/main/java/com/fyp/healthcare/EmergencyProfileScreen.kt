@@ -83,8 +83,8 @@ fun EmergencyProfileScreen(
 ) {
     val context = LocalContext.current
     val account = remember { userManager.currentAccount() }
-    val profile = remember { profileManager.get() }
-    val meds = remember { medManager.getAll() }
+    val profile = remember(Session.dataVersion) { profileManager.get() }
+    val meds = remember(Session.dataVersion) { medManager.getAll() }
     val name = profile.name.ifBlank { account?.name ?: "—" }
 
     fun dial(number: String) {

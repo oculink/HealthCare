@@ -60,7 +60,14 @@ fun SignInScreen(
         error = null
         scope.launch {
             when (val result = userManager.signInWithGoogle(context)) {
-                is SignInResult.Success -> onSignedIn()
+                is SignInResult.Success -> {
+                    // Local session + data caches were wiped on the previous sign-out, so
+                    // rebuild this account's state from the cloud BEFORE navigating — otherwise
+                    // afterAuth() misroutes (sees no profile) and screens flash empty / stale.
+                    runCatching { FamilyLink.restoreSession(context) }
+                    runCatching { CloudHydrator.hydrate(context) }
+                    onSignedIn()
+                }
                 is SignInResult.Cancelled -> loading = false
                 is SignInResult.Failed -> {
                     error = result.message

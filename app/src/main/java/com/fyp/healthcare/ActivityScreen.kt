@@ -78,6 +78,8 @@ fun ActivityScreen(
     activity: ActivityDataManager,
     onBackClick: () -> Unit,
 ) {
+    @Suppress("UNUSED_VARIABLE")
+    val dataVersion = Session.dataVersion // recompose when the cache is refreshed
     val steps = activity.steps()
     val goal = activity.stepGoal()
     val falls = activity.fallCount()

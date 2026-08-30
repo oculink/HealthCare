@@ -23,15 +23,13 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Timeline
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -60,33 +58,34 @@ private val GoodGreen = Color(0xFF2E9E6B)
 private val BadRed = Color(0xFFD32F2F)
 
 private val WEEK_LABELS = listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
+private const val DAY_MS = 24L * 60 * 60 * 1000
 
+/**
+ * Health Trends is a 100% GLOBAL view: every number and the chart come from the anonymous
+ * community aggregate (`stats/vitals` all-time + `stats/vitals/daily/{date}` per day), so the
+ * screen looks identical on every account. It is NOT a per-user screen.
+ *
+ * Chart point for a day = that day's average across all users (e.g. one user logs 73, another
+ * 71 -> the point sits at 72). Both flows are live snapshot listeners, so the numbers move in
+ * real time as anyone records a reading.
+ */
 @Composable
 fun HealthTrendsScreen(
-    healthData: HealthDataManager,
     onBackClick: () -> Unit,
 ) {
     var selectedPeriod by remember { mutableStateOf("Weekly") }
+    val dayIds = remember(selectedPeriod) { periodDayIds(selectedPeriod) }
 
-    // Trends are computed from the user's OWN recorded readings in Firestore
-    // (users/{uid}/readings). Cache-first so the screen paints instantly and works offline;
-    // then a background server fetch refreshes it. Local history is the last-resort fallback.
-    val historyState = produceState<List<HealthDataManager.Reading>?>(initialValue = null, healthData) {
-        value = runCatching { healthData.cloudHistory(fromServer = false) }
-            .getOrNull()
-            ?.takeIf { it.isNotEmpty() }
-            ?: healthData.history()
-        runCatching { healthData.cloudHistory(fromServer = true) }
-            .getOrNull()
-            ?.let { value = it }
-    }
-    val history = historyState.value
+    val community by remember(Session.dataVersion) { Cloud.communityStatsFlow() }
+        .collectAsState(initial = emptyMap())
 
-    // Anonymous "all users" baseline (aggregate-only doc stats/vitals).
-    val communityState = produceState<Map<String, Cloud.CommunityStat>>(emptyMap()) {
-        value = runCatching { Cloud.communityStats() }.getOrDefault(emptyMap())
-    }
-    val community = communityState.value
+    val daily by remember(selectedPeriod, Session.dataVersion) {
+        Cloud.communityDailyFlow(dayIds.first(), dayIds.last())
+    }.collectAsState(initial = emptyList())
+
+    val byDay = remember(daily) { daily.associateBy { it.dayId } }
+    fun slotsOf(metric: String): List<Float?> =
+        dayIds.map { id -> byDay[id]?.avg?.get(metric)?.toFloat() }
 
     Column(modifier = Modifier.fillMaxSize().background(ScreenBackground)) {
 
@@ -113,18 +112,6 @@ fun HealthTrendsScreen(
             Spacer(Modifier.width(48.dp))
         }
 
-        if (history == null) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = BrandBlue)
-            }
-            return@Column
-        }
-
-        val hr = heartRateTrend(history, selectedPeriod)
-        val bp = otherMetricTrend(history, selectedPeriod, 90f, 160f) { it.systolic?.toFloat() }
-        val sugar = otherMetricTrend(history, selectedPeriod, 70f, 180f) { it.bloodSugarValue }
-        val oxygen = otherMetricTrend(history, selectedPeriod, 90f, 100f) { it.oxygenValue }
-
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -133,18 +120,46 @@ fun HealthTrendsScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
 
-            // ===== Weekly / Monthly =====
             PeriodSelector(selectedPeriod) { selectedPeriod = it }
 
-            // ===== Heart Rate section =====
             Text(
-                "Heart Rate (BPM)",
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                color = TextDark,
+                "Averages across all users of the app.",
+                fontSize = 12.sp,
+                color = LabelGray,
             )
 
-            // Chart card
+            // ===== Heart Rate =====
+            val hrSlots = slotsOf("hr")
+            val hrStat = community["hr"]
+            Text("Heart Rate (BPM)", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextDark)
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(CardWhite)
+                    .padding(16.dp)
+            ) {
+                Row(verticalAlignment = Alignment.Bottom) {
+                    Text(
+                        if (selectedPeriod == "Weekly") "This week · all users" else "This month · all users",
+                        fontSize = 12.sp,
+                        color = LabelGray,
+                        modifier = Modifier.weight(1f),
+                    )
+                    hrSlots.lastOrNull { it != null }?.let {
+                        Text(
+                            "Latest ${it.roundToInt()}",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = BrandBlue,
+                        )
+                    }
+                }
+                Spacer(Modifier.height(10.dp))
+                MetricChart(points = hrSlots, labels = periodLabels(selectedPeriod))
+            }
+
+            // ===== Global Min / Avg / Max =====
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -153,104 +168,58 @@ fun HealthTrendsScreen(
                     .padding(16.dp)
             ) {
                 Text(
-                    if (selectedPeriod == "Weekly") "This week" else "This month",
+                    "All users" +
+                        (hrStat?.let { "  ·  ${formatCount(it.count)} readings" } ?: ""),
                     fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
                     color = LabelGray,
                 )
-                Spacer(Modifier.height(10.dp))
-                HeartRateChart(
-                    points = hr.slots,
-                    labels = hr.labels,
-                )
-            }
-
-            // ===== Min / Avg / Max — you vs. all users =====
-            val hrCommunity = community["hr"]
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(CardWhite)
-                    .padding(16.dp)
-            ) {
-                if (hrCommunity != null) {
-                    Text("You", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = LabelGray)
-                    Spacer(Modifier.height(6.dp))
-                }
+                Spacer(Modifier.height(6.dp))
                 Row(Modifier.fillMaxWidth()) {
-                    StatCell("Min", hr.min?.let { "$it" }, BrandBlue, Modifier.weight(1f))
-                    StatCell("Avg", hr.avg?.let { "$it" }, GoodGreen, Modifier.weight(1f))
-                    StatCell("Max", hr.max?.let { "$it" }, BadRed, Modifier.weight(1f))
-                }
-                if (hrCommunity != null) {
-                    Spacer(Modifier.height(12.dp))
-                    HorizontalDivider(color = TrackGray)
-                    Spacer(Modifier.height(12.dp))
-                    Text(
-                        "All users  ·  ${formatCount(hrCommunity.count)} readings",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = LabelGray,
-                    )
-                    Spacer(Modifier.height(6.dp))
-                    Row(Modifier.fillMaxWidth()) {
-                        StatCell("Min", "${hrCommunity.min.roundToInt()}", LabelGray, Modifier.weight(1f))
-                        StatCell("Avg", "${hrCommunity.avg.roundToInt()}", LabelGray, Modifier.weight(1f))
-                        StatCell("Max", "${hrCommunity.max.roundToInt()}", LabelGray, Modifier.weight(1f))
-                    }
+                    StatCell("Min", hrStat?.min?.roundToInt()?.toString(), BrandBlue, Modifier.weight(1f))
+                    StatCell("Avg", hrStat?.avg?.roundToInt()?.toString(), GoodGreen, Modifier.weight(1f))
+                    StatCell("Max", hrStat?.max?.roundToInt()?.toString(), BadRed, Modifier.weight(1f))
                 }
             }
-            Text(
-                when (hr.count) {
-                    0 -> "No heart-rate readings recorded for this period yet."
-                    1 -> "1 reading this period. Record daily to see the trend."
-                    else -> "${hr.count} readings this period."
-                },
-                fontSize = 12.sp,
-                color = LabelGray,
-            )
 
             // ===== Other Metrics =====
             Text("Other Metrics", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextDark)
+            MetricCard(
+                "Blood Pressure (systolic)",
+                community["sys"]?.avg?.let { "${it.roundToInt()}" },
+                trendOf(slotsOf("sys")),
+                progressOf(community["sys"]?.avg, 90.0, 160.0),
+            )
+            MetricCard(
+                "Blood Sugar",
+                community["sugar"]?.avg?.let { trimNumber(it.toFloat()) },
+                trendOf(slotsOf("sugar")),
+                progressOf(community["sugar"]?.avg, 70.0, 180.0),
+            )
+            MetricCard(
+                "Oxygen Level",
+                community["oxy"]?.avg?.let { "${it.roundToInt()}%" },
+                trendOf(slotsOf("oxy")),
+                progressOf(community["oxy"]?.avg, 90.0, 100.0),
+            )
 
-            MetricCard(
-                "Blood Pressure (systolic)", bp.latest?.let { "${it.roundToInt()}" }, bp.trendLabel, bp.progress,
-                community["sys"]?.let { "All users avg: ${it.avg.roundToInt()}" },
-            )
-            MetricCard(
-                "Blood Sugar", sugar.latest?.let { trimNumber(it) }, sugar.trendLabel, sugar.progress,
-                community["sugar"]?.let { "All users avg: ${it.avg.roundToInt()}" },
-            )
-            MetricCard(
-                "Oxygen Level", oxygen.latest?.let { "${it.roundToInt()}%" }, oxygen.trendLabel, oxygen.progress,
-                community["oxy"]?.let { "All users avg: ${it.avg.roundToInt()}%" },
-            )
+            if (community.isEmpty() && daily.isEmpty()) {
+                Text(
+                    "No community readings yet. Record your vitals to start the averages.",
+                    fontSize = 12.sp,
+                    color = LabelGray,
+                )
+            }
         }
     }
 }
 
 // =====================================================================
-// Trend math — all done locally from the recorded reading history.
-// Weekly  = current week, slots = days Sun..Sat (7).
-// Monthly = current month, slots = day-of-month 1..N (N = 28/29/30/31).
+// Period helpers — Weekly = current week (Sun..Sat, 7 slots),
+// Monthly = current month (day 1..N).
 // =====================================================================
 
-private data class HeartRateTrend(
-    val slots: List<Float?>,   // averaged BPM per day-slot, null = no reading that day
-    val labels: List<String>,  // x-axis labels ("" = draw nothing)
-    val min: Int?,
-    val avg: Int?,
-    val max: Int?,
-    val count: Int,            // number of individual readings in the window
-)
-
-private data class MetricTrend(
-    val latest: Float?,
-    val trendLabel: String?,   // "+3", "-2", "Stable", or null
-    val progress: Float?,      // 0f..1f for the bar, or null
-)
-
-/** Midnight today, then the first slot's start + the number of day-slots for the period. */
+/** Midnight of the first day of the period, then the number of day-slots. */
 private fun periodWindow(period: String): Pair<Long, Int> {
     val c = Calendar.getInstance()
     c.set(Calendar.HOUR_OF_DAY, 0)
@@ -268,70 +237,35 @@ private fun periodWindow(period: String): Pair<Long, Int> {
     }
 }
 
-private const val DAY_MS = 24L * 60 * 60 * 1000
-
-private fun heartRateTrend(history: List<HealthDataManager.Reading>, period: String): HeartRateTrend {
+private fun periodDayIds(period: String): List<String> {
     val (start, slotCount) = periodWindow(period)
-    val end = start + slotCount * DAY_MS
-
-    val sums = FloatArray(slotCount)
-    val counts = IntArray(slotCount)
-    val all = ArrayList<Int>()
-
-    for (r in history) {
-        val bpm = r.heartRateBpm ?: continue
-        if (bpm !in 20..250) continue
-        if (r.timestamp < start || r.timestamp >= end) continue
-        val slot = ((r.timestamp - start) / DAY_MS).toInt().coerceIn(0, slotCount - 1)
-        sums[slot] += bpm
-        counts[slot]++
-        all.add(bpm)
-    }
-
-    val slots = List(slotCount) { i -> if (counts[i] == 0) null else sums[i] / counts[i] }
-    val labels =
-        if (period == "Weekly") WEEK_LABELS
-        else List(slotCount) { i ->
-            val day = i + 1
-            // ~6 evenly spaced ticks; skip the last-day rule so it never collides with day 30
-            if (day == 1 || day % 5 == 0) day.toString() else ""
-        }
-
-    return HeartRateTrend(
-        slots = slots,
-        labels = labels,
-        min = all.minOrNull(),
-        max = all.maxOrNull(),
-        avg = if (all.isEmpty()) null else all.average().roundToInt(),
-        count = all.size,
-    )
+    return List(slotCount) { i -> Cloud.dayIdFor(start + i * DAY_MS) }
 }
 
-private fun otherMetricTrend(
-    history: List<HealthDataManager.Reading>,
-    period: String,
-    rangeLow: Float,
-    rangeHigh: Float,
-    select: (HealthDataManager.Reading) -> Float?,
-): MetricTrend {
-    val (start, slotCount) = periodWindow(period)
-    val end = start + slotCount * DAY_MS
-    val values = history
-        .filter { it.timestamp in start until end }
-        .mapNotNull(select)
-    if (values.isEmpty()) return MetricTrend(null, null, null)
-
-    val latest = values.last()
-    val progress = ((latest - rangeLow) / (rangeHigh - rangeLow)).coerceIn(0f, 1f)
-    val trend: String? = if (values.size < 2) "Stable" else {
-        val delta = latest - values[values.size - 2]
-        when {
-            delta > 0.5f -> "+${trimNumber(delta)}"
-            delta < -0.5f -> "-${trimNumber(-delta)}"
-            else -> "Stable"
-        }
+private fun periodLabels(period: String): List<String> {
+    if (period == "Weekly") return WEEK_LABELS
+    val (_, slotCount) = periodWindow(period)
+    return List(slotCount) { i ->
+        val day = i + 1
+        if (day == 1 || day % 5 == 0) day.toString() else ""
     }
-    return MetricTrend(latest, trend, progress)
+}
+
+private fun progressOf(value: Double?, low: Double, high: Double): Float? {
+    value ?: return null
+    return (((value - low) / (high - low)).coerceIn(0.0, 1.0)).toFloat()
+}
+
+/** Trend from the day-slot series: last present point vs the one before it. */
+private fun trendOf(slots: List<Float?>): String? {
+    val present = slots.filterNotNull()
+    if (present.size < 2) return null
+    val delta = present.last() - present[present.size - 2]
+    return when {
+        delta > 0.5f -> "+${trimNumber(delta)}"
+        delta < -0.5f -> "-${trimNumber(-delta)}"
+        else -> "Stable"
+    }
 }
 
 private fun trimNumber(v: Float): String =
@@ -339,13 +273,12 @@ private fun trimNumber(v: Float): String =
     else String.format("%.1f", v)
 
 /** 1240 -> "1,240" */
-private fun formatCount(n: Long): String =
-    "%,d".format(n)
+private fun formatCount(n: Long): String = "%,d".format(n)
 
 // ===== Chart =====
 
 @Composable
-private fun HeartRateChart(points: List<Float?>, labels: List<String>) {
+private fun MetricChart(points: List<Float?>, labels: List<String>) {
     val present = points.filterNotNull()
     if (present.isEmpty()) {
         Box(
@@ -364,9 +297,9 @@ private fun HeartRateChart(points: List<Float?>, labels: List<String>) {
                     modifier = Modifier.size(32.dp)
                 )
                 Spacer(Modifier.height(6.dp))
-                Text("No heart-rate data yet", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = LabelGray)
+                Text("No data yet for this period", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = LabelGray)
                 Spacer(Modifier.height(2.dp))
-                Text("Record your heart rate to see the graph", fontSize = 11.sp, color = LabelGray)
+                Text("Averages appear as users record readings", fontSize = 11.sp, color = LabelGray)
             }
         }
         return
@@ -383,7 +316,6 @@ private fun HeartRateChart(points: List<Float?>, labels: List<String>) {
     val n = points.size
 
     Row(modifier = Modifier.fillMaxWidth()) {
-        // y-axis labels
         Column(
             modifier = Modifier.height(180.dp).width(30.dp),
             verticalArrangement = Arrangement.SpaceBetween,
@@ -487,7 +419,6 @@ private fun MetricCard(
     value: String?,
     trend: String?,
     progress: Float?,
-    communityLine: String? = null,
 ) {
     Column(
         modifier = Modifier
@@ -506,10 +437,8 @@ private fun MetricCard(
             )
             Text(value ?: "--", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextDark)
         }
-        if (communityLine != null) {
-            Spacer(Modifier.height(2.dp))
-            Text(communityLine, fontSize = 11.sp, color = LabelGray)
-        }
+        Spacer(Modifier.height(2.dp))
+        Text("All users average", fontSize = 11.sp, color = LabelGray)
         Spacer(Modifier.height(6.dp))
         Row(modifier = Modifier.fillMaxWidth()) {
             Spacer(Modifier.weight(1f))

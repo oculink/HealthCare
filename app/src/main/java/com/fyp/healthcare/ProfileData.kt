@@ -72,7 +72,7 @@ fun formatBirthDate(iso: String): String {
 
 class ProfileManager(context: Context) {
 
-    private val prefs = context.getSharedPreferences("profile", Context.MODE_PRIVATE)
+    private val prefs = context.getSharedPreferences(scopedPrefsName("profile"), Context.MODE_PRIVATE)
 
     /** Has the user completed the first-run setup? (name + birth date are the required minimum) */
     fun isOnboarded(): Boolean = get().let { it.name.isNotBlank() && it.birthDate.isNotBlank() }
@@ -93,6 +93,15 @@ class ProfileManager(context: Context) {
         val contacts = p.emergencyContacts
             .map { EmergencyContact(it.name.trim(), it.relation.trim(), it.phone.trim()) }
             .filterNot { it.isBlank }
+        val clean = p.copy(emergencyContacts = contacts)
+        writeLocal(clean)
+        syncToCloud(clean)
+    }
+
+    /** Overwrite the local profile from a cloud copy (hydration). No re-push. */
+    fun hydrateLocal(p: HealthProfile) = writeLocal(p)
+
+    private fun writeLocal(p: HealthProfile) {
         prefs.edit()
             .putString(K_NAME, p.name.trim())
             .putString(K_BLOOD, p.bloodType.trim())
@@ -102,9 +111,8 @@ class ProfileManager(context: Context) {
             .putString(K_SEX, p.sex.trim())
             .putString(K_ALLERGIES, joinTags(p.allergies))
             .putString(K_CONDITIONS, joinTags(p.conditions))
-            .putString(K_CONTACTS, serializeContacts(contacts))
+            .putString(K_CONTACTS, serializeContacts(p.emergencyContacts))
             .apply()
-        syncToCloud(p.copy(emergencyContacts = contacts))
     }
 
     /** Mirror the profile fields onto users/{uid}. */
