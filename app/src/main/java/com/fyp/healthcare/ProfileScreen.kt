@@ -333,7 +333,7 @@ fun ProfileScreen(
             }
 
             Text(
-                "CareApp · v1.0 (FYP build)",
+                "CareApp · v0.9.0 (FYP build · radar integration pending)",
                 fontSize = 11.sp,
                 color = LabelGray,
                 textAlign = TextAlign.Center,
