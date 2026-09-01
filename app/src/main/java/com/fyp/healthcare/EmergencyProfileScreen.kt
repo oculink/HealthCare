@@ -1,5 +1,8 @@
 package com.fyp.healthcare
 
+import com.fyp.healthcare.ui.theme.appBackground
+import com.fyp.healthcare.ui.theme.glossyTopBar
+import com.fyp.healthcare.ui.theme.glossySurface
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.background
@@ -95,13 +98,13 @@ fun EmergencyProfileScreen(
         }
     }
 
-    Column(modifier = Modifier.fillMaxSize().background(ScreenBackground)) {
+    Column(modifier = Modifier.fillMaxSize().appBackground()) {
 
         // ===== Header =====
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(BrandBlue)
+                .glossyTopBar(BrandBlue)
                 .statusBarsPadding()
                 .height(56.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -132,8 +135,7 @@ fun EmergencyProfileScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(CardWhite)
+                    .glossySurface(RoundedCornerShape(20.dp), CardWhite)
                     .padding(16.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -159,8 +161,7 @@ fun EmergencyProfileScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(CardWhite)
+                    .glossySurface(RoundedCornerShape(20.dp), CardWhite)
                     .padding(vertical = 16.dp, horizontal = 8.dp),
             ) {
                 VitalCell(Icons.Filled.Bloodtype, CriticalRed, value(profile.bloodType), "Blood Type", Modifier.weight(1f))
@@ -267,8 +268,7 @@ private fun Section(title: String, content: @Composable () -> Unit) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(20.dp))
-                .background(CardWhite)
+                .glossySurface(RoundedCornerShape(20.dp), CardWhite)
                 .padding(16.dp),
         ) {
             content()
@@ -283,12 +283,7 @@ private fun VitalCell(icon: ImageVector, tint: Color, value: String, label: Stri
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        Box(
-            modifier = Modifier.size(34.dp).clip(RoundedCornerShape(12.dp)).background(tint.copy(alpha = 0.14f)),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(18.dp))
-        }
+        com.fyp.healthcare.ui.theme.AppIconBadge(icon, tint, size = 34.dp, iconSize = 18.dp)
         Text(value, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = TextDark, textAlign = TextAlign.Center)
         Text(label, fontSize = 10.sp, color = LabelGray, textAlign = TextAlign.Center)
     }
@@ -311,12 +306,7 @@ private fun EmptyLine(text: String) {
 @Composable
 private fun ContactRow(contact: EmergencyContact, onCall: () -> Unit) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Box(
-            modifier = Modifier.size(38.dp).clip(CircleShape).background(BrandBlue.copy(alpha = 0.12f)),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(Icons.Filled.Person, contentDescription = null, tint = BrandBlue, modifier = Modifier.size(20.dp))
-        }
+        com.fyp.healthcare.ui.theme.AppIconBadge(Icons.Filled.Person, BrandBlue, size = 38.dp, iconSize = 20.dp)
         Spacer(Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(

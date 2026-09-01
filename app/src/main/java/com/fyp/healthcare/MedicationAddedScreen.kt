@@ -1,5 +1,8 @@
 package com.fyp.healthcare
 
+import com.fyp.healthcare.ui.theme.appBackground
+import com.fyp.healthcare.ui.theme.GlossyButton
+import com.fyp.healthcare.ui.theme.glossySurface
 import com.fyp.healthcare.ui.theme.themed
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -57,7 +60,7 @@ fun MedicationAddedScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(ScreenBackground)
+            .appBackground()
             .statusBarsPadding()
             .padding(horizontal = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -107,8 +110,7 @@ fun MedicationAddedScreen(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(20.dp))
-                .background(CardWhite)
+                .glossySurface(RoundedCornerShape(20.dp), CardWhite)
                 .padding(16.dp)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -142,22 +144,21 @@ fun MedicationAddedScreen(
 
         Spacer(Modifier.height(24.dp))
 
-        Button(
+        GlossyButton(
             onClick = onAddAnother,
-            modifier = Modifier.fillMaxWidth().height(50.dp),
-            shape = RoundedCornerShape(14.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = BrandBlue)
+            modifier = Modifier.fillMaxWidth(),
+            color = BrandBlue,
         ) {
             Text("+ Add Another Medication", fontSize = 15.sp, color = Color.White, fontWeight = FontWeight.Medium)
         }
 
         Spacer(Modifier.height(10.dp))
 
-        Button(
+        GlossyButton(
             onClick = onBackToReminders,
-            modifier = Modifier.fillMaxWidth().height(50.dp),
-            shape = RoundedCornerShape(14.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = BrandBlueLight, contentColor = BrandBlue)
+            modifier = Modifier.fillMaxWidth(),
+            color = BrandBlueLight,
+            contentColor = BrandBlue,
         ) {
             Text("Back to Reminders", fontSize = 15.sp, fontWeight = FontWeight.Medium)
         }

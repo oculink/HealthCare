@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -16,6 +17,9 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Diversity3
+import com.fyp.healthcare.ui.theme.GlossyButton
+import com.fyp.healthcare.ui.theme.glossyFieldColors
+import com.fyp.healthcare.ui.theme.glossyFieldWell
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -79,17 +83,10 @@ fun CaretakerLinkScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(BrandBlue)
+            .imePadding()
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            TextButton(onClick = onBack, enabled = !loading) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
-                Spacer(Modifier.size(4.dp))
-                Text("Back", color = Color.White)
-            }
-        }
-
         Spacer(Modifier.weight(1f))
 
         Box(
@@ -124,7 +121,7 @@ fun CaretakerLinkScreen(
                     code = new.filter { it.isLetterOrDigit() }.uppercase().take(FamilyLink.CODE_LENGTH)
                     error = null
                 },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().glossyFieldWell(RoundedCornerShape(14.dp)),
                 singleLine = true,
                 enabled = !loading,
                 placeholder = { Text("8-character code", color = Color(0xFFA6ACB8)) },
@@ -136,12 +133,7 @@ fun CaretakerLinkScreen(
                 ),
                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Characters),
                 shape = RoundedCornerShape(14.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = Color(0xFFEDEFF4),
-                    unfocusedContainerColor = Color(0xFFEDEFF4),
-                    focusedBorderColor = BrandBlue.copy(alpha = 0.4f),
-                    unfocusedBorderColor = Color.Transparent,
-                ),
+                colors = glossyFieldColors(accent = BrandBlue),
             )
 
             error?.let {
@@ -157,18 +149,29 @@ fun CaretakerLinkScreen(
             }
 
             Spacer(Modifier.height(16.dp))
-            Button(
+            GlossyButton(
                 onClick = { submit() },
                 enabled = !loading && code.length == FamilyLink.CODE_LENGTH,
-                modifier = Modifier.fillMaxWidth().height(52.dp),
-                shape = RoundedCornerShape(14.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = BrandBlue),
+                modifier = Modifier.fillMaxWidth(),
+                color = BrandBlue,
             ) {
                 if (loading) {
                     CircularProgressIndicator(strokeWidth = 2.dp, modifier = Modifier.size(20.dp), color = Color.White)
                 } else {
                     Text("Link Account", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color.White)
                 }
+            }
+
+            Spacer(Modifier.height(10.dp))
+            GlossyButton(
+                onClick = onBack,
+                enabled = !loading,
+                modifier = Modifier.fillMaxWidth(),
+                color = Color(0xFF5F6673),
+            ) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, tint = Color.White)
+                Spacer(Modifier.size(8.dp))
+                Text("Go back", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color.White)
             }
         }
 

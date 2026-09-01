@@ -1,6 +1,11 @@
 package com.fyp.healthcare
 
+import com.fyp.healthcare.ui.theme.appBackground
+import com.fyp.healthcare.ui.theme.glossyTopBar
+import com.fyp.healthcare.ui.theme.GlossyButton
+import com.fyp.healthcare.ui.theme.glossySurface
 import com.fyp.healthcare.ui.theme.AppTheme
+import com.fyp.healthcare.ui.theme.IconStyle
 import com.fyp.healthcare.ui.theme.ThemeMode
 import com.fyp.healthcare.ui.theme.themed
 import androidx.compose.foundation.background
@@ -30,6 +35,7 @@ import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.ContactPhone
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FamilyRestroom
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.MedicalInformation
 import androidx.compose.material.icons.filled.Notifications
@@ -106,17 +112,18 @@ fun ProfileScreen(
     val context = LocalContext.current
     var showGoalDialog by remember { mutableStateOf(false) }
     var showThemeDialog by remember { mutableStateOf(false) }
+    var showIconStyleDialog by remember { mutableStateOf(false) }
     var confirmSignOut by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(ScreenBackground),
+            .appBackground(),
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(BrandBlue)
+                .glossyTopBar(BrandBlue)
                 .statusBarsPadding()
                 .height(56.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -171,8 +178,7 @@ fun ProfileScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(CardWhite)
+                    .glossySurface(RoundedCornerShape(20.dp), CardWhite)
                     .padding(16.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -200,8 +206,7 @@ fun ProfileScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(CardWhite)
+                    .glossySurface(RoundedCornerShape(20.dp), CardWhite)
                     .padding(16.dp),
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -239,8 +244,7 @@ fun ProfileScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(CardWhite)
+                    .glossySurface(RoundedCornerShape(20.dp), CardWhite)
                     .padding(16.dp),
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -277,17 +281,17 @@ fun ProfileScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(CardWhite),
+                    .glossySurface(RoundedCornerShape(20.dp), CardWhite),
             ) {
                 NavRow(
                     Icons.Filled.FamilyRestroom,
                     "Family Caregiver",
                     familyCaregiverValue,
+                    tint = Color(0xFF1FA971),
                     onClick = onOpenFamilyCaregiver,
                 )
                 Divider()
-                NavRow(Icons.Filled.Radar, "mmWave Radar Sensor", "Not connected")
+                NavRow(Icons.Filled.Radar, "mmWave Radar Sensor", "Not connected", tint = Color(0xFF7B4BD6))
             }
 
             // ===== Preferences =====
@@ -295,13 +299,13 @@ fun ProfileScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(CardWhite),
+                    .glossySurface(RoundedCornerShape(20.dp), CardWhite),
             ) {
                 NavRow(
                     Icons.AutoMirrored.Filled.DirectionsWalk,
                     "Daily step goal",
                     "%,d steps".format(stepGoal),
+                    tint = Color(0xFF2A6DE1),
                     onClick = { showGoalDialog = true },
                 )
                 Divider()
@@ -309,23 +313,29 @@ fun ProfileScreen(
                     Icons.Filled.DarkMode,
                     "Appearance",
                     themeLabel(AppTheme.mode),
+                    tint = Color(0xFF37474F),
                     onClick = { showThemeDialog = true },
                 )
                 Divider()
-                NavRow(Icons.Filled.Notifications, "Notifications", "On")
+                NavRow(
+                    Icons.Filled.AutoAwesome,
+                    "Theme",
+                    if (AppTheme.iconStyle == IconStyle.NORMAL) "Normal" else "Minimal",
+                    tint = Color(0xFFEE7B2E),
+                    onClick = { showIconStyleDialog = true },
+                )
                 Divider()
-                NavRow(Icons.Filled.Straighten, "Units", "Metric (kg, cm)")
+                NavRow(Icons.Filled.Notifications, "Notifications", "On", tint = Color(0xFFE23539))
+                Divider()
+                NavRow(Icons.Filled.Straighten, "Units", "Metric (kg, cm)", tint = Color(0xFF1FA971))
             }
 
             // ===== Sign out =====
-            Button(
+            GlossyButton(
                 onClick = { confirmSignOut = true },
-                modifier = Modifier.fillMaxWidth().height(50.dp),
-                shape = RoundedCornerShape(14.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = AlertRed.copy(alpha = 0.10f),
-                    contentColor = AlertRed,
-                ),
+                modifier = Modifier.fillMaxWidth(),
+                color = themed(Color(0xFFFBE9E9), Color(0xFF3A2626)),
+                contentColor = AlertRed,
             ) {
                 Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(8.dp))
@@ -385,6 +395,39 @@ fun ProfileScreen(
         )
     }
 
+    if (showIconStyleDialog) {
+        AlertDialog(
+            onDismissRequest = { showIconStyleDialog = false },
+            title = { Text("Theme") },
+            text = {
+                Column {
+                    listOf(
+                        IconStyle.NORMAL to "Normal — glossy icons",
+                        IconStyle.MINIMAL to "Minimal — flat icons",
+                    ).forEach { (style, label) ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(8.dp))
+                                .clickable {
+                                    AppTheme.setIconStyle(context, style)
+                                    showIconStyleDialog = false
+                                }
+                                .padding(vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            RadioButton(selected = AppTheme.iconStyle == style, onClick = null)
+                            Spacer(Modifier.width(8.dp))
+                            Text(label, fontSize = 15.sp, color = TextDark)
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = { TextButton(onClick = { showIconStyleDialog = false }) { Text("Close") } },
+        )
+    }
+
     if (confirmSignOut) {
         AlertDialog(
             onDismissRequest = { confirmSignOut = false },
@@ -434,12 +477,7 @@ private fun SectionLabel(text: String) {
 
 @Composable
 private fun IconCircle(icon: ImageVector, tint: Color) {
-    Box(
-        modifier = Modifier.size(38.dp).clip(CircleShape).background(tint.copy(alpha = 0.12f)),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(20.dp))
-    }
+    com.fyp.healthcare.ui.theme.AppIconBadge(icon, tint, size = 38.dp, iconSize = 20.dp)
 }
 
 @Composable
@@ -454,7 +492,13 @@ private fun InfoRow(label: String, value: String) {
 }
 
 @Composable
-private fun NavRow(icon: ImageVector, title: String, value: String, onClick: (() -> Unit)? = null) {
+private fun NavRow(
+    icon: ImageVector,
+    title: String,
+    value: String,
+    tint: Color = BrandBlue,
+    onClick: (() -> Unit)? = null,
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -462,7 +506,7 @@ private fun NavRow(icon: ImageVector, title: String, value: String, onClick: (()
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        IconCircle(icon, BrandBlue)
+        IconCircle(icon, tint)
         Spacer(Modifier.width(12.dp))
         Text(title, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = TextDark, modifier = Modifier.weight(1f))
         Text(value, fontSize = 13.sp, color = LabelGray)

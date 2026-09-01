@@ -24,6 +24,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.fyp.healthcare.ui.theme.glossySurface
 import com.fyp.healthcare.ui.theme.themed
 
 private val ActiveGreen = Color(0xFF2E9E6B)
@@ -122,17 +123,11 @@ private fun InactiveCard(modifier: Modifier) {
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(20.dp))
-            .background(CardWhite)
+            .glossySurface(RoundedCornerShape(20.dp), CardWhite)
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(
-            modifier = Modifier.size(28.dp).clip(CircleShape).background(IdleGray.copy(alpha = 0.15f)),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(Icons.Filled.MonitorHeart, contentDescription = null, tint = IdleGray, modifier = Modifier.size(16.dp))
-        }
+        com.fyp.healthcare.ui.theme.AppIconBadge(Icons.Filled.MonitorHeart, IdleGray, size = 28.dp, iconSize = 16.dp)
         Spacer(Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text("Monitoring not active", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = LabelGray)

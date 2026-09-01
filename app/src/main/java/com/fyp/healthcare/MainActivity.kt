@@ -170,8 +170,21 @@ class MainActivity : ComponentActivity() {
                             userManager = userManager,
                             profileManager = profileManager,
                             firstRun = true,
-                            onBackClick = {},
+                            onBackClick = {
+                                // "Go back" from onboarding = return to role selection so
+                                // the user can switch between Patient and Caregiver. The role
+                                // isn't committed yet, so drop it (locally + cloud) — otherwise
+                                // a later sign-in would restore it and skip this screen.
+                                Session.setRole(applicationContext, "")
+                                Cloud.selfDoc?.set(mapOf("role" to ""), SetOptions.merge())
+                                navController.navigate("role_select") {
+                                    popUpTo("onboarding") { inclusive = true }
+                                    launchSingleTop = true
+                                }
+                            },
                             onSaved = {
+                                // profile is done -> now the "patient" role is real: persist it
+                                Cloud.selfDoc?.set(mapOf("role" to "patient"), SetOptions.merge())
                                 navController.navigate("home") {
                                     popUpTo("onboarding") { inclusive = true }
                                 }
@@ -184,17 +197,29 @@ class MainActivity : ComponentActivity() {
                         RoleSelectScreen(
                             onPatient = {
                                 Session.setRole(applicationContext, "patient")
-                                Cloud.selfDoc?.set(mapOf("role" to "patient"), SetOptions.merge())
-                                navController.navigate(
-                                    if (profileManager.isOnboarded()) "home" else "onboarding"
-                                ) { popUpTo("role_select") { inclusive = true } }
+                                val onboarded = profileManager.isOnboarded()
+                                // only commit the role to the cloud once it's real — here that
+                                // means the profile is already done; otherwise onboarding's
+                                // onSaved writes it. Backing out before then leaves no trace.
+                                if (onboarded) {
+                                    Cloud.selfDoc?.set(mapOf("role" to "patient"), SetOptions.merge())
+                                }
+                                navController.navigate(if (onboarded) "home" else "onboarding") {
+                                    popUpTo("role_select") { inclusive = true }
+                                }
                             },
                             onCaretaker = {
+                                // role committed to the cloud only on a successful link
+                                // (FamilyLink.link writes it); backing out leaves no trace.
                                 Session.setRole(applicationContext, "caretaker")
-                                Cloud.selfDoc?.set(mapOf("role" to "caretaker"), SetOptions.merge())
                                 navController.navigate("caretaker_link") {
                                     popUpTo("role_select") { inclusive = true }
                                 }
+                            },
+                            onSignOut = {
+                                userManager.signOut(applicationContext)
+                                Session.clear(applicationContext)
+                                clearBackStackTo("signin")
                             },
                         )
                     }
@@ -209,6 +234,7 @@ class MainActivity : ComponentActivity() {
                             },
                             onBack = {
                                 Session.setRole(applicationContext, "")
+                                Cloud.selfDoc?.set(mapOf("role" to ""), SetOptions.merge())
                                 navController.navigate("role_select") {
                                     popUpTo("caretaker_link") { inclusive = true }
                                 }
@@ -437,13 +463,9 @@ class MainActivity : ComponentActivity() {
                         )
                     }
 
-                    // ===== Other quick actions (blank for now) =====
-                    composable("view_trends") {
-                        TabScaffold("health", switchTab) {
-                            HealthTrendsScreen(
-                                onBackClick = { navController.popBackStack() },
-                            )
-                        }
+                    // ===== Other quick actions =====
+                    composable("clinics") {
+                        NearbyClinicsScreen(onBackClick = { navController.popBackStack() })
                     }
                     composable("emergency") {
                         EmergencyProfileScreen(

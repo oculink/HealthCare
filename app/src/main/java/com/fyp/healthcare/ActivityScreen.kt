@@ -1,5 +1,8 @@
 package com.fyp.healthcare
 
+import com.fyp.healthcare.ui.theme.appBackground
+import com.fyp.healthcare.ui.theme.glossyTopBar
+import com.fyp.healthcare.ui.theme.glossySurface
 import com.fyp.healthcare.ui.theme.themed
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -92,13 +95,13 @@ fun ActivityScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(ScreenBackground),
+            .appBackground(),
     ) {
         // ===== Blue top bar =====
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(BrandBlue)
+                .glossyTopBar(BrandBlue)
                 .statusBarsPadding()
                 .height(56.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -144,8 +147,7 @@ fun ActivityScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(CardWhite)
+                    .glossySurface(RoundedCornerShape(20.dp), CardWhite)
                     .padding(20.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
@@ -165,8 +167,7 @@ fun ActivityScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(CardWhite)
+                    .glossySurface(RoundedCornerShape(20.dp), CardWhite)
                     .padding(vertical = 16.dp),
             ) {
                 StatCell(Icons.Filled.Warning, AlertRed, falls?.let(::format) ?: "--", "Falls", Modifier.weight(1f))
@@ -181,8 +182,7 @@ fun ActivityScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(CardWhite)
+                    .glossySurface(RoundedCornerShape(20.dp), CardWhite)
                     .padding(16.dp),
             ) {
                 HourlyActivityChart(hourly)
@@ -207,17 +207,11 @@ private fun RadarStatusCard(connected: Boolean, presence: Boolean?, lastSync: St
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(20.dp))
-            .background(CardWhite)
+            .glossySurface(RoundedCornerShape(20.dp), CardWhite)
             .padding(16.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                modifier = Modifier.size(40.dp).clip(CircleShape).background(BrandBlue.copy(alpha = 0.12f)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(Icons.Filled.Radar, contentDescription = null, tint = BrandBlue, modifier = Modifier.size(22.dp))
-            }
+            com.fyp.healthcare.ui.theme.AppIconBadge(Icons.Filled.Radar, BrandBlue, size = 40.dp, iconSize = 22.dp)
             Spacer(Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text("mmWave Radar Sensor", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = TextDark)
@@ -427,8 +421,7 @@ private fun SleepCard(sleep: SleepSummary?) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(20.dp))
-            .background(CardWhite)
+            .glossySurface(RoundedCornerShape(20.dp), CardWhite)
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

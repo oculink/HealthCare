@@ -1,5 +1,8 @@
 package com.fyp.healthcare
 
+import com.fyp.healthcare.ui.theme.appBackground
+import com.fyp.healthcare.ui.theme.glossyTopBar
+import com.fyp.healthcare.ui.theme.glossySurface
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -91,12 +94,12 @@ fun FamilyCaregiverScreen(
         loading = false
     }
 
-    Column(modifier = Modifier.fillMaxSize().background(ScreenBackground)) {
+    Column(modifier = Modifier.fillMaxSize().appBackground()) {
 
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(BrandBlue)
+                .glossyTopBar(BrandBlue)
                 .statusBarsPadding()
                 .height(56.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -156,8 +159,7 @@ fun FamilyCaregiverScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(20.dp))
-                        .background(CardWhite)
+                        .glossySurface(RoundedCornerShape(20.dp), CardWhite)
                         .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
@@ -271,8 +273,7 @@ private fun CodeCard(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(20.dp))
-            .background(CardWhite)
+            .glossySurface(RoundedCornerShape(20.dp), CardWhite)
             .padding(20.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
@@ -337,8 +338,7 @@ private fun CaretakerLinkedCard() {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(20.dp))
-            .background(CardWhite)
+            .glossySurface(RoundedCornerShape(20.dp), CardWhite)
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

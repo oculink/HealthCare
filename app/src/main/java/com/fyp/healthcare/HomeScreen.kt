@@ -1,5 +1,9 @@
 package com.fyp.healthcare
 
+import com.fyp.healthcare.ui.theme.appBackground
+import com.fyp.healthcare.ui.theme.glossySurface
+import com.fyp.healthcare.ui.theme.glossyChip
+import com.fyp.healthcare.ui.theme.glossyBadge
 import com.fyp.healthcare.ui.theme.themed
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -24,7 +28,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.DirectionsWalk
-import androidx.compose.material.icons.automirrored.filled.TrendingUp
+import androidx.compose.material.icons.filled.LocalHospital
 import androidx.compose.material.icons.filled.Air
 import androidx.compose.material.icons.filled.Bedtime
 import androidx.compose.material.icons.filled.Bloodtype
@@ -126,7 +130,7 @@ fun HomeScreen(
 
     val part = dayPart()
 
-    Box(modifier = Modifier.fillMaxSize().background(ScreenBackground)) {
+    Box(modifier = Modifier.fillMaxSize().appBackground()) {
 
         Column(
             modifier = Modifier
@@ -141,9 +145,8 @@ fun HomeScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(20.dp))
+                    .glossySurface(RoundedCornerShape(20.dp), BrandBlue)
                     .clickable { onNavigate("profile") }
-                    .background(BrandBlue)
                     .padding(20.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -251,7 +254,7 @@ fun HomeScreen(
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 QuickActionCard(Icons.Filled.EditNote, "Record Data", Color(0xFF2A6DE1), Modifier.weight(1f)) { onNavigate("record_data") }
-                QuickActionCard(Icons.AutoMirrored.Filled.TrendingUp, "View Trends", Color(0xFF2E9E6B), Modifier.weight(1f)) { onNavigate("view_trends") }
+                QuickActionCard(Icons.Filled.LocalHospital, "Nearby Clinics", Color(0xFF2E9E6B), Modifier.weight(1f)) { onNavigate("clinics") }
                 QuickActionCard(Icons.Filled.Medication, "Medication", Color(0xFFFF9800), Modifier.weight(1f)) { onNavigate("medication") }
                 QuickActionCard(Icons.Filled.Emergency, "Emergency", Color(0xFFD32F2F), Modifier.weight(1f)) { onNavigate("emergency") }
             }
@@ -261,15 +264,14 @@ fun HomeScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(CardWhite)
+                    .glossySurface(RoundedCornerShape(20.dp), CardWhite)
                     .padding(horizontal = 20.dp)
             ) {
-                SummaryRow(Icons.AutoMirrored.Filled.DirectionsWalk, "Steps Walked", steps)
+                SummaryRow(Icons.AutoMirrored.Filled.DirectionsWalk, "Steps Walked", steps, Color(0xFF2A6DE1))
                 Box(Modifier.fillMaxWidth().height(1.dp).background(Color(0xFFE5E8EE)))
-                SummaryRow(Icons.Filled.LocalFireDepartment, "Calories", calories)
+                SummaryRow(Icons.Filled.LocalFireDepartment, "Calories", calories, Color(0xFFEE7B2E))
                 Box(Modifier.fillMaxWidth().height(1.dp).background(Color(0xFFE5E8EE)))
-                SummaryRow(Icons.Filled.Bedtime, "Sleep", sleep)
+                SummaryRow(Icons.Filled.Bedtime, "Sleep", sleep, Color(0xFF6C5CE7))
             }
 
             // ===== Monitoring status (Family Caregiver link) =====
@@ -291,27 +293,17 @@ private fun VitalCard(
 ) {
     Column(
         modifier = modifier
-            .clip(RoundedCornerShape(20.dp))
-            .background(CardWhite)
+            .glossySurface(RoundedCornerShape(20.dp), CardWhite)
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Box(
-            modifier = Modifier
-                .size(40.dp)
-                .clip(CircleShape)
-                .background(tint.copy(alpha = 0.12f)),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(20.dp))
-        }
+        com.fyp.healthcare.ui.theme.AppIconBadge(icon, tint, size = 40.dp, iconSize = 20.dp)
         Text(value ?: "--", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextDark)
         Text(unit, fontSize = 11.sp, color = LabelGray)
         Box(
             modifier = Modifier
-                .clip(RoundedCornerShape(50.dp))
-                .background(statusColor(status).copy(alpha = 0.12f))
+                .glossyBadge(statusColor(status), RoundedCornerShape(50.dp))
                 .padding(horizontal = 12.dp, vertical = 4.dp)
         ) {
             Text(
@@ -335,24 +327,14 @@ private fun QuickActionCard(
     Column(
         modifier = modifier
             .fillMaxHeight() // stretch to the Row's max height
-            .clip(RoundedCornerShape(18.dp))
-            .background(CardWhite)
-            .border(1.dp, HairlineBorder, RoundedCornerShape(18.dp))
+            .glossySurface(RoundedCornerShape(18.dp), CardWhite)
             .clickable { onClick() }
             .padding(vertical = 16.dp, horizontal = 6.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterVertically)
     ) {
         // Rounded "squircle" badge holds the icon in its own accent colour
-        Box(
-            modifier = Modifier
-                .size(46.dp)
-                .clip(RoundedCornerShape(15.dp))
-                .background(tint.copy(alpha = 0.14f)),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(23.dp))
-        }
+        com.fyp.healthcare.ui.theme.AppIconBadge(icon, tint, size = 46.dp, iconSize = 23.dp)
         Text(
             label,
             fontSize = 11.sp,
@@ -365,12 +347,12 @@ private fun QuickActionCard(
 }
 
 @Composable
-private fun SummaryRow(icon: ImageVector, label: String, value: String?) {
+private fun SummaryRow(icon: ImageVector, label: String, value: String?, tint: Color) {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 14.dp),
+        modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(icon, contentDescription = null, tint = LabelGray, modifier = Modifier.size(18.dp))
+        com.fyp.healthcare.ui.theme.AppIconBadge(icon, tint, size = 30.dp, iconSize = 16.dp)
         Spacer(Modifier.width(12.dp))
         Text(label, fontSize = 13.sp, color = LabelGray, modifier = Modifier.weight(1f))
         Text(value ?: "--", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = TextDark)

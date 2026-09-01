@@ -1,5 +1,11 @@
 package com.fyp.healthcare
 
+import com.fyp.healthcare.ui.theme.appBackground
+import com.fyp.healthcare.ui.theme.glossyTopBar
+import com.fyp.healthcare.ui.theme.GlossyButton
+import com.fyp.healthcare.ui.theme.glossySurface
+import com.fyp.healthcare.ui.theme.glossyChip
+import com.fyp.healthcare.ui.theme.glossyBadge
 import com.fyp.healthcare.ui.theme.themed
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -115,13 +121,13 @@ fun MedicationScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(ScreenBackground),
+            .appBackground(),
     ) {
         // ===== Blue top bar =====
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(BrandBlue)
+                .glossyTopBar(BrandBlue)
                 .statusBarsPadding()
                 .height(56.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -207,18 +213,12 @@ fun MedicationScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(CardWhite)
+                    .glossySurface(RoundedCornerShape(20.dp), CardWhite)
                     .clickable { onAddClick() }
                     .padding(16.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Box(
-                    modifier = Modifier.size(40.dp).clip(CircleShape).background(BrandBlue.copy(alpha = 0.12f)),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(Icons.Filled.Add, contentDescription = null, tint = BrandBlue, modifier = Modifier.size(22.dp))
-                }
+                com.fyp.healthcare.ui.theme.AppIconBadge(Icons.Filled.Add, BrandBlue, size = 40.dp, iconSize = 22.dp)
                 Spacer(Modifier.width(12.dp))
                 Column {
                     Text("Add New Medication", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = BrandBlue)
@@ -241,12 +241,7 @@ private fun EmptyState(onAddClick: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Box(
-            modifier = Modifier.size(72.dp).clip(CircleShape).background(BrandBlue.copy(alpha = 0.10f)),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(Icons.Filled.Medication, contentDescription = null, tint = BrandBlue, modifier = Modifier.size(34.dp))
-        }
+        com.fyp.healthcare.ui.theme.AppIconBadge(Icons.Filled.Medication, BrandBlue, size = 72.dp, iconSize = 34.dp)
         Spacer(Modifier.height(14.dp))
         Text("No medications yet", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextDark)
         Spacer(Modifier.height(4.dp))
@@ -257,10 +252,9 @@ private fun EmptyState(onAddClick: () -> Unit) {
             textAlign = TextAlign.Center,
         )
         Spacer(Modifier.height(20.dp))
-        Button(
+        GlossyButton(
             onClick = onAddClick,
-            shape = RoundedCornerShape(14.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = BrandBlue),
+            color = BrandBlue,
         ) {
             Icon(Icons.Filled.Add, contentDescription = null, tint = Color.White)
             Spacer(Modifier.width(8.dp))
@@ -296,19 +290,13 @@ private fun DoseCard(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(20.dp))
-            .background(CardWhite)
+            .glossySurface(RoundedCornerShape(20.dp), CardWhite)
             .background(cardOverlay)
             .alpha(if (state == DoseState.OFF) 0.6f else 1f)
             .padding(16.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                modifier = Modifier.size(44.dp).clip(CircleShape).background(tint.copy(alpha = 0.12f)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(med.medRoute.icon, contentDescription = null, tint = tint, modifier = Modifier.size(22.dp))
-            }
+            com.fyp.healthcare.ui.theme.AppIconBadge(med.medRoute.icon, tint, size = 44.dp, iconSize = 22.dp)
             Spacer(Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
@@ -366,8 +354,7 @@ private fun DoseCard(
                         if (state == DoseState.TAKEN) GoodGreen to "Taken" else BadRed to "Missed"
                     Box(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(chipColor.copy(alpha = 0.15f))
+                            .glossyBadge(chipColor, RoundedCornerShape(8.dp))
                             .padding(horizontal = 10.dp, vertical = 4.dp),
                     ) {
                         Text(chipLabel, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = chipColor)
@@ -383,11 +370,11 @@ private fun DoseCard(
                         else -> LabelGray   // "Undo"
                     }
                     if (primary) {
-                        Button(
-                            onClick = { pendingAction = label to action },
-                            colors = ButtonDefaults.buttonColors(containerColor = color),
-                            shape = RoundedCornerShape(10.dp),
-                            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 4.dp),
+                        Box(
+                            modifier = Modifier
+                                .glossyChip(selected = true, accent = color, shape = RoundedCornerShape(10.dp))
+                                .clickable { pendingAction = label to action }
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
                         ) {
                             Text(label, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
                         }
@@ -468,8 +455,7 @@ private fun MedSummaryCard(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(20.dp))
-            .background(CardWhite)
+            .glossySurface(RoundedCornerShape(20.dp), CardWhite)
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -533,8 +519,7 @@ private fun StatusPill(state: DoseState, tint: Color) {
     }
     Box(
         modifier = Modifier
-            .clip(RoundedCornerShape(50.dp))
-            .background(tint.copy(alpha = 0.12f))
+            .glossyBadge(tint, RoundedCornerShape(50.dp))
             .padding(horizontal = 10.dp, vertical = 4.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {

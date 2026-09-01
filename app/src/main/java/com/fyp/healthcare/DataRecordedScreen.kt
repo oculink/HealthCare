@@ -1,5 +1,8 @@
 package com.fyp.healthcare
 
+import com.fyp.healthcare.ui.theme.appBackground
+import com.fyp.healthcare.ui.theme.GlossyButton
+import com.fyp.healthcare.ui.theme.glossySurface
 import com.fyp.healthcare.ui.theme.themed
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -46,7 +49,7 @@ fun DataRecordedScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(ScreenBackground)
+            .appBackground()
             .statusBarsPadding()
             .padding(horizontal = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -102,8 +105,7 @@ fun DataRecordedScreen(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(20.dp))
-                .background(CardWhite)
+                .glossySurface(RoundedCornerShape(20.dp), CardWhite)
                 .padding(horizontal = 20.dp)
         ) {
             RecordedRow("Blood Pressure", "${healthData.getBloodPressure() ?: "--"} mmHg")
@@ -117,14 +119,11 @@ fun DataRecordedScreen(
 
         Spacer(Modifier.height(28.dp))
 
-        Button(
+        GlossyButton(
             onClick = onBackToHome,
-            modifier = Modifier.fillMaxWidth().height(50.dp),
-            shape = RoundedCornerShape(14.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = BrandBlueLight,
-                contentColor = BrandBlue
-            )
+            modifier = Modifier.fillMaxWidth(),
+            color = BrandBlueLight,
+            contentColor = BrandBlue,
         ) {
             Text("Back to Dashboard", fontSize = 15.sp, fontWeight = FontWeight.Medium)
         }

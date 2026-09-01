@@ -13,6 +13,9 @@ import androidx.compose.ui.graphics.Color
 
 enum class ThemeMode { SYSTEM, LIGHT, DARK }
 
+/** Icon treatment app-wide. NORMAL = glossy "old-iOS" tiles, MINIMAL = flat tinted. */
+enum class IconStyle { NORMAL, MINIMAL }
+
 /**
  * App-wide theme choice. The screens use hardcoded palettes rather than MaterialTheme
  * tokens, so [themed] is the switch they call to pick a light/dark colour.
@@ -22,16 +25,27 @@ object AppTheme {
     var mode by mutableStateOf(ThemeMode.SYSTEM)
         private set
 
-    /** Load the saved choice — call once from MainActivity.onCreate. */
+    var iconStyle by mutableStateOf(IconStyle.NORMAL)
+        private set
+
+    /** Load the saved choices — call once from MainActivity.onCreate. */
     fun init(context: Context) {
         mode = runCatching {
             ThemeMode.valueOf(prefs(context).getString(KEY, null) ?: ThemeMode.SYSTEM.name)
         }.getOrDefault(ThemeMode.SYSTEM)
+        iconStyle = runCatching {
+            IconStyle.valueOf(prefs(context).getString(KEY_ICONS, null) ?: IconStyle.NORMAL.name)
+        }.getOrDefault(IconStyle.NORMAL)
     }
 
     fun setMode(context: Context, newMode: ThemeMode) {
         mode = newMode
         prefs(context).edit().putString(KEY, newMode.name).apply()
+    }
+
+    fun setIconStyle(context: Context, style: IconStyle) {
+        iconStyle = style
+        prefs(context).edit().putString(KEY_ICONS, style.name).apply()
     }
 
     val isDark: Boolean
@@ -43,6 +57,7 @@ object AppTheme {
 
     private fun prefs(c: Context) = c.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
     private const val KEY = "theme_mode"
+    private const val KEY_ICONS = "icon_style"
 }
 
 /** Pick a colour based on the current theme. Used by the screens' palettes. */

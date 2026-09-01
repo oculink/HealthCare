@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+  <style>
+    html, body { margin: 0; padding: 0; background: #dde3ea; overflow: hidden; }
+    #map { width: 100%; background: #dde3ea; }
+    #err { position: absolute; top: 0; left: 0; right: 0; padding: 8px 12px;
+           font: 13px sans-serif; color: #8a3; background: #fff; display: none; z-index: 9999; }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <div id="err"></div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <script>
+    function showErr(m){ var e=document.getElementById('err'); e.textContent=m; e.style.display='block'; }
+    window.onerror = function(msg, src, line){ console.log('JS ERROR: ' + msg + ' @' + line); };
+
+    var map, userMarker = null, layer = null;
+
+    // The WebView often reports a 0-height document even though window.innerHeight
+    // is correct — so size #map explicitly in pixels and keep it in sync.
+    function fit(){
+      var h = window.innerHeight || 260;
+      document.body.style.height = h + 'px';
+      document.getElementById('map').style.height = h + 'px';
+      if (map) map.invalidateSize(true);
+    }
+
+    function initMap(){
+      if (typeof L === 'undefined') { showErr('Map failed to load — check your connection.'); return; }
+      fit();
+      map = L.map('map', {
+        zoomControl: false,
+        touchZoom: true,       // two-finger pinch
+        scrollWheelZoom: true,
+        doubleClickZoom: true,
+        bounceAtZoomLimits: false
+      }).setView([3.1390, 101.6869], 12);
+      L.control.zoom({ position: 'topright' }).addTo(map);
+      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+        { maxZoom: 19, attribution: '&copy; OpenStreetMap' }).addTo(map);
+      layer = L.layerGroup().addTo(map);
+      map.on('moveend', function(){
+        var c = map.getCenter();
+        if (window.Android && window.Android.onMoveEnd) window.Android.onMoveEnd(c.lat, c.lng);
+      });
+      map.on('click', function(e){
+        if (window.Android && window.Android.onMapTap) window.Android.onMapTap(e.latlng.lat, e.latlng.lng);
+      });
+
+      var n = 0;
+      var iv = setInterval(function(){ fit(); if (++n > 30) clearInterval(iv); }, 100);
+      window.addEventListener('resize', fit);
+    }
+
+    function setUser(lat, lon){
+      if (!map) return;
+      if (userMarker) map.removeLayer(userMarker);
+      userMarker = L.circleMarker([lat, lon],
+        { radius: 8, weight: 3, color: '#fff', fillColor: '#2A6DE1', fillOpacity: 1 }).addTo(map);
+    }
+    function centerOn(lat, lon, z){ if (map) { map.setView([lat, lon], z); map.invalidateSize(true); } }
+    function setPlaces(arr){
+      if (!map || !layer) return;
+      layer.clearLayers();
+      arr.forEach(function(p){
+        L.circleMarker([p.lat, p.lon],
+          { radius: 7, weight: 2, color: '#fff', fillColor: p.color, fillOpacity: 1 })
+          .bindPopup(p.name).addTo(layer);
+      });
+    }
+
+    if (document.readyState === 'complete') initMap();
+    else window.addEventListener('load', initMap);
+  </script>
+</body>
+</html>

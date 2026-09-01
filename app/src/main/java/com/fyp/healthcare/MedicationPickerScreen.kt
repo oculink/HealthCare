@@ -1,5 +1,10 @@
 package com.fyp.healthcare
 
+import com.fyp.healthcare.ui.theme.appBackground
+import com.fyp.healthcare.ui.theme.glossyTopBar
+import com.fyp.healthcare.ui.theme.glossyFieldColors
+import com.fyp.healthcare.ui.theme.glossyFieldWell
+import com.fyp.healthcare.ui.theme.glossySurface
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -168,13 +173,13 @@ fun MedicationPickerScreen(
         indexOfLetter[letter]?.let { target -> scope.launch { listState.scrollToItem(target) } }
     }
 
-    Column(modifier = Modifier.fillMaxSize().background(ScreenBackground)) {
+    Column(modifier = Modifier.fillMaxSize().appBackground()) {
 
         // ===== Blue top bar =====
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(BrandBlue)
+                .glossyTopBar(BrandBlue)
                 .statusBarsPadding()
                 .height(56.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -199,8 +204,10 @@ fun MedicationPickerScreen(
             onValueChange = { query = it },
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+                .padding(horizontal = 16.dp, vertical = 12.dp)
+                .glossyFieldWell(RoundedCornerShape(14.dp)),
             singleLine = true,
+            textStyle = androidx.compose.ui.text.TextStyle(fontSize = 17.sp, color = TextDark),
             placeholder = { Text("Search medications", color = PlaceholderGray) },
             leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null, tint = LabelGray) },
             trailingIcon = {
@@ -211,13 +218,8 @@ fun MedicationPickerScreen(
                 }
             },
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-            shape = RoundedCornerShape(12.dp),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = CardWhite,
-                unfocusedContainerColor = CardWhite,
-                focusedBorderColor = BrandBlue.copy(alpha = 0.4f),
-                unfocusedBorderColor = Color.Transparent,
-            ),
+            shape = RoundedCornerShape(14.dp),
+            colors = glossyFieldColors(accent = BrandBlue),
         )
 
         Box(modifier = Modifier.fillMaxSize()) {
@@ -238,12 +240,7 @@ fun MedicationPickerScreen(
                             .padding(14.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Box(
-                            modifier = Modifier.size(36.dp).clip(CircleShape).background(BrandBlue.copy(alpha = 0.16f)),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Icon(Icons.Filled.Add, contentDescription = null, tint = BrandBlue, modifier = Modifier.size(20.dp))
-                        }
+                        com.fyp.healthcare.ui.theme.AppIconBadge(Icons.Filled.Add, BrandBlue, size = 36.dp, iconSize = 20.dp)
                         Spacer(Modifier.width(12.dp))
                         Column(modifier = Modifier.weight(1f)) {
                             Text("Add a medication not listed", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = BrandBlue)
@@ -397,8 +394,7 @@ private fun EntryRow(entry: MedicationCatalog.Entry, onClick: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 4.dp)
-            .clip(RoundedCornerShape(12.dp))
-            .background(CardWhite)
+            .glossySurface(RoundedCornerShape(12.dp), CardWhite)
             .clickable(onClick = onClick)
             .padding(14.dp),
         verticalAlignment = Alignment.CenterVertically,

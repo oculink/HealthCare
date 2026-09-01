@@ -1,5 +1,8 @@
 package com.fyp.healthcare
 
+import com.fyp.healthcare.ui.theme.appBackground
+import com.fyp.healthcare.ui.theme.glossyTopBar
+import com.fyp.healthcare.ui.theme.glossySurface
 import com.fyp.healthcare.ui.theme.themed
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -87,13 +90,13 @@ fun HealthTrendsScreen(
     fun slotsOf(metric: String): List<Float?> =
         dayIds.map { id -> byDay[id]?.avg?.get(metric)?.toFloat() }
 
-    Column(modifier = Modifier.fillMaxSize().background(ScreenBackground)) {
+    Column(modifier = Modifier.fillMaxSize().appBackground()) {
 
         // ===== Blue top bar =====
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(BrandBlue)
+                .glossyTopBar(BrandBlue)
                 .statusBarsPadding()
                 .height(56.dp),
             verticalAlignment = Alignment.CenterVertically
@@ -135,8 +138,7 @@ fun HealthTrendsScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(CardWhite)
+                    .glossySurface(RoundedCornerShape(20.dp), CardWhite)
                     .padding(16.dp)
             ) {
                 Row(verticalAlignment = Alignment.Bottom) {
@@ -163,8 +165,7 @@ fun HealthTrendsScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(CardWhite)
+                    .glossySurface(RoundedCornerShape(20.dp), CardWhite)
                     .padding(16.dp)
             ) {
                 Text(
@@ -378,8 +379,7 @@ private fun PeriodSelector(selected: String, onSelect: (String) -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .background(CardWhite)
+            .glossySurface(RoundedCornerShape(14.dp), CardWhite)
             .padding(4.dp)
     ) {
         listOf("Weekly", "Monthly").forEach { period ->
@@ -423,8 +423,7 @@ private fun MetricCard(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(20.dp))
-            .background(CardWhite)
+            .glossySurface(RoundedCornerShape(20.dp), CardWhite)
             .padding(16.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {

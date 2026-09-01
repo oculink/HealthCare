@@ -1,5 +1,12 @@
 package com.fyp.healthcare
 
+import com.fyp.healthcare.ui.theme.appBackground
+import com.fyp.healthcare.ui.theme.glossyTopBar
+import com.fyp.healthcare.ui.theme.glossyChip
+import com.fyp.healthcare.ui.theme.glossyFieldColors
+import com.fyp.healthcare.ui.theme.glossyFieldWell
+import com.fyp.healthcare.ui.theme.GlossyButton
+import com.fyp.healthcare.ui.theme.glossySurface
 import com.fyp.healthcare.ui.theme.themed
 import android.app.DatePickerDialog
 import androidx.activity.compose.BackHandler
@@ -13,6 +20,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -94,8 +102,9 @@ fun EditProfileScreen(
     val contacts = remember { mutableStateListOf<EmergencyContact>().apply { addAll(existing.emergencyContacts) } }
     var error by remember { mutableStateOf<String?>(null) }
 
-    // Onboarding can't be skipped with the back gesture.
-    BackHandler(enabled = firstRun) { /* consume */ }
+    // During onboarding the system back gesture maps to the header's "Go back"
+    // (which signs the half-finished account out), rather than silently doing nothing.
+    BackHandler(enabled = firstRun) { onBackClick() }
 
     fun openDatePicker() {
         val p = birthDate.split("-")
@@ -113,12 +122,12 @@ fun EditProfileScreen(
         }.show()
     }
 
-    Column(modifier = Modifier.fillMaxSize().background(ScreenBackground)) {
+    Column(modifier = Modifier.fillMaxSize().appBackground()) {
 
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(BrandBlue)
+                .glossyTopBar(BrandBlue)
                 .statusBarsPadding()
                 .height(56.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -145,6 +154,7 @@ fun EditProfileScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
+                .imePadding()
                 .padding(16.dp),
         ) {
             Row(
@@ -171,8 +181,7 @@ fun EditProfileScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(24.dp))
-                    .background(CardWhite)
+                    .glossySurface(RoundedCornerShape(24.dp), CardWhite)
                     .padding(20.dp),
             ) {
                 Field("Name", name, { name = it }, "Your name")
@@ -183,8 +192,7 @@ fun EditProfileScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(FieldBackground)
+                        .glossyFieldWell(RoundedCornerShape(12.dp))
                         .clickable { openDatePicker() }
                         .padding(horizontal = 12.dp, vertical = 16.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -209,8 +217,7 @@ fun EditProfileScreen(
                         Box(
                             modifier = Modifier
                                 .weight(1f)
-                                .clip(RoundedCornerShape(10.dp))
-                                .background(if (selected) BrandBlue else FieldBackground)
+                                .glossyChip(selected, BrandBlue, RoundedCornerShape(10.dp), unselectedFill = FieldBackground)
                                 .clickable { sex = if (selected) "" else option }
                                 .padding(vertical = 10.dp),
                             contentAlignment = Alignment.Center,
@@ -270,7 +277,7 @@ fun EditProfileScreen(
                 }
                 Spacer(Modifier.height(16.dp))
 
-                Button(
+                GlossyButton(
                     onClick = {
                         val heightVal = heightCm.toIntOrNull()
                         val weightVal = weightKg.toDoubleOrNull()
@@ -284,7 +291,7 @@ fun EditProfileScreen(
                             else -> null
                         } else null
 
-                        if (error != null) return@Button
+                        if (error != null) return@GlossyButton
 
                         profileManager.save(
                             HealthProfile(
@@ -301,13 +308,25 @@ fun EditProfileScreen(
                         )
                         onSaved()
                     },
-                    modifier = Modifier.fillMaxWidth().height(52.dp),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = BrandBlue),
+                    modifier = Modifier.fillMaxWidth(),
+                    color = BrandBlue,
                 ) {
                     Icon(Icons.Filled.Check, contentDescription = null, tint = Color.White)
                     Spacer(Modifier.width(8.dp))
                     Text(if (firstRun) "Continue" else "Save Changes", fontSize = 16.sp, color = Color.White)
+                }
+
+                if (firstRun) {
+                    Spacer(Modifier.height(10.dp))
+                    GlossyButton(
+                        onClick = onBackClick,
+                        modifier = Modifier.fillMaxWidth(),
+                        color = Color(0xFF5F6673),
+                    ) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, tint = Color.White)
+                        Spacer(Modifier.width(8.dp))
+                        Text("Go back", fontSize = 16.sp, color = Color.White)
+                    }
                 }
             }
 
@@ -364,18 +383,13 @@ private fun MiniField(
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().glossyFieldWell(RoundedCornerShape(14.dp)),
         singleLine = true,
         placeholder = { Text(placeholder, color = PlaceholderGray, fontSize = 13.sp) },
-        textStyle = androidx.compose.ui.text.TextStyle(fontSize = 14.sp, color = TextDark),
+        textStyle = androidx.compose.ui.text.TextStyle(fontSize = 17.sp, color = TextDark),
         keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
-        shape = RoundedCornerShape(10.dp),
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedContainerColor = CardWhite,
-            unfocusedContainerColor = CardWhite,
-            focusedBorderColor = BrandBlue.copy(alpha = 0.4f),
-            unfocusedBorderColor = Color.Transparent,
-        ),
+        shape = RoundedCornerShape(14.dp),
+        colors = glossyFieldColors(accent = BrandBlue),
     )
 }
 
@@ -392,17 +406,13 @@ private fun Field(
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().glossyFieldWell(RoundedCornerShape(14.dp)),
         singleLine = true,
+        textStyle = androidx.compose.ui.text.TextStyle(fontSize = 17.sp, color = TextDark),
         placeholder = { Text(placeholder, color = PlaceholderGray) },
         keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
-        shape = RoundedCornerShape(12.dp),
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedContainerColor = FieldBackground,
-            unfocusedContainerColor = FieldBackground,
-            focusedBorderColor = Color.Transparent,
-            unfocusedBorderColor = Color.Transparent,
-        ),
+        shape = RoundedCornerShape(14.dp),
+        colors = glossyFieldColors(accent = BrandBlue),
     )
     Spacer(Modifier.height(14.dp))
 }

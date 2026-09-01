@@ -1,5 +1,9 @@
 package com.fyp.healthcare
 
+import com.fyp.healthcare.ui.theme.appBackground
+import com.fyp.healthcare.ui.theme.glossyTopBar
+import com.fyp.healthcare.ui.theme.GlossyButton
+import com.fyp.healthcare.ui.theme.glossySurface
 import android.app.TimePickerDialog
 import android.text.format.DateFormat
 import androidx.compose.foundation.background
@@ -101,13 +105,13 @@ fun MedicationScheduleScreen(
 
     val hasAnyTime = schedule.values.any { it.isNotEmpty() }
 
-    Column(modifier = Modifier.fillMaxSize().background(ScreenBackground)) {
+    Column(modifier = Modifier.fillMaxSize().appBackground()) {
 
         // ===== Blue top bar =====
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(BrandBlue)
+                .glossyTopBar(BrandBlue)
                 .statusBarsPadding()
                 .height(56.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -138,17 +142,11 @@ fun MedicationScheduleScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(18.dp))
-                    .background(CardWhite)
+                    .glossySurface(RoundedCornerShape(18.dp), CardWhite)
                     .padding(16.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Box(
-                    modifier = Modifier.size(44.dp).clip(CircleShape).background(BrandBlue.copy(alpha = 0.12f)),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(draft.medRoute.icon, contentDescription = null, tint = BrandBlue, modifier = Modifier.size(24.dp))
-                }
+                com.fyp.healthcare.ui.theme.AppIconBadge(draft.medRoute.icon, BrandBlue, size = 44.dp, iconSize = 24.dp)
                 Spacer(Modifier.width(12.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(draft.name, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextDark)
@@ -173,8 +171,7 @@ fun MedicationScheduleScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(CardWhite)
+                    .glossySurface(RoundedCornerShape(16.dp), CardWhite)
                     .clickable {
                         openPicker("08:00") { t -> schedule = (0..6).associateWith { listOf(t) } }
                     }
@@ -208,12 +205,11 @@ fun MedicationScheduleScreen(
 
             Spacer(Modifier.height(4.dp))
 
-            Button(
+            GlossyButton(
                 onClick = { onSave(draft.copy(schedule = schedule)) },
                 enabled = hasAnyTime,
-                modifier = Modifier.fillMaxWidth().height(56.dp),
-                shape = RoundedCornerShape(14.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = BrandBlue),
+                modifier = Modifier.fillMaxWidth(),
+                color = BrandBlue,
             ) {
                 Icon(Icons.Filled.Check, contentDescription = null, tint = Color.White)
                 Spacer(Modifier.width(8.dp))
@@ -252,8 +248,7 @@ private fun DayCard(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(CardWhite)
+            .glossySurface(RoundedCornerShape(16.dp), CardWhite)
             .padding(16.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {

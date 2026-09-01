@@ -1,5 +1,13 @@
 package com.fyp.healthcare
 
+import com.fyp.healthcare.ui.theme.appBackground
+import com.fyp.healthcare.ui.theme.glossyTopBar
+import com.fyp.healthcare.ui.theme.glossyFieldColors
+import com.fyp.healthcare.ui.theme.glossyFieldWell
+import com.fyp.healthcare.ui.theme.GlossyButton
+import com.fyp.healthcare.ui.theme.glossySurface
+import com.fyp.healthcare.ui.theme.glossyChip
+import com.fyp.healthcare.ui.theme.glossyBadge
 import com.fyp.healthcare.ui.theme.themed
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -10,6 +18,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -117,13 +126,13 @@ fun AddMedicationScreen(
     var routeMenuOpen by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
-    Column(modifier = Modifier.fillMaxSize().background(ScreenBackground)) {
+    Column(modifier = Modifier.fillMaxSize().appBackground()) {
 
         // ===== Blue top bar =====
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(BrandBlue)
+                .glossyTopBar(BrandBlue)
                 .statusBarsPadding()
                 .height(56.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -147,13 +156,13 @@ fun AddMedicationScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
+                .imePadding()
                 .padding(16.dp),
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(24.dp))
-                    .background(CardWhite)
+                    .glossySurface(RoundedCornerShape(24.dp), CardWhite)
                     .padding(20.dp),
             ) {
                 Text("Medication Details", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = TextDark)
@@ -168,17 +177,13 @@ fun AddMedicationScreen(
                     OutlinedTextField(
                         value = name,
                         onValueChange = { name = it },
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth().glossyFieldWell(RoundedCornerShape(14.dp)),
                         singleLine = true,
+                        textStyle = androidx.compose.ui.text.TextStyle(fontSize = 17.sp, color = TextDark),
                         placeholder = { Text("e.g. Amlodipine", color = PlaceholderGray) },
                         leadingIcon = { Icon(Icons.Filled.Medication, contentDescription = null, tint = LabelGray, modifier = Modifier.padding(start = 12.dp)) },
-                        shape = RoundedCornerShape(12.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedContainerColor = FieldBackground,
-                            unfocusedContainerColor = FieldBackground,
-                            focusedBorderColor = Color.Transparent,
-                            unfocusedBorderColor = Color.Transparent,
-                        ),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = glossyFieldColors(accent = BrandBlue),
                     )
                     Spacer(Modifier.height(6.dp))
                     Text(
@@ -192,8 +197,7 @@ fun AddMedicationScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(FieldBackground)
+                            .glossyFieldWell(RoundedCornerShape(12.dp))
                             .clickable { onChooseMedication() }
                             .padding(horizontal = 12.dp, vertical = 16.dp),
                         verticalAlignment = Alignment.CenterVertically,
@@ -218,8 +222,7 @@ fun AddMedicationScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(FieldBackground)
+                            .glossyFieldWell(RoundedCornerShape(12.dp))
                             .clickable { routeMenuOpen = true }
                             .padding(horizontal = 12.dp, vertical = 16.dp),
                         verticalAlignment = Alignment.CenterVertically,
@@ -284,7 +287,7 @@ fun AddMedicationScreen(
                     Spacer(Modifier.height(8.dp))
                 }
 
-                Button(
+                GlossyButton(
                     onClick = {
                         val amt = amount.toIntOrNull()
                         // strength is optional; when given (and not the free-text "Other"
@@ -298,7 +301,7 @@ fun AddMedicationScreen(
                             amt == null || amt !in 1..99 -> "${route.doseLabel} must be a number between 1 and 99"
                             else -> null
                         }
-                        if (errorMessage != null) return@Button
+                        if (errorMessage != null) return@GlossyButton
 
                         onNext(
                             Medication(
@@ -313,9 +316,8 @@ fun AddMedicationScreen(
                             )
                         )
                     },
-                    modifier = Modifier.fillMaxWidth().height(52.dp),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = BrandBlue),
+                    modifier = Modifier.fillMaxWidth(),
+                    color = BrandBlue,
                 ) {
                     Text("Next", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White)
                     Spacer(Modifier.width(8.dp))
@@ -341,19 +343,15 @@ private fun MedField(
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().glossyFieldWell(RoundedCornerShape(14.dp)),
         singleLine = singleLine,
         minLines = if (singleLine) 1 else 2,
+        textStyle = androidx.compose.ui.text.TextStyle(fontSize = 17.sp, color = TextDark),
         placeholder = { Text(placeholder, color = PlaceholderGray) },
         leadingIcon = { Icon(icon, contentDescription = null, tint = LabelGray, modifier = Modifier.padding(start = 12.dp)) },
         keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
-        shape = RoundedCornerShape(12.dp),
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedContainerColor = FieldBackground,
-            unfocusedContainerColor = FieldBackground,
-            focusedBorderColor = Color.Transparent,
-            unfocusedBorderColor = Color.Transparent,
-        ),
+        shape = RoundedCornerShape(14.dp),
+        colors = glossyFieldColors(accent = BrandBlue),
     )
     Spacer(Modifier.height(14.dp))
 }
