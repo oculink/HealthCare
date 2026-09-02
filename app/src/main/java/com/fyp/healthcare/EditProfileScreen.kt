@@ -15,6 +15,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -97,14 +98,20 @@ fun EditProfileScreen(
     var bloodType by remember { mutableStateOf(existing.bloodType) }
     var heightCm by remember { mutableStateOf(existing.heightCm) }
     var weightKg by remember { mutableStateOf(existing.weightKg) }
-    var allergies by remember { mutableStateOf(joinTags(existing.allergies)) }
-    var conditions by remember { mutableStateOf(joinTags(existing.conditions)) }
+    val allergies = remember { mutableStateListOf<String>().apply { addAll(existing.allergies) } }
+    val conditions = remember { mutableStateListOf<String>().apply { addAll(existing.conditions) } }
+    var showAllergyPicker by remember { mutableStateOf(false) }
+    var showConditionPicker by remember { mutableStateOf(false) }
     val contacts = remember { mutableStateListOf<EmergencyContact>().apply { addAll(existing.emergencyContacts) } }
     var error by remember { mutableStateOf<String?>(null) }
 
     // During onboarding the system back gesture maps to the header's "Go back"
     // (which signs the half-finished account out), rather than silently doing nothing.
     BackHandler(enabled = firstRun) { onBackClick() }
+    // The allergen / condition pickers sit over this screen (not nav destinations, so
+    // nothing typed into the form is lost); system back closes them first.
+    BackHandler(enabled = showAllergyPicker) { showAllergyPicker = false }
+    BackHandler(enabled = showConditionPicker) { showConditionPicker = false }
 
     fun openDatePicker() {
         val p = birthDate.split("-")
@@ -121,6 +128,8 @@ fun EditProfileScreen(
             datePicker.maxDate = System.currentTimeMillis() // no future birth dates
         }.show()
     }
+
+    Box(modifier = Modifier.fillMaxSize()) {
 
     Column(modifier = Modifier.fillMaxSize().appBackground()) {
 
@@ -239,8 +248,22 @@ fun EditProfileScreen(
 
                 SectionDivider("Emergency Profile")
 
-                Field("Allergies (optional)", allergies, { allergies = it }, "e.g. Penicillin, Seafood")
-                Field("Medical conditions (optional)", conditions, { conditions = it }, "e.g. Diabetic, Hypertension")
+                TagChipPicker(
+                    label = "Allergies (optional)",
+                    addLabel = "Add an allergy",
+                    addAnotherLabel = "Add another allergy",
+                    selected = allergies,
+                    onRemove = { allergies.remove(it) },
+                    onAdd = { showAllergyPicker = true },
+                )
+                TagChipPicker(
+                    label = "Medical conditions (optional)",
+                    addLabel = "Add a condition",
+                    addAnotherLabel = "Add another condition",
+                    selected = conditions,
+                    onRemove = { conditions.remove(it) },
+                    onAdd = { showConditionPicker = true },
+                )
 
                 Text("Emergency contacts", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = LabelGray)
                 Spacer(Modifier.height(2.dp))
@@ -301,8 +324,8 @@ fun EditProfileScreen(
                                 weightKg = weightKg,
                                 birthDate = birthDate,
                                 sex = sex,
-                                allergies = splitTags(allergies),
-                                conditions = splitTags(conditions),
+                                allergies = allergies.toList(),
+                                conditions = conditions.toList(),
                                 emergencyContacts = contacts.toList(),
                             )
                         )
@@ -331,6 +354,28 @@ fun EditProfileScreen(
             }
 
             Spacer(Modifier.height(16.dp))
+        }
+    }
+
+        if (showAllergyPicker) {
+            AllergyPickerScreen(
+                alreadyPicked = allergies,
+                onPick = { name ->
+                    if (allergies.none { it.equals(name, ignoreCase = true) }) allergies.add(name)
+                    showAllergyPicker = false
+                },
+                onBackClick = { showAllergyPicker = false },
+            )
+        }
+        if (showConditionPicker) {
+            ConditionPickerScreen(
+                alreadyPicked = conditions,
+                onPick = { name ->
+                    if (conditions.none { it.equals(name, ignoreCase = true) }) conditions.add(name)
+                    showConditionPicker = false
+                },
+                onBackClick = { showConditionPicker = false },
+            )
         }
     }
 }
@@ -391,6 +436,70 @@ private fun MiniField(
         shape = RoundedCornerShape(14.dp),
         colors = glossyFieldColors(accent = BrandBlue),
     )
+}
+
+/**
+ * A tag list (allergies, medical conditions) shown as removable chips plus an "Add …" row
+ * that opens a searchable catalogue picker with an offline "type your own" option.
+ */
+@Composable
+private fun TagChipPicker(
+    label: String,
+    addLabel: String,
+    addAnotherLabel: String,
+    selected: List<String>,
+    onRemove: (String) -> Unit,
+    onAdd: () -> Unit,
+) {
+    Text(label, fontSize = 13.sp, fontWeight = FontWeight.Medium, color = LabelGray)
+    Spacer(Modifier.height(6.dp))
+
+    if (selected.isNotEmpty()) {
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            selected.forEach { name ->
+                Row(
+                    modifier = Modifier
+                        .glossyChip(selected = true, accent = BrandBlue, shape = RoundedCornerShape(50))
+                        .clickable { onRemove(name) }
+                        .padding(start = 12.dp, end = 8.dp, top = 7.dp, bottom = 7.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(name, fontSize = 13.sp, fontWeight = FontWeight.Medium, color = Color.White)
+                    Spacer(Modifier.width(4.dp))
+                    Icon(
+                        Icons.Filled.Close,
+                        contentDescription = "Remove $name",
+                        tint = Color.White,
+                        modifier = Modifier.size(15.dp),
+                    )
+                }
+            }
+        }
+        Spacer(Modifier.height(10.dp))
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .glossyFieldWell(RoundedCornerShape(12.dp))
+            .clickable { onAdd() }
+            .padding(horizontal = 12.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(Icons.Filled.Add, contentDescription = null, tint = BrandBlue, modifier = Modifier.size(18.dp))
+        Spacer(Modifier.width(8.dp))
+        Text(
+            if (selected.isEmpty()) addLabel else addAnotherLabel,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Bold,
+            color = BrandBlue,
+        )
+    }
+    Spacer(Modifier.height(14.dp))
 }
 
 @Composable

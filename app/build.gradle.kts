@@ -50,6 +50,11 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation("androidx.work:work-runtime-ktx:2.9.1")
 
+    // Sleep API (phone-based sleep tracking — fallback until the mmWave radar is connected).
+    // NOTE: reintroduces play-services-location, which Nearby Clinics deliberately avoids for
+    // location; used here ONLY for ActivityRecognition's Sleep API, not for GPS.
+    implementation("com.google.android.gms:play-services-location:21.3.0")
+
     // ----- Auth (Google via Credential Manager) + Firebase -----
     implementation(platform("com.google.firebase:firebase-bom:34.18.0"))
     implementation("com.google.firebase:firebase-auth")

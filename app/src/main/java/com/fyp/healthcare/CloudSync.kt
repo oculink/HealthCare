@@ -13,6 +13,7 @@ import com.google.firebase.firestore.Source
 import com.google.firebase.firestore.firestore
 import java.util.Calendar
 import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -73,6 +74,7 @@ object Cloud {
             ProfileManager(context).syncToCloud()
             ActivityDataManager(context).syncToCloud()
             MedicationManager(context).syncAllToCloud()
+            AppointmentManager(context).syncAllToCloud()
             HealthDataManager(context).syncLatestToCloud()
         }
         prefs.edit().putBoolean("backlog_$u", true).apply()
@@ -286,6 +288,24 @@ object Cloud {
     }
 
     fun dayIdFor(millis: Long): String = dayId(millis)
+}
+
+/**
+ * Read a document, retrying the SERVER fetch a few times before falling back to the local
+ * cache. Right after sign-in the Firestore SDK can fire its first request before it has
+ * picked up the fresh auth token, so a lone `get()` comes back PERMISSION_DENIED (the rules
+ * require `signedIn()`). The token propagates within ~1s — spaced retries ride over it.
+ */
+internal suspend fun DocumentReference.getFresh(attempts: Int = 4): DocumentSnapshot? {
+    runCatching { get(Source.SERVER).awaitResult() }.getOrNull()?.let { return it }
+    // A returning user has the doc cached — fast path, no waiting.
+    runCatching { get(Source.CACHE).awaitResult() }.getOrNull()?.let { return it }
+    // Nothing cached and the server read failed: most likely the post-sign-in token race.
+    repeat(attempts) { i ->
+        delay(250L + 250L * i)   // 250, 500, 750, 1000
+        runCatching { get(Source.SERVER).awaitResult() }.getOrNull()?.let { return it }
+    }
+    return null
 }
 
 // Task<T> -> suspend, without pulling in kotlinx-coroutines-play-services.

@@ -2,9 +2,11 @@ package com.fyp.healthcare
 
 import com.fyp.healthcare.ui.theme.appBackground
 import com.fyp.healthcare.ui.theme.GlossyButton
+import com.fyp.healthcare.ui.theme.glossyBadge
 import com.fyp.healthcare.ui.theme.glossySurface
 import com.fyp.healthcare.ui.theme.themed
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -15,15 +17,16 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -46,27 +49,30 @@ fun DataRecordedScreen(
     healthData: HealthDataManager,
     onBackToHome: () -> Unit
 ) {
+    val analysis = remember { healthData.analyzeLatest() }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .appBackground()
             .statusBarsPadding()
+            .verticalScroll(rememberScrollState())
             .padding(horizontal = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Spacer(Modifier.height(60.dp))
+        Spacer(Modifier.height(48.dp))
 
         // Big green check
         Box(
             modifier = Modifier
-                .size(140.dp)
+                .size(120.dp)
                 .clip(CircleShape)
                 .background(SuccessGreen.copy(alpha = 0.15f)),
             contentAlignment = Alignment.Center
         ) {
             Box(
                 modifier = Modifier
-                    .size(110.dp)
+                    .size(94.dp)
                     .clip(CircleShape)
                     .background(SuccessGreen),
                 contentAlignment = Alignment.Center
@@ -75,49 +81,68 @@ fun DataRecordedScreen(
                     Icons.Default.Check,
                     contentDescription = null,
                     tint = Color.White,
-                    modifier = Modifier.size(56.dp)
+                    modifier = Modifier.size(48.dp)
                 )
             }
         }
 
-        Spacer(Modifier.height(28.dp))
+        Spacer(Modifier.height(20.dp))
 
         Text(
-            "Data\nRecorded!",
-            fontSize = 26.sp,
+            "Data Recorded!",
+            fontSize = 24.sp,
             fontWeight = FontWeight.Bold,
             color = TextDark,
             textAlign = TextAlign.Center
         )
-
-        Spacer(Modifier.height(10.dp))
-
+        Spacer(Modifier.height(8.dp))
         Text(
-            "Your health data has been saved\nand is being analyzed by AI.",
+            "Your readings were saved and checked against the normal ranges.",
             fontSize = 13.sp,
             color = LabelGray,
             textAlign = TextAlign.Center
         )
 
-        Spacer(Modifier.height(28.dp))
+        Spacer(Modifier.height(24.dp))
 
-        // Summary of what was just saved
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .glossySurface(RoundedCornerShape(20.dp), CardWhite)
-                .padding(horizontal = 20.dp)
-        ) {
-            RecordedRow("Blood Pressure", "${healthData.getBloodPressure() ?: "--"} mmHg")
-            DividerLine()
-            RecordedRow("Heart Rate", "${healthData.getHeartRate() ?: "--"} BPM")
-            DividerLine()
-            RecordedRow("Oxygen Level", "${healthData.getOxygen() ?: "--"}%")
-            DividerLine()
-            RecordedRow("Temperature", "${healthData.getTemperature() ?: "--"} °C")
+        // ===== Analysis =====
+        if (analysis != null && analysis.metrics.isNotEmpty()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .glossySurface(RoundedCornerShape(20.dp), CardWhite)
+                    .padding(18.dp),
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        "Analysis",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextDark,
+                        modifier = Modifier.weight(1f),
+                    )
+                    LevelChip(analysis.overall)
+                }
+                Spacer(Modifier.height(6.dp))
+                Text(analysis.summary, fontSize = 12.sp, color = LabelGray, lineHeight = 16.sp)
+
+                Spacer(Modifier.height(14.dp))
+                analysis.metrics.forEachIndexed { i, m ->
+                    if (i > 0) Box(Modifier.fillMaxWidth().height(1.dp).background(Color(0x22808080)))
+                    MetricRow(m)
+                }
+
+                if (!analysis.hasEnoughHistory) {
+                    Spacer(Modifier.height(10.dp))
+                    Text(
+                        "Trends need a few more readings — keep recording regularly.",
+                        fontSize = 11.sp,
+                        color = LabelGray,
+                    )
+                }
+            }
+            Spacer(Modifier.height(20.dp))
         }
-
-        Spacer(Modifier.height(28.dp))
 
         GlossyButton(
             onClick = onBackToHome,
@@ -127,21 +152,41 @@ fun DataRecordedScreen(
         ) {
             Text("Back to Dashboard", fontSize = 15.sp, fontWeight = FontWeight.Medium)
         }
+        Spacer(Modifier.height(24.dp))
     }
 }
 
 @Composable
-private fun RecordedRow(label: String, value: String) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically
+private fun LevelChip(level: VitalLevel) {
+    val c = level.color()
+    Box(
+        modifier = Modifier
+            .glossyBadge(c, RoundedCornerShape(50))
+            .padding(horizontal = 12.dp, vertical = 4.dp),
     ) {
-        Text(label, fontSize = 13.sp, color = LabelGray, modifier = Modifier.weight(1f))
-        Text(value, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = TextDark)
+        Text(level.label(), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = c)
     }
 }
 
 @Composable
-private fun DividerLine() {
-    Box(Modifier.fillMaxWidth().height(1.dp).background(Color(0xFFE5E8EE)))
+private fun MetricRow(m: MetricAnalysis) {
+    Column(Modifier.fillMaxWidth().padding(vertical = 10.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(m.label, fontSize = 13.sp, color = TextDark, modifier = Modifier.weight(1f))
+            Text("${m.display} ${m.unit}", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = TextDark)
+            Spacer(Modifier.size(8.dp))
+            Text(m.statusText, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = m.level.color())
+        }
+        Spacer(Modifier.height(2.dp))
+        Row {
+            Text(m.note, fontSize = 11.sp, color = LabelGray, modifier = Modifier.weight(1f))
+            if (m.trend != VitalTrend.INSUFFICIENT) {
+                Text(
+                    "${m.trend.arrow()} ${m.trend.word()}" + (m.recentAvg?.let { " · $it" } ?: ""),
+                    fontSize = 11.sp,
+                    color = LabelGray,
+                )
+            }
+        }
+    }
 }

@@ -444,7 +444,7 @@ private fun SleepCard(sleep: SleepSummary?) {
             Column {
                 Text("--", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextDark)
                 Text(
-                    "Sleep tracking needs the bedside radar",
+                    "No sleep recorded last night — keep the phone near the bed overnight",
                     fontSize = 12.sp,
                     color = LabelGray,
                 )
@@ -456,6 +456,16 @@ private fun SleepCard(sleep: SleepSummary?) {
                 Text(
                     "${formatTime12(sleep.bedTime)} – ${formatTime12(sleep.wakeTime)}",
                     fontSize = 12.sp,
+                    color = LabelGray,
+                )
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    when (sleep.source) {
+                        "radar" -> "Measured by the mmWave sensor"
+                        "wearable" -> "From a connected wearable"
+                        else -> "Phone estimate, not the mmWave sensor"
+                    },
+                    fontSize = 10.sp,
                     color = LabelGray,
                 )
             }

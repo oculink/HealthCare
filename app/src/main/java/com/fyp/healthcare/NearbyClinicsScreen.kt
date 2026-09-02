@@ -851,7 +851,7 @@ private fun formatDistance(m: Double): String =
 // Leaflet-in-a-WebView map controller
 // ---------------------------------------------------------------------------
 
-private class LeafletMap(
+internal class LeafletMap(
     private val onMoveEnd: (Double, Double) -> Unit,
     private val onMapTap: (Double, Double) -> Unit,
 ) {
@@ -957,7 +957,7 @@ private class LeafletMap(
 // ---------------------------------------------------------------------------
 
 @SuppressLint("MissingPermission")
-private suspend fun currentLocation(context: Context): Pair<Double, Double>? {
+internal suspend fun currentLocation(context: Context): Pair<Double, Double>? {
     val lm = context.getSystemService(Context.LOCATION_SERVICE) as? LocationManager ?: return null
 
     // 1. best recent fix from any provider

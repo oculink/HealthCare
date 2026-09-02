@@ -65,6 +65,9 @@ fun SignInScreen(
                     // Local session + data caches were wiped on the previous sign-out, so
                     // rebuild this account's state from the cloud BEFORE navigating — otherwise
                     // afterAuth() misroutes (sees no profile) and screens flash empty / stale.
+                    // ensureFreshToken() first so the reads below aren't denied by a stale
+                    // auth token the Firestore SDK hasn't caught up to yet (fresh-device bug).
+                    userManager.ensureFreshToken()
                     runCatching { FamilyLink.restoreSession(context) }
                     runCatching { CloudHydrator.hydrate(context) }
                     onSignedIn()

@@ -8,6 +8,11 @@
     <!-- Nearby Clinics map: locate the user to search around them -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <!-- Home "Today's Summary": phone step counter + Sleep API (both patient's own phone) -->
+    <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
+    <!-- Sleep API on API < 29 gates on the Play-services-namespaced permission instead -->
+    <uses-permission android:name="com.google.android.gms.permission.ACTIVITY_RECOGNITION" />
+    <uses-feature android:name="android.hardware.sensor.stepcounter" android:required="false" />
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -29,6 +34,24 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Receives Android Sleep API broadcasts (nightly segment + ~10-min classify events).
+             Manifest-registered so it still fires when the app process is dead — the segment
+             usually lands mid-morning, hours after the app was last open. -->
+        <receiver
+            android:name=".SleepReceiver"
+            android:exported="false" />
+
+        <!-- Serves the generated Health Report PDF to the share sheet / other apps -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
     </application>
 
 </manifest>

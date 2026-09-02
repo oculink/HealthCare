@@ -108,6 +108,15 @@ class UserManager(context: Context) {
         }
     }
 
+    /**
+     * Force a token refresh so the Firestore SDK has the fresh auth state before the first
+     * read. Without this, a `get()` fired right after sign-in can reach the backend
+     * unauthenticated and be denied by the rules. Best-effort.
+     */
+    suspend fun ensureFreshToken() {
+        runCatching { auth.currentUser?.getIdToken(true)?.awaitResult() }
+    }
+
     /** Signs out of Firebase immediately, and clears the Credential Manager state in the background. */
     fun signOut(appContext: Context) {
         auth.signOut()
@@ -120,9 +129,13 @@ class UserManager(context: Context) {
     }
 
     private fun upsertUserDoc(user: FirebaseUser) {
+        // NOTE: never write "name" here — that field is the health-profile name, owned by
+        // ProfileManager. Writing the Google display name to it on every sign-in used to
+        // clobber the onboarding name (and blank it for accounts with no display name,
+        // forcing re-onboarding). The Google name goes in a separate "accountName" field.
         db.collection("users").document(user.uid).set(
             mapOf(
-                "name" to user.displayName.orEmpty(),
+                "accountName" to user.displayName.orEmpty(),
                 "email" to user.email.orEmpty(),
                 "photoUrl" to (user.photoUrl?.toString() ?: ""),
                 "lastLoginAt" to FieldValue.serverTimestamp(),

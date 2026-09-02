@@ -20,6 +20,7 @@ import java.util.concurrent.TimeUnit
 object NotificationHelper {
 
     private const val CHANNEL_ID = "med_reminders"
+    const val CHANNEL_APPOINTMENTS = "appointment_reminders"
 
     private fun ensureChannel(context: Context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -31,10 +32,23 @@ object NotificationHelper {
                     NotificationManager.IMPORTANCE_HIGH,
                 ).apply { description = "Reminds you to take your medication on time" }
             )
+            nm.createNotificationChannel(
+                NotificationChannel(
+                    CHANNEL_APPOINTMENTS,
+                    "Appointment Reminders",
+                    NotificationManager.IMPORTANCE_HIGH,
+                ).apply { description = "Reminds you about upcoming medical appointments" }
+            )
         }
     }
 
-    fun show(context: Context, notificationId: Int, title: String, text: String) {
+    fun show(
+        context: Context,
+        notificationId: Int,
+        title: String,
+        text: String,
+        channelId: String = CHANNEL_ID,
+    ) {
         ensureChannel(context)
 
         // tapping the notification opens the app
@@ -46,7 +60,7 @@ object NotificationHelper {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
 
-        val notification = NotificationCompat.Builder(context, CHANNEL_ID)
+        val notification = NotificationCompat.Builder(context, channelId)
             .setSmallIcon(android.R.drawable.ic_lock_idle_alarm) // TODO: replace with a branded icon
             .setContentTitle(title)
             .setContentText(text)

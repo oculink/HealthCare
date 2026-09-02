@@ -115,7 +115,10 @@ object Session {
         }
     }
 
-    private val DATA_PREFS = listOf("health_data", "profile", "activity", "medications")
+    // "steps" holds the phone step-counter's daily baseline — device/account-specific, so a
+    // new sign-in on this phone must re-baseline rather than inherit the previous user's count.
+    private val DATA_PREFS =
+        listOf("health_data", "profile", "activity", "medications", "appointments", "steps")
 
     private fun prefs(c: Context) = c.getSharedPreferences("session", Context.MODE_PRIVATE)
 

@@ -189,7 +189,7 @@ object FamilyLink {
             val p = users().document(patientUid).get().awaitResult()
             PatientInfo(
                 uid = patientUid,
-                name = p.getString("name")?.takeIf { it.isNotBlank() } ?: "Patient",
+                name = displayNameOf(p),
                 photoUrl = p.getString("photoUrl")?.takeIf { it.isNotBlank() },
             )
         }
@@ -234,22 +234,30 @@ object FamilyLink {
      */
     suspend fun restoreSession(context: Context) {
         val self = Cloud.selfUid ?: return
-        val snap = runCatching { users().document(self).get().awaitResult() }.getOrNull() ?: return
+        // getFresh(): right after sign-in the first Firestore read can race the auth token
+        // and be denied — retry before giving up, or routing/onboarding misfires.
+        val snap = users().document(self).getFresh() ?: return
 
         val role = snap.getString("role").orEmpty()
         if (role.isNotBlank()) Session.setRole(context, role)
 
         val patientUid = snap.getString("linkedPatientUid")?.takeIf { it.isNotBlank() }
         if (role == "caretaker" && patientUid != null) {
-            val p = runCatching { users().document(patientUid).get().awaitResult() }.getOrNull()
+            val p = users().document(patientUid).getFresh()
             if (p != null && p.exists()) {
                 Session.enterCaretakerMode(
                     context,
                     patientUid,
-                    p.getString("name")?.takeIf { it.isNotBlank() } ?: "Patient",
+                    displayNameOf(p),
                     p.getString("photoUrl")?.takeIf { it.isNotBlank() },
                 )
             }
         }
     }
+
+    /** Health-profile name, then the Google account name, then a generic fallback. */
+    private fun displayNameOf(d: com.google.firebase.firestore.DocumentSnapshot): String =
+        d.getString("name")?.takeIf { it.isNotBlank() }
+            ?: d.getString("accountName")?.takeIf { it.isNotBlank() }
+            ?: "Patient"
 }

@@ -2,6 +2,7 @@ package com.fyp.healthcare
 
 import android.content.Context
 import android.content.SharedPreferences
+import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.Source
 import org.json.JSONArray
@@ -38,7 +39,10 @@ class HealthDataManager(context: Context) {
             .apply()
 
         appendHistory(bloodPressure, bloodSugar, heartRate, temperature, oxygen)
-        pushReading(bloodPressure, bloodSugar, heartRate, temperature, oxygen)
+        // UC-04: classify this reading against the recorded history, then attach the
+        // status flag to the record we mirror to Firestore.
+        val analysis = HealthAnalysis.analyze(history())
+        pushReading(bloodPressure, bloodSugar, heartRate, temperature, oxygen, analysis = analysis)
     }
 
     fun getBloodPressure(): String? = prefs.getString("blood_pressure", null)
@@ -61,9 +65,15 @@ class HealthDataManager(context: Context) {
         val heartRateBpm: Int? get() = heartRate.trim().toIntOrNull()
         val bloodSugarValue: Float? get() = bloodSugar.trim().toFloatOrNull()
         val oxygenValue: Float? get() = oxygen.trim().toFloatOrNull()
+        val temperatureValue: Float? get() = temperature.trim().toFloatOrNull()
         /** Systolic reading from a "120/80" string. */
         val systolic: Int? get() = bloodPressure.split("/").getOrNull(0)?.trim()?.toIntOrNull()
+        /** Diastolic reading from a "120/80" string. */
+        val diastolic: Int? get() = bloodPressure.split("/").getOrNull(1)?.trim()?.toIntOrNull()
     }
+
+    /** UC-04: analysis of the most recent reading against the recorded history. */
+    fun analyzeLatest(): ReadingAnalysis? = HealthAnalysis.analyze(history())
 
     private fun appendHistory(
         bloodPressure: String, bloodSugar: String, heartRate: String,
@@ -118,20 +128,25 @@ class HealthDataManager(context: Context) {
         bloodPressure: String, bloodSugar: String, heartRate: String,
         temperature: String, oxygen: String,
         countInCommunity: Boolean = true,
+        analysis: ReadingAnalysis? = null,
     ) {
-        Cloud.userDoc?.collection("readings")?.add(
-            mapOf(
-                "bloodPressure" to bloodPressure,
-                "bloodSugar" to bloodSugar,
-                "heartRate" to heartRate,
-                "temperature" to temperature,
-                "oxygen" to oxygen,
-                // serverTimestamp is authoritative once synced; clientTime is always present
-                // (even offline / before the server round-trip) so trends can sort/aggregate.
-                "recordedAt" to FieldValue.serverTimestamp(),
-                "clientTime" to System.currentTimeMillis(),
-            )
+        val data = hashMapOf<String, Any>(
+            "bloodPressure" to bloodPressure,
+            "bloodSugar" to bloodSugar,
+            "heartRate" to heartRate,
+            "temperature" to temperature,
+            "oxygen" to oxygen,
+            // serverTimestamp is authoritative once synced; clientTime is always present
+            // (even offline / before the server round-trip) so trends can sort/aggregate.
+            "recordedAt" to FieldValue.serverTimestamp(),
+            "clientTime" to System.currentTimeMillis(),
         )
+        // UC-04 postcondition: the analysis status is attached to the patient's record.
+        analysis?.let {
+            data["analysisLevel"] = it.overall.name
+            data["analysisFlags"] = it.abnormal.map { m -> m.key }
+        }
+        Cloud.userDoc?.collection("readings")?.add(data)
         if (countInCommunity) {
             Cloud.bumpCommunityStats(communityValues(bloodPressure, bloodSugar, heartRate, oxygen))
         }
@@ -159,18 +174,7 @@ class HealthDataManager(context: Context) {
     suspend fun cloudHistory(fromServer: Boolean): List<Reading> {
         val col = Cloud.userDoc?.collection("readings") ?: return emptyList()
         val snap = col.get(if (fromServer) Source.SERVER else Source.CACHE).awaitResult()
-        return snap.documents.map { d ->
-            Reading(
-                timestamp = d.getTimestamp("recordedAt")?.toDate()?.time
-                    ?: d.getLong("clientTime")
-                    ?: 0L,
-                bloodPressure = d.getString("bloodPressure").orEmpty(),
-                bloodSugar = d.getString("bloodSugar").orEmpty(),
-                heartRate = d.getString("heartRate").orEmpty(),
-                temperature = d.getString("temperature").orEmpty(),
-                oxygen = d.getString("oxygen").orEmpty(),
-            )
-        }.sortedBy { it.timestamp }
+        return snap.documents.map { readingFrom(it) }.sortedBy { it.timestamp }
     }
 
     /**
@@ -227,8 +231,20 @@ class HealthDataManager(context: Context) {
         )
     }
 
-    private companion object {
-        const val KEY_HISTORY = "reading_history_v1"
-        const val MAX_HISTORY = 800
+    companion object {
+        private const val KEY_HISTORY = "reading_history_v1"
+        private const val MAX_HISTORY = 800
+
+        /** Map one `users/{uid}/readings/{doc}` Firestore doc to a [Reading]. */
+        fun readingFrom(d: DocumentSnapshot): Reading = Reading(
+            timestamp = d.getTimestamp("recordedAt")?.toDate()?.time
+                ?: d.getLong("clientTime")
+                ?: 0L,
+            bloodPressure = d.getString("bloodPressure").orEmpty(),
+            bloodSugar = d.getString("bloodSugar").orEmpty(),
+            heartRate = d.getString("heartRate").orEmpty(),
+            temperature = d.getString("temperature").orEmpty(),
+            oxygen = d.getString("oxygen").orEmpty(),
+        )
     }
 }

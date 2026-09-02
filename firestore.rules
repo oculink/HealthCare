@@ -5,6 +5,7 @@
 //   users/{uid}                         health profile + role + family-link fields
 //   users/{uid}/readings/{auto}         recorded vitals
 //   users/{uid}/medications/{id}        medications + adherence log
+//   users/{uid}/appointments/{id}       medical appointments (manual log)
 //   familyCodes/{CODE}                  family-caregiver link codes  (doc id IS the code)
 //   stats/vitals                        anonymous community aggregate
 //

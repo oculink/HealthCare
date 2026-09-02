@@ -2,6 +2,7 @@ package com.fyp.healthcare
 
 import android.content.Context
 import android.content.SharedPreferences
+import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.Source
 import org.json.JSONArray
@@ -251,27 +252,7 @@ class MedicationManager(context: Context, forSelf: Boolean = false) {
     suspend fun cloudList(fromServer: Boolean): List<Medication> {
         val col = Cloud.userDoc?.collection("medications") ?: return emptyList()
         val snap = col.get(if (fromServer) Source.SERVER else Source.CACHE).awaitResult()
-        return snap.documents.mapNotNull { d ->
-            val id = d.getLong("id") ?: d.id.toLongOrNull() ?: return@mapNotNull null
-            @Suppress("UNCHECKED_CAST")
-            val schedRaw = (d.get("schedule") as? Map<String, List<*>>).orEmpty()
-            val schedule = schedRaw.mapNotNull { (k, v) ->
-                val day = k.toIntOrNull() ?: return@mapNotNull null
-                day to v.mapNotNull { it as? String }
-            }.toMap()
-            @Suppress("UNCHECKED_CAST")
-            val log = (d.get("log") as? Map<String, String>).orEmpty()
-            Medication(
-                id = id,
-                name = d.getString("name").orEmpty(),
-                strength = d.getString("strength").orEmpty(),
-                amount = (d.getLong("amount") ?: 1L).toInt().coerceAtLeast(1),
-                schedule = schedule,
-                log = log,
-                description = d.getString("description").orEmpty(),
-                route = d.getString("route")?.ifBlank { "ORAL" } ?: "ORAL",
-            )
-        }
+        return snap.documents.mapNotNull { medicationFrom(it) }
     }
 
     private fun pushMed(m: Medication) {
@@ -399,8 +380,31 @@ class MedicationManager(context: Context, forSelf: Boolean = false) {
         }
     }
 
-    private companion object {
-        const val KEY = "items_v2"
-        const val LEGACY_KEY = "list"
+    companion object {
+        private const val KEY = "items_v2"
+        private const val LEGACY_KEY = "list"
+
+        /** Map one `users/{uid}/medications/{doc}` Firestore doc to a [Medication]. */
+        fun medicationFrom(d: DocumentSnapshot): Medication? {
+            val id = d.getLong("id") ?: d.id.toLongOrNull() ?: return null
+            @Suppress("UNCHECKED_CAST")
+            val schedRaw = (d.get("schedule") as? Map<String, List<*>>).orEmpty()
+            val schedule = schedRaw.mapNotNull { (k, v) ->
+                val day = k.toIntOrNull() ?: return@mapNotNull null
+                day to v.mapNotNull { it as? String }
+            }.toMap()
+            @Suppress("UNCHECKED_CAST")
+            val log = (d.get("log") as? Map<String, String>).orEmpty()
+            return Medication(
+                id = id,
+                name = d.getString("name").orEmpty(),
+                strength = d.getString("strength").orEmpty(),
+                amount = (d.getLong("amount") ?: 1L).toInt().coerceAtLeast(1),
+                schedule = schedule,
+                log = log,
+                description = d.getString("description").orEmpty(),
+                route = d.getString("route")?.ifBlank { "ORAL" } ?: "ORAL",
+            )
+        }
     }
 }

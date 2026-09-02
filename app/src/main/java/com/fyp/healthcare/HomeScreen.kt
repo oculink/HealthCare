@@ -32,12 +32,14 @@ import androidx.compose.material.icons.filled.LocalHospital
 import androidx.compose.material.icons.filled.Air
 import androidx.compose.material.icons.filled.Bedtime
 import androidx.compose.material.icons.filled.Bloodtype
+import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.EditNote
 import androidx.compose.material.icons.filled.Emergency
+import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LocalFireDepartment
-import androidx.compose.material.icons.filled.Medication
 import androidx.compose.material.icons.filled.MonitorHeart
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.WbCloudy
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material.icons.filled.WbTwilight
@@ -82,13 +84,16 @@ fun HomeScreen(
     userManager: UserManager,
     profileManager: ProfileManager,
     healthData: HealthDataManager,
+    activityData: ActivityDataManager,
     onNavigate: (String) -> Unit,
 ) {
     // re-read the managers whenever CloudHydrator refreshes the local cache
     val dataVersion = Session.dataVersion
 
+    val profile = remember(dataVersion) { profileManager.get() }
+
     // Preferred name from onboarding, falling back to the Google account name
-    val fullName = remember(dataVersion) { profileManager.get().name }
+    val fullName = profile.name
         .ifBlank { userManager.currentAccount()?.name ?: "there" }
 
     // In caretaker mode the header greets the CAREGIVER (the signed-in account) and shows a
@@ -122,10 +127,48 @@ fun HomeScreen(
         if (sys != null && dia != null) VitalStatus.bloodPressure(sys, dia) else null
     }
     val oxygenStatus = oxygen?.toIntOrNull()?.let { VitalStatus.oxygen(it) }
-    val steps: String? = null
-    val calories: String? = null
-    val sleep: String? = null
+
+    // Steps: the patient's own phone counts them live (StepTracker, self mode only); a
+    // caregiver sees the patient's mirrored count pulled down by CloudHydrator / PatientMonitor.
+    val stepCount: Int? = remember(dataVersion, StepTracker.todaySteps, caretakerMode) {
+        val stored = activityData.steps()          // already max(this phone, cross-device sync)
+        if (caretakerMode) stored
+        else {
+            val live = StepTracker.todaySteps
+            if (live == null && stored == null) null else maxOf(live ?: 0, stored ?: 0)
+        }
+    }
+    val steps: String? = stepCount?.let { formatCount(it) }
+    // Calories: estimated from today's steps + the profile (weight, height, age, sex).
+    val calories: String? = stepCount?.takeIf { it > 0 }?.let { c ->
+        val kcal = estimateWalkingCalories(
+            steps = c,
+            weightKg = profile.weightKg.toDoubleOrNull(),
+            heightCm = profile.heightCm.toDoubleOrNull(),
+            ageYears = profile.age,
+            sex = profile.sex,
+        )
+        "$kcal kcal"
+    }
+    // Sleep: last night, from the phone Sleep API (self mode) or the patient's synced copy.
+    val sleepSummary = remember(dataVersion) { activityData.sleep() }
+    val sleep: String? = sleepSummary?.let { "${formatDuration(it.totalMinutes)} · ${it.quality}" }
+    val whose = if (caretakerMode) "${Session.controlledPatientName.ifBlank { "the patient" }}'s" else "your"
+    val sleepNote: String = when (sleepSummary?.source) {
+        "radar" -> "Measured by the mmWave sensor"
+        "wearable" -> "From a connected wearable"
+        else -> "Estimated from $whose phone's motion & light, not the mmWave sensor"
+    }
     val hasData = heartRate != null || bloodPressure != null || oxygen != null
+
+    // UC-04 A2 (<<extend>> Caregiver Remote Monitoring): flag the latest reading if it
+    // landed in the Warning / Critical zone. In caretaker mode `healthData` is scoped to
+    // the patient, so this is exactly the "instant warning to the caregiver" the proposal
+    // describes — passive (shown on open / sync), since the Spark plan has no push.
+    val analysis = remember(dataVersion) { healthData.analyzeLatest() }
+    val alert = analysis?.takeIf {
+        it.overall == VitalLevel.WARNING || it.overall == VitalLevel.CRITICAL
+    }
 
 
     val part = dayPart()
@@ -183,7 +226,8 @@ fun HomeScreen(
                             )
                             Spacer(Modifier.width(6.dp))
                             Text(
-                                "Monitoring ${Session.controlledPatientName.ifBlank { "patient" }}",
+                                "Monitoring ${Session.controlledPatientName.ifBlank { "patient" }}" +
+                                    if (PatientMonitor.isLive) "  ·  live" else "",
                                 color = MonitoringGreen,
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.SemiBold,
@@ -206,8 +250,15 @@ fun HomeScreen(
                 )
             }
 
-            // ===== Alert banner (only shows while there is no data yet) =====
-            if (!hasData) {
+            // ===== Alert banner =====
+            if (alert != null) {
+                HealthAlertBanner(
+                    analysis = alert,
+                    patientName = if (caretakerMode)
+                        Session.controlledPatientName.ifBlank { "The patient" } else null,
+                    onClick = { onNavigate("health") },
+                )
+            } else if (!hasData) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -254,9 +305,16 @@ fun HomeScreen(
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 QuickActionCard(Icons.Filled.EditNote, "Record Data", Color(0xFF2A6DE1), Modifier.weight(1f)) { onNavigate("record_data") }
+                QuickActionCard(Icons.Filled.CalendarMonth, "Appointments", Color(0xFF0F9E99), Modifier.weight(1f)) { onNavigate("appointments") }
                 QuickActionCard(Icons.Filled.LocalHospital, "Nearby Clinics", Color(0xFF2E9E6B), Modifier.weight(1f)) { onNavigate("clinics") }
-                QuickActionCard(Icons.Filled.Medication, "Medication", Color(0xFFFF9800), Modifier.weight(1f)) { onNavigate("medication") }
+            }
+            Row(
+                modifier = Modifier.height(IntrinsicSize.Max),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                QuickActionCard(Icons.Filled.Description, "Health Report", Color(0xFF6C5CE7), Modifier.weight(1f)) { onNavigate("health_report") }
                 QuickActionCard(Icons.Filled.Emergency, "Emergency", Color(0xFFD32F2F), Modifier.weight(1f)) { onNavigate("emergency") }
+                Spacer(Modifier.weight(1f))
             }
 
             // ===== Today's Summary =====
@@ -271,7 +329,7 @@ fun HomeScreen(
                 Box(Modifier.fillMaxWidth().height(1.dp).background(Color(0xFFE5E8EE)))
                 SummaryRow(Icons.Filled.LocalFireDepartment, "Calories", calories, Color(0xFFEE7B2E))
                 Box(Modifier.fillMaxWidth().height(1.dp).background(Color(0xFFE5E8EE)))
-                SummaryRow(Icons.Filled.Bedtime, "Sleep", sleep, Color(0xFF6C5CE7))
+                SummaryRow(Icons.Filled.Bedtime, "Sleep", sleep, Color(0xFF6C5CE7), note = sleepNote)
             }
 
             // ===== Monitoring status (Family Caregiver link) =====
@@ -281,6 +339,47 @@ fun HomeScreen(
 }
 
 // ===== Small building blocks =====
+
+/**
+ * UC-04 A2 warning strip. Amber for Warning, red for Critical. Tapping it opens Health
+ * Trends, where the full per-metric analysis lives.
+ */
+@Composable
+private fun HealthAlertBanner(
+    analysis: ReadingAnalysis,
+    patientName: String?,
+    onClick: () -> Unit,
+) {
+    val c = analysis.overall.color()
+    val worst = analysis.worst
+    val whose = patientName?.let { "$it's" } ?: "Your"
+    val headline = if (analysis.overall == VitalLevel.CRITICAL)
+        "$whose ${worst?.label?.lowercase() ?: "reading"} needs attention now"
+    else
+        "$whose latest readings need a look"
+    val detail = analysis.abnormal.joinToString(", ") { "${it.label} ${it.display} (${it.statusText})" }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(c.copy(alpha = 0.12f))
+            .border(1.dp, c.copy(alpha = 0.35f), RoundedCornerShape(14.dp))
+            .clickable { onClick() }
+            .padding(14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(Icons.Filled.Warning, contentDescription = null, tint = c, modifier = Modifier.size(20.dp))
+        Spacer(Modifier.width(10.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(headline, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = c)
+            Spacer(Modifier.height(2.dp))
+            Text(detail, fontSize = 11.sp, color = LabelGray, lineHeight = 14.sp)
+            Spacer(Modifier.height(2.dp))
+            Text("Tap to see the analysis", fontSize = 10.sp, fontWeight = FontWeight.Medium, color = c)
+        }
+    }
+}
 
 @Composable
 private fun VitalCard(
@@ -347,15 +446,30 @@ private fun QuickActionCard(
 }
 
 @Composable
-private fun SummaryRow(icon: ImageVector, label: String, value: String?, tint: Color) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        com.fyp.healthcare.ui.theme.AppIconBadge(icon, tint, size = 30.dp, iconSize = 16.dp)
-        Spacer(Modifier.width(12.dp))
-        Text(label, fontSize = 13.sp, color = LabelGray, modifier = Modifier.weight(1f))
-        Text(value ?: "--", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = TextDark)
+private fun SummaryRow(
+    icon: ImageVector,
+    label: String,
+    value: String?,
+    tint: Color,
+    note: String? = null,
+) {
+    Column(modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            com.fyp.healthcare.ui.theme.AppIconBadge(icon, tint, size = 30.dp, iconSize = 16.dp)
+            Spacer(Modifier.width(12.dp))
+            Text(label, fontSize = 13.sp, color = LabelGray, modifier = Modifier.weight(1f))
+            Text(value ?: "--", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = TextDark)
+        }
+        if (note != null) {
+            Spacer(Modifier.height(3.dp))
+            Text(
+                note,
+                fontSize = 10.sp,
+                color = LabelGray,
+                lineHeight = 13.sp,
+                modifier = Modifier.padding(start = 42.dp), // 30dp badge + 12dp spacer
+            )
+        }
     }
 }
 
@@ -383,6 +497,9 @@ private fun greetingIcon(part: String): ImageVector = when (part) {
 
 private fun todayDate(): String =
     SimpleDateFormat("EEE, d MMM yyyy", Locale.getDefault()).format(Date())
+
+// 3240 -> "3,240"
+private fun formatCount(n: Int): String = String.format(Locale.getDefault(), "%,d", n)
 
 // "Ahmad Rizal Hassan" -> "AR"
 private fun initials(name: String): String {

@@ -3,6 +3,7 @@ package com.fyp.healthcare
 import android.Manifest
 import android.content.pm.PackageManager
 import androidx.activity.result.contract.ActivityResultContracts
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
@@ -41,10 +42,21 @@ import kotlinx.coroutines.launch
 
 // main
 
+/** Pre-Home routes that a late cloud-sync is allowed to bounce the user off of. */
+private val ENTRY_ROUTES = setOf("role_select", "onboarding", "caretaker_link")
+
 class MainActivity : ComponentActivity() {
     private val notificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { /* if denied, reminders are scheduled but stay silent */ }
+    private val activityRecognitionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            StepTracker.start(applicationContext)
+            SleepTracker.register(applicationContext)
+        }
+    }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         AppTheme.init(applicationContext)
@@ -64,6 +76,14 @@ class MainActivity : ComponentActivity() {
         ) {
             notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
+        // Step counter for Home's "Today's Summary" — patient's own phone only (StepTracker
+        // no-ops in caretaker mode). ACTIVITY_RECOGNITION is a runtime permission from API 29.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q &&
+            checkSelfPermission(Manifest.permission.ACTIVITY_RECOGNITION)
+            != PackageManager.PERMISSION_GRANTED
+        ) {
+            activityRecognitionLauncher.launch(Manifest.permission.ACTIVITY_RECOGNITION)
+        }
         if (savedInstanceState == null) {
             lifecycleScope.launch(Dispatchers.IO) {
                 // make sure the local session (role + caretaker link) matches the cloud
@@ -72,8 +92,9 @@ class MainActivity : ComponentActivity() {
                 // cache, so a linked caretaker's edits (or the patient's own, from another
                 // device) show up on open
                 runCatching { CloudHydrator.hydrate(applicationContext) }
-                // re-arm every medication reminder in case the app was force-stopped
+                // re-arm every medication + appointment reminder in case the app was force-stopped
                 ReminderScheduler.syncAll(applicationContext)
+                AppointmentReminderScheduler.syncAll(applicationContext)
                 // push any data saved before cloud sync / while offline (runs once per account)
                 Cloud.pushBacklog(applicationContext)
                 // fold this account's existing readings into the community aggregate (once)
@@ -86,6 +107,7 @@ class MainActivity : ComponentActivity() {
                 // store (own prefs in self mode, `*__<patientUid>` prefs in caretaker mode).
                 val dataScope = Session.controlledPatientUid
                 val medManager = remember(dataScope) { MedicationManager(applicationContext) }
+                val apptManager = remember(dataScope) { AppointmentManager(applicationContext) }
                 val userManager = remember { UserManager(applicationContext) }
                 val healthData = remember(dataScope) { HealthDataManager(applicationContext) }
                 val activityData = remember(dataScope) { ActivityDataManager(applicationContext) }
@@ -116,6 +138,21 @@ class MainActivity : ComponentActivity() {
                 }
                 val startDestination = if (userManager.isSignedIn()) afterAuth() else "signin"
 
+                // If the post-sign-in cloud sync lands AFTER we first routed — e.g. a fresh
+                // device, where the profile wasn't in local storage yet — re-route now that it
+                // is, so an already-set-up account isn't stuck on role select / onboarding.
+                LaunchedEffect(Session.dataVersion, Session.role, Session.controlledPatientUid) {
+                    if (!userManager.isSignedIn()) return@LaunchedEffect
+                    val current = navController.currentBackStackEntry?.destination?.route
+                    if (current == null || current !in ENTRY_ROUTES) return@LaunchedEffect
+                    val dest = afterAuth()
+                    if (dest != current) {
+                        navController.navigate(dest) {
+                            popUpTo(navController.graph.id) { inclusive = true }
+                        }
+                    }
+                }
+
                 val clearBackStackTo = { route: String ->
                     navController.navigate(route) {
                         popUpTo(navController.graph.id) { inclusive = true }
@@ -128,8 +165,8 @@ class MainActivity : ComponentActivity() {
                 }
 
                 // Bottom-nav tab switch. Pop back to Home and remember each tab's
-                // state, but never *restore* Home itself. Quick actions (View Trends,
-                // Medication, Profile) are plain-navigated on top of Home, so their
+                // state, but never *restore* Home itself. Quick actions (Record Data,
+                // Health Report, Profile) are plain-navigated on top of Home, so their
                 // routes get saved under Home's key when popped — restoring that
                 // sub-stack would immediately re-push the screen the user just left,
                 // making the Home tab button look like it does nothing.
@@ -217,6 +254,9 @@ class MainActivity : ComponentActivity() {
                                 }
                             },
                             onSignOut = {
+                                PatientMonitor.stop()
+                                StepTracker.stop()
+                                SleepTracker.unregister(applicationContext)
                                 userManager.signOut(applicationContext)
                                 Session.clear(applicationContext)
                                 clearBackStackTo("signin")
@@ -230,6 +270,11 @@ class MainActivity : ComponentActivity() {
                                     applicationContext, info.uid, info.name, info.photoUrl
                                 )
                                 refreshCache()
+                                // this account is now a caregiver — stop tracking THIS phone's
+                                // own steps / sleep; show the patient's synced figures instead
+                                StepTracker.stop()
+                                SleepTracker.unregister(applicationContext)
+                                PatientMonitor.start(applicationContext)
                                 clearBackStackTo("home")
                             },
                             onBack = {
@@ -245,6 +290,7 @@ class MainActivity : ComponentActivity() {
                         FamilyCaregiverScreen(
                             onBack = { navController.popBackStack() },
                             onUnlinked = {
+                                PatientMonitor.stop()
                                 Session.exitCaretakerMode(applicationContext)
                                 clearBackStackTo("caretaker_link")
                             },
@@ -258,6 +304,7 @@ class MainActivity : ComponentActivity() {
                                 userManager = userManager,
                                 profileManager = profileManager,
                                 healthData = healthData,
+                                activityData = activityData,
                                 onNavigate = { navController.navigate(it) },
                             )
                         }
@@ -265,12 +312,13 @@ class MainActivity : ComponentActivity() {
                     composable("health") {
                         TabScaffold("health", switchTab) {
                             HealthTrendsScreen(
+                                healthData = healthData,
                                 onBackClick = { navController.popBackStack() },
                             )
                         }
                     }
 
-                    // "reminders" (bottom nav) and "medication" (Home quick action) both show the list
+                    // Medication reminders live on the "reminders" bottom-nav tab
                     val medicationList: @Composable () -> Unit = {
                         TabScaffold("reminders", switchTab) {
                             MedicationScreen(
@@ -282,7 +330,6 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                     composable("reminders") { medicationList() }
-                    composable("medication") { medicationList() }
 
                     composable("add_medication") { entry ->
                         val pName by entry.savedStateHandle
@@ -467,6 +514,15 @@ class MainActivity : ComponentActivity() {
                     composable("clinics") {
                         NearbyClinicsScreen(onBackClick = { navController.popBackStack() })
                     }
+                    composable("health_report") {
+                        HealthReportScreen(
+                            userManager = userManager,
+                            profileManager = profileManager,
+                            healthData = healthData,
+                            medManager = medManager,
+                            onBackClick = { navController.popBackStack() },
+                        )
+                    }
                     composable("emergency") {
                         EmergencyProfileScreen(
                             userManager = userManager,
@@ -474,6 +530,35 @@ class MainActivity : ComponentActivity() {
                             medManager = medManager,
                             onBackClick = { navController.popBackStack() },
                             onEditProfile = { navController.navigate("edit_profile") },
+                        )
+                    }
+
+                    // ===== Appointments (manual log + local reminders + caregiver sync) =====
+                    composable("appointments") {
+                        AppointmentsScreen(
+                            apptManager = apptManager,
+                            onBackClick = { navController.popBackStack() },
+                            onAddClick = { navController.navigate("add_appointment") },
+                            onEditClick = { id -> navController.navigate("edit_appointment/$id") },
+                        )
+                    }
+                    composable("add_appointment") {
+                        AddAppointmentScreen(
+                            apptManager = apptManager,
+                            editId = null,
+                            onBackClick = { navController.popBackStack() },
+                            onSaved = { navController.popBackStack() },
+                        )
+                    }
+                    composable(
+                        "edit_appointment/{apptId}",
+                        arguments = listOf(navArgument("apptId") { type = NavType.LongType })
+                    ) { entry ->
+                        AddAppointmentScreen(
+                            apptManager = apptManager,
+                            editId = entry.arguments?.getLong("apptId"),
+                            onBackClick = { navController.popBackStack() },
+                            onSaved = { navController.popBackStack() },
                         )
                     }
                 }
@@ -499,6 +584,22 @@ class MainActivity : ComponentActivity() {
             lifecycleScope.launch(Dispatchers.IO) {
                 runCatching { CloudHydrator.hydrate(applicationContext) }
             }
+            // in caretaker mode, keep the patient's data streaming in live while foregrounded
+            PatientMonitor.start(applicationContext)
+            // sample the phone step counter while foregrounded (self mode only)
+            StepTracker.start(applicationContext)
+            // (re)subscribe to the phone Sleep API — self mode only; the subscription itself
+            // outlives the app being closed so the morning sleep segment still lands
+            SleepTracker.register(applicationContext)
         }
+    }
+
+    override fun onStop() {
+        super.onStop()
+        // drop the live listeners while backgrounded — CloudHydrator + PatientMonitor
+        // both refill / re-attach on the next resume; the step counter keeps counting in
+        // hardware and we resample on the next open
+        PatientMonitor.stop()
+        StepTracker.stop()
     }
 }

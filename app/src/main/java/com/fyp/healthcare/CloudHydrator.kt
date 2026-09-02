@@ -4,7 +4,6 @@ import android.content.Context
 import com.google.firebase.Firebase
 import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.DocumentSnapshot
-import com.google.firebase.firestore.Source
 import com.google.firebase.firestore.firestore
 
 /**
@@ -32,12 +31,20 @@ object CloudHydrator {
         runCatching {
             val snap = readDoc(userRef) ?: return@runCatching
             if (!snap.exists()) return@runCatching
-            val profile = profileFrom(snap)
+            val profile = profileFromSnapshot(snap)
             // never overwrite a real local profile with an empty cloud one
             if (profile.name.isNotBlank() || !profile.isBlank) {
                 ProfileManager(context).hydrateLocal(profile)
             }
-            ActivityDataManager(context).hydrateLocal(snap.getLong("stepGoal")?.toInt())
+            val today = dateKey()
+            val syncedSteps = stepsFromByDevice(snap.get("stepsByDevice"), today)
+            val am = ActivityDataManager(context)
+            am.hydrateLocal(
+                snap.getLong("stepGoal")?.toInt(),
+                syncedSteps,
+                if (syncedSteps != null) today else null,
+            )
+            am.hydrateSleep(snap.get("sleepByDevice"))
         }
 
         // ----- recorded vitals history -----
@@ -58,15 +65,22 @@ object CloudHydrator {
             mm.hydrateLocal(meds)
         }
 
+        // ----- appointments -----
+        runCatching {
+            val am = AppointmentManager(context)
+            val appts = runCatching { am.cloudList(fromServer = true) }.getOrNull()
+                ?: runCatching { am.cloudList(fromServer = false) }.getOrNull()
+                ?: emptyList()
+            am.hydrateLocal(appts)
+        }
+
         // tell the screens fresh data has landed so they re-read
         Session.bumpDataVersion()
     }
 
-    private suspend fun readDoc(ref: DocumentReference): DocumentSnapshot? =
-        runCatching { ref.get(Source.SERVER).awaitResult() }.getOrNull()
-            ?: runCatching { ref.get(Source.CACHE).awaitResult() }.getOrNull()
+    private suspend fun readDoc(ref: DocumentReference): DocumentSnapshot? = ref.getFresh()
 
-    private fun profileFrom(d: DocumentSnapshot): HealthProfile {
+    internal fun profileFromSnapshot(d: DocumentSnapshot): HealthProfile {
         @Suppress("UNCHECKED_CAST")
         val allergies = (d.get("allergies") as? List<String>).orEmpty()
         @Suppress("UNCHECKED_CAST")
