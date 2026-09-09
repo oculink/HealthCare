@@ -4,6 +4,7 @@ import android.content.ClipData
 import android.content.ContentValues
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Path
@@ -555,6 +556,18 @@ object HealthReportExport {
         drawRoundRect(RectF(l, t, r, b), rad, rad, p)
     }
 
+    /** Decode a raster drawable (e.g. the app logo) into a bitmap; null if missing. */
+    private fun rasterBitmap(context: Context, @DrawableRes id: Int): Bitmap? =
+        runCatching { BitmapFactory.decodeResource(context.resources, id) }.getOrNull()
+
+    /** Draw [bmp] into the rounded rect (l,t,r,b), scaled to fill and corner-clipped. */
+    private fun Canvas.drawRoundedBitmap(bmp: Bitmap, l: Float, t: Float, r: Float, b: Float, rad: Float) {
+        val save = save()
+        clipPath(Path().apply { addRoundRect(RectF(l, t, r, b), rad, rad, Path.Direction.CW) })
+        drawBitmap(bmp, null, RectF(l, t, r, b), Paint(Paint.ANTI_ALIAS_FLAG).apply { isFilterBitmap = true })
+        restoreToCount(save)
+    }
+
     /** A soft-tinted circle with a centred icon. */
     private fun Canvas.iconChip(context: Context, cx: Float, cy: Float, chip: Float, iconId: Int, accent: Int, paints: Paints) {
         paints.fill.color = withAlpha(accent, 34)
@@ -630,7 +643,10 @@ object HealthReportExport {
         val right = PAGE_W - MARGIN
 
         // ---- header ----
-        // empty icon placeholder (app icon still being designed)
+        // app icon
+        rasterBitmap(context, R.drawable.ic_app_logo)?.let { logo ->
+            c.drawRoundedBitmap(logo, MARGIN, 36f, MARGIN + 46f, 82f, 12f)
+        }
         paints.stroke.color = HAIRLINE; paints.stroke.strokeWidth = 1.5f
         c.roundRect(MARGIN, 36f, MARGIN + 46f, 82f, 12f, paints.stroke)
 
