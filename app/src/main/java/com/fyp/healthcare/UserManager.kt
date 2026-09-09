@@ -71,8 +71,6 @@ class UserManager(context: Context) {
     suspend fun signInWithGoogle(activityContext: Context): SignInResult {
         val webClientId = activityContext.getString(R.string.default_web_client_id)
 
-        // GetSignInWithGoogleOption is the "explicit button" flow — always shows the account
-        // chooser, even for accounts that haven't used this app before.
         val option = GetSignInWithGoogleOption.Builder(webClientId).build()
 
         val request = GetCredentialRequest.Builder().addCredentialOption(option).build()
@@ -145,4 +143,3 @@ class UserManager(context: Context) {
     }
 }
 
-// awaitResult() lives in CloudSync.kt (shared, same package)

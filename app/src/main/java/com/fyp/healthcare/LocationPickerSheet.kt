@@ -158,7 +158,6 @@ fun LocationPickerSheet(
         if (granted) locateMe()
     }
 
-    // Centre on wherever we start from: an existing pin, else the phone's location.
     LaunchedEffect(Unit) {
         val la = initialLat
         val lo = initialLng
@@ -170,13 +169,11 @@ fun LocationPickerSheet(
         }
     }
 
-    // Map taps drop a pin + reverse-geocode.
     LaunchedEffect(pendingTap) {
         val t = pendingTap ?: return@LaunchedEffect
         setPin(t.first, t.second, null)
     }
 
-    // Debounced type-ahead.
     LaunchedEffect(addressField, editing) {
         if (!editing || addressField.trim().length < 3) {
             suggestions = emptyList()
@@ -192,7 +189,6 @@ fun LocationPickerSheet(
             .appBackground(),
     ) {
 
-        // ===== Top bar =====
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -225,7 +221,6 @@ fun LocationPickerSheet(
             }
         }
 
-        // ===== Map (fills the space the address panel doesn't take) =====
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -266,7 +261,6 @@ fun LocationPickerSheet(
             )
         }
 
-        // ===== Address box + suggestions + confirm — pinned above the keyboard =====
         Column(
             modifier = Modifier
                 .fillMaxWidth()

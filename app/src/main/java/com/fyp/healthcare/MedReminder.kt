@@ -16,7 +16,6 @@ import androidx.work.workDataOf
 import java.util.Calendar
 import java.util.concurrent.TimeUnit
 
-// ===== Shows the actual phone notification =====
 object NotificationHelper {
 
     private const val CHANNEL_ID = "med_reminders"
@@ -51,7 +50,6 @@ object NotificationHelper {
     ) {
         ensureChannel(context)
 
-        // tapping the notification opens the app
         val openApp = PendingIntent.getActivity(
             context,
             notificationId,
@@ -61,7 +59,7 @@ object NotificationHelper {
         )
 
         val notification = NotificationCompat.Builder(context, channelId)
-            .setSmallIcon(android.R.drawable.ic_lock_idle_alarm) // TODO: replace with a branded icon
+            .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
             .setContentTitle(title)
             .setContentText(text)
             .setAutoCancel(true)
@@ -75,7 +73,6 @@ object NotificationHelper {
     }
 }
 
-// ===== Runs when a reminder time arrives =====
 class ReminderWorker(
     context: Context,
     params: WorkerParameters,
@@ -86,12 +83,9 @@ class ReminderWorker(
         val time = inputData.getString(KEY_TIME).orEmpty()
         if (medId == -1L) return Result.success()
 
-        // med was deleted -> nothing to fire, chain stops here.
-        // forSelf: reminders always come from THIS account's own medication list.
         val med = MedicationManager(applicationContext, forSelf = true).get(medId)
             ?: return Result.success()
 
-        // don't nag if the user already logged this exact dose
         val doseKey = doseKey(java.util.Calendar.getInstance(), time)
         if (time.isNotBlank() && med.actionOn(doseKey) == null) {
             NotificationHelper.show(
@@ -102,7 +96,6 @@ class ReminderWorker(
             )
         }
 
-        // queue the next dose slot
         ReminderScheduler.scheduleNext(applicationContext, med, force = true)
         return Result.success()
     }
@@ -113,7 +106,6 @@ class ReminderWorker(
     }
 }
 
-// ===== Figures out WHEN to fire =====
 object ReminderScheduler {
 
     /**
@@ -166,7 +158,6 @@ object ReminderScheduler {
     private fun workName(id: Long) = "med_reminder_$id"
     private const val TAG = "med_reminder"
 
-    // soonest (date+time, "HH:mm") across every day/slot in the med's weekly schedule
     private fun nextOccurrence(med: Medication): Pair<Long, String>? {
         if (med.scheduledDays.isEmpty()) return null
         val now = Calendar.getInstance()

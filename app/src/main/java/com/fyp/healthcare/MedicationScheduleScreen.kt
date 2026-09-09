@@ -107,7 +107,6 @@ fun MedicationScheduleScreen(
 
     Column(modifier = Modifier.fillMaxSize().appBackground()) {
 
-        // ===== Blue top bar =====
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -138,7 +137,6 @@ fun MedicationScheduleScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
 
-            // ===== What we're scheduling =====
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -167,7 +165,6 @@ fun MedicationScheduleScreen(
                 color = LabelGray,
             )
 
-            // ===== Quick: same time every day =====
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -190,7 +187,6 @@ fun MedicationScheduleScreen(
                 Text("Choose", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = BrandBlue)
             }
 
-            // ===== Per-day =====
             (0..6).forEach { day ->
                 val times = schedule[day].orEmpty().sortedBy(::hhmmMinutes)
                 DayCard(

@@ -40,7 +40,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fyp.healthcare.ui.theme.themed
 
-// Blank page for features that aren't built yet
 @Composable
 fun BlankScreen(title: String) {
     Box(
@@ -126,7 +125,6 @@ fun BottomNavBar(currentRoute: String, onNavigate: (String) -> Unit) {
     }
 }
 
-// Wraps the 5 main tabs so they all share the bottom bar
 @Composable
 fun TabScaffold(
     currentRoute: String,

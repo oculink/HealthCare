@@ -65,7 +65,7 @@ import java.util.Locale
 
 private val BrandBlue = Color(0xFF2A6DE1)
 private val BrandBlueDark = Color(0xFF1E50C8)
-private val MonitoringGreen = Color(0xFF5DE0A6) // bright mint — reads on the blue header
+private val MonitoringGreen = Color(0xFF5DE0A6)
 private val CardWhite: Color @Composable get() = themed(Color(0xFFFFFFFF), Color(0xFF1C1D22))
 private val ScreenBackground: Color @Composable get() = themed(Color(0xFFEFF1F6), Color(0xFF121316))
 private val TextDark: Color @Composable get() = themed(Color(0xFF1B1D23), Color(0xFFE8E9EC))
@@ -87,22 +87,17 @@ fun HomeScreen(
     activityData: ActivityDataManager,
     onNavigate: (String) -> Unit,
 ) {
-    // re-read the managers whenever CloudHydrator refreshes the local cache
     val dataVersion = Session.dataVersion
 
     val profile = remember(dataVersion) { profileManager.get() }
 
-    // Preferred name from onboarding, falling back to the Google account name
     val fullName = profile.name
         .ifBlank { userManager.currentAccount()?.name ?: "there" }
 
-    // In caretaker mode the header greets the CAREGIVER (the signed-in account) and shows a
-    // "Monitoring {patient}" line; otherwise it greets the patient themselves.
     val caretakerMode = Session.isCaretakerMode
     val headerName = if (caretakerMode) userManager.currentAccount()?.name ?: "Caregiver" else fullName
     val headerPhoto = userManager.currentAccount()?.photoUrl
 
-    // caregivers linked to this account (patient view of the Monitoring card)
     val caretakers by produceState(
         initialValue = emptyList<FamilyLink.CaretakerInfo>(),
         key1 = dataVersion,
@@ -128,10 +123,8 @@ fun HomeScreen(
     }
     val oxygenStatus = oxygen?.toIntOrNull()?.let { VitalStatus.oxygen(it) }
 
-    // Steps: the patient's own phone counts them live (StepTracker, self mode only); a
-    // caregiver sees the patient's mirrored count pulled down by CloudHydrator / PatientMonitor.
     val stepCount: Int? = remember(dataVersion, StepTracker.todaySteps, caretakerMode) {
-        val stored = activityData.steps()          // already max(this phone, cross-device sync)
+        val stored = activityData.steps()
         if (caretakerMode) stored
         else {
             val live = StepTracker.todaySteps
@@ -139,7 +132,6 @@ fun HomeScreen(
         }
     }
     val steps: String? = stepCount?.let { formatCount(it) }
-    // Calories: estimated from today's steps + the profile (weight, height, age, sex).
     val calories: String? = stepCount?.takeIf { it > 0 }?.let { c ->
         val kcal = estimateWalkingCalories(
             steps = c,
@@ -150,7 +142,6 @@ fun HomeScreen(
         )
         "$kcal kcal"
     }
-    // Sleep: last night, from the phone Sleep API (self mode) or the patient's synced copy.
     val sleepSummary = remember(dataVersion) { activityData.sleep() }
     val sleep: String? = sleepSummary?.let { "${formatDuration(it.totalMinutes)} · ${it.quality}" }
     val whose = if (caretakerMode) "${Session.controlledPatientName.ifBlank { "the patient" }}'s" else "your"
@@ -184,7 +175,6 @@ fun HomeScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
 
-            // ===== Header card (tap -> Profile) =====
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -236,12 +226,11 @@ fun HomeScreen(
                     }
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        todayDate(), // date from the phone
+                        todayDate(),
                         color = Color.White.copy(alpha = 0.7f),
                         fontSize = 12.sp
                     )
                 }
-                // Google account photo of the signed-in user (the caregiver in caretaker mode)
                 AccountAvatar(
                     photoUrl = headerPhoto,
                     initials = initials(headerName),
@@ -250,7 +239,6 @@ fun HomeScreen(
                 )
             }
 
-            // ===== Alert banner =====
             if (alert != null) {
                 HealthAlertBanner(
                     analysis = alert,
@@ -291,17 +279,15 @@ fun HomeScreen(
                 }
             }
 
-            // ===== Vitals cards (numbers/status are null for now) =====
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 VitalCard(Icons.Filled.MonitorHeart, heartRate, "BPM", heartStatus, Color(0xFF2E9E6B), Modifier.weight(1f))
                 VitalCard(Icons.Filled.Bloodtype, bloodPressure, "mmHg", bpStatus, Color(0xFFD32F2F), Modifier.weight(1f))
                 VitalCard(Icons.Filled.Air, oxygen, "%", oxygenStatus, Color(0xFF2A6DE1), Modifier.weight(1f))
             }
 
-            // ===== Quick Actions =====
             Text("Quick Actions", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextDark)
             Row(
-                modifier = Modifier.height(IntrinsicSize.Max), // all cards match the tallest one
+                modifier = Modifier.height(IntrinsicSize.Max),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 QuickActionCard(Icons.Filled.EditNote, "Record Data", Color(0xFF2A6DE1), Modifier.weight(1f)) { onNavigate("record_data") }
@@ -317,7 +303,6 @@ fun HomeScreen(
                 Spacer(Modifier.weight(1f))
             }
 
-            // ===== Today's Summary =====
             Text("Today's Summary", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextDark)
             Column(
                 modifier = Modifier
@@ -332,13 +317,11 @@ fun HomeScreen(
                 SummaryRow(Icons.Filled.Bedtime, "Sleep", sleep, Color(0xFF6C5CE7), note = sleepNote)
             }
 
-            // ===== Monitoring status (Family Caregiver link) =====
             MonitoringStatusCard(caretakers = caretakers)
         }
     }
 }
 
-// ===== Small building blocks =====
 
 /**
  * UC-04 A2 warning strip. Amber for Warning, red for Critical. Tapping it opens Health
@@ -425,14 +408,13 @@ private fun QuickActionCard(
 ) {
     Column(
         modifier = modifier
-            .fillMaxHeight() // stretch to the Row's max height
+            .fillMaxHeight()
             .glossySurface(RoundedCornerShape(18.dp), CardWhite)
             .clickable { onClick() }
             .padding(vertical = 16.dp, horizontal = 6.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterVertically)
     ) {
-        // Rounded "squircle" badge holds the icon in its own accent colour
         com.fyp.healthcare.ui.theme.AppIconBadge(icon, tint, size = 46.dp, iconSize = 23.dp)
         Text(
             label,
@@ -467,16 +449,13 @@ private fun SummaryRow(
                 fontSize = 10.sp,
                 color = LabelGray,
                 lineHeight = 13.sp,
-                modifier = Modifier.padding(start = 42.dp), // 30dp badge + 12dp spacer
+                modifier = Modifier.padding(start = 42.dp),
             )
         }
     }
 }
 
-// ===== Date & time helpers =====
 
-// Morning 4:01am-12:00pm | Afternoon 12:01pm-5:00pm
-// Evening 5:01pm-9:00pm | Night 9:01pm-4:00am
 private fun dayPart(): String {
     val cal = Calendar.getInstance()
     val minutes = cal.get(Calendar.HOUR_OF_DAY) * 60 + cal.get(Calendar.MINUTE)
@@ -498,10 +477,8 @@ private fun greetingIcon(part: String): ImageVector = when (part) {
 private fun todayDate(): String =
     SimpleDateFormat("EEE, d MMM yyyy", Locale.getDefault()).format(Date())
 
-// 3240 -> "3,240"
 private fun formatCount(n: Int): String = String.format(Locale.getDefault(), "%,d", n)
 
-// "Ahmad Rizal Hassan" -> "AR"
 private fun initials(name: String): String {
     val parts = name.trim().split(" ").filter { it.isNotBlank() }
     return when {

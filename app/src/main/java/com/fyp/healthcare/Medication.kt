@@ -17,9 +17,9 @@ import java.util.Locale
  */
 enum class MedRoute(
     val label: String,
-    val strengthUnit: String,   // unit shown next to the strength field ("" = no strength field)
-    val doseLabel: String,      // label for the "amount per dose" field
-    val doseNoun: String,       // singular noun used in dosageText
+    val strengthUnit: String,
+    val doseLabel: String,
+    val doseNoun: String,
 ) {
     ORAL("Oral", "mg", "Tablets / capsules per dose", "tablet"),
     TOPICAL("Topical (cream / gel)", "%", "Applications per dose", "application"),
@@ -52,12 +52,12 @@ enum class MedRoute(
 data class Medication(
     val id: Long,
     val name: String,
-    val strength: String,      // number only, e.g. "500" / "0.05"; "" when not specified
-    val amount: Int,           // how many units per dose (tablets / puffs / drops / patches …)
+    val strength: String,
+    val amount: Int,
     val schedule: Map<Int, List<String>> = emptyMap(),
     val log: Map<String, String> = emptyMap(),
-    val description: String = "",   // "what it's for" note — from the catalogue or typed by the user
-    val route: String = "ORAL",     // MedRoute name
+    val description: String = "",
+    val route: String = "ORAL",
 ) {
     val medRoute: MedRoute get() = MedRoute.of(route)
 
@@ -102,8 +102,8 @@ data class Medication(
 
 enum class DoseState { TAKEN, MISSED, SOON, UPCOMING, OFF }
 
-private const val SOON_BEFORE_MIN = 60   // "Due now" starts 60 min before the dose time
-private const val LATE_GRACE_MIN = 120   // still actionable up to 120 min after; then auto-"Missed"
+private const val SOON_BEFORE_MIN = 60
+private const val LATE_GRACE_MIN = 120
 
 /** State of one specific dose slot ([time], "HH:mm") for today. */
 fun Medication.slotState(time: String, now: Calendar = Calendar.getInstance()): DoseState {
@@ -115,7 +115,7 @@ fun Medication.slotState(time: String, now: Calendar = Calendar.getInstance()): 
     if (time !in timesOn(today)) return DoseState.OFF
 
     val nowMin = now.get(Calendar.HOUR_OF_DAY) * 60 + now.get(Calendar.MINUTE)
-    val diff = hhmmMinutes(time) - nowMin           // > 0 means the dose is still ahead
+    val diff = hhmmMinutes(time) - nowMin
     return when {
         diff > SOON_BEFORE_MIN -> DoseState.UPCOMING
         diff >= -LATE_GRACE_MIN -> DoseState.SOON
@@ -279,13 +279,10 @@ class MedicationManager(context: Context, forSelf: Boolean = false) {
         return id
     }
 
-    // ---- storage ----
 
     private fun load(): List<Medication> {
         prefs.getString(KEY, null)?.let { return parse(it) }
 
-        // first run on this version: migrate the old pipe-delimited format (if any),
-        // then always write KEY so this branch doesn't run again
         val migrated = migrateLegacy()
         save(migrated)
         prefs.edit().remove(LEGACY_KEY).apply()
@@ -326,7 +323,6 @@ class MedicationManager(context: Context, forSelf: Boolean = false) {
                     day to (0 until times.length()).map { times.getString(it) }
                 }.toMap()
             } else {
-                // older records had a single "time" + "days" array
                 val t = legacyTime.ifBlank { "08:00" }
                 val daysArr = o.optJSONArray("days")
                 val days = if (daysArr == null) emptySet()
@@ -337,7 +333,6 @@ class MedicationManager(context: Context, forSelf: Boolean = false) {
             val logObj = o.optJSONObject("log")
             val rawLog: Map<String, String> = if (logObj == null) emptyMap()
                 else logObj.keys().asSequence().associateWith { logObj.getString(it) }
-            // migrate legacy per-day log keys ("yyyy-MM-dd") to per-dose ("yyyy-MM-dd HH:mm")
             val log = if (schedObj == null && legacyTime.isNotBlank()) {
                 rawLog.mapKeys { (k, _) -> if (k.contains(' ')) k else "$k $legacyTime" }
             } else rawLog

@@ -100,7 +100,6 @@ fun EmergencyProfileScreen(
 
     Column(modifier = Modifier.fillMaxSize().appBackground()) {
 
-        // ===== Header =====
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -131,7 +130,6 @@ fun EmergencyProfileScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
 
-            // ===== Patient info =====
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -157,7 +155,6 @@ fun EmergencyProfileScreen(
                 }
             }
 
-            // ===== Critical vitals =====
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -169,7 +166,6 @@ fun EmergencyProfileScreen(
                 VitalCell(Icons.Filled.Height, BrandBlue, profile.heightCm.ifBlank { "—" }.let { if (it == "—") it else "$it cm" }, "Height", Modifier.weight(1f))
             }
 
-            // ===== Allergies =====
             Section("Allergies") {
                 if (profile.allergies.isEmpty()) {
                     EmptyLine("No known allergies recorded")
@@ -180,7 +176,6 @@ fun EmergencyProfileScreen(
                 }
             }
 
-            // ===== Medical conditions =====
             Section("Medical Conditions") {
                 if (profile.conditions.isEmpty()) {
                     EmptyLine("No conditions recorded")
@@ -191,7 +186,6 @@ fun EmergencyProfileScreen(
                 }
             }
 
-            // ===== Current medications =====
             Section("Current Medications") {
                 if (meds.isEmpty()) {
                     EmptyLine("No medications added")
@@ -213,7 +207,6 @@ fun EmergencyProfileScreen(
                 }
             }
 
-            // ===== Emergency contacts =====
             Section("Emergency Contacts") {
                 if (profile.emergencyContacts.isEmpty()) {
                     EmptyLine("No contacts added")
@@ -234,7 +227,6 @@ fun EmergencyProfileScreen(
                 }
             }
 
-            // ===== Emergency call =====
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -258,7 +250,6 @@ fun EmergencyProfileScreen(
     }
 }
 
-// ===== pieces =====
 
 @Composable
 private fun Section(title: String, content: @Composable () -> Unit) {

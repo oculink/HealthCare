@@ -240,7 +240,6 @@ class AppointmentManager(context: Context, forSelf: Boolean = false) {
         )
     }
 
-    // ---- storage ----
 
     private fun load(): List<Appointment> = prefs.getString(KEY, null)?.let(::parse) ?: emptyList()
 

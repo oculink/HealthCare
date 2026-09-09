@@ -52,11 +52,11 @@ import kotlin.random.Random
 /** The four nature icons stamped as a faint watermark on glossy cards. */
 private val NatureIcons
     @Composable get() = listOf(
-        Icons.Outlined.LocalFlorist, // flower
-        Icons.Outlined.Eco,          // leaf
-        Icons.Outlined.Spa,          // blossom
-        Icons.Outlined.Grass,        // grass
-        Icons.Outlined.Forest,       // clover-ish trefoil
+        Icons.Outlined.LocalFlorist,
+        Icons.Outlined.Eco,
+        Icons.Outlined.Spa,
+        Icons.Outlined.Grass,
+        Icons.Outlined.Forest,
     )
 
 /** One nature icon painter, chosen deterministically from [seed]. */
@@ -82,7 +82,6 @@ fun Modifier.glossySurface(
     elevation: Dp = 6.dp,
 ): Modifier {
     val dark = AppTheme.isDark
-    // one stable random signature per card instance -> every surface is unique
     val seed = remember { Random.nextInt() }
     val motif = rememberNatureMotif(seed)
 
@@ -160,7 +159,6 @@ private fun Modifier.satinTexture(dark: Boolean, seed: Int, base: Color, motif: 
         i++
     }
 
-    // shifts of the surface's own colour, so the weave belongs to the material
     val lightInk = lerp(base, Color.White, if (dark) 0.16f else 0.60f).copy(alpha = 0.55f)
     val shadeInk = lerp(base, Color.Black, if (dark) 0.24f else 0.10f).copy(alpha = 0.40f)
 
@@ -172,8 +170,6 @@ private fun Modifier.satinTexture(dark: Boolean, seed: Int, base: Color, motif: 
     )
     val hair = Stroke(width = 1f)
 
-    // one real nature icon per card (flower / leaf / blossom / grass / trefoil),
-    // placed, turned and sized at random, tinted faint in white(dark)/black(light).
     val motifSize = minOf(w, h) * (0.5f + r.nextFloat() * 0.5f)
     val motifX = w * (0.1f + r.nextFloat() * 0.8f) - motifSize / 2f
     val motifY = h * (0.1f + r.nextFloat() * 0.8f) - motifSize / 2f

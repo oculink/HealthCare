@@ -64,7 +64,6 @@ object SleepTracker {
 
     private fun pendingIntent(context: Context): PendingIntent {
         val intent = Intent(context, SleepReceiver::class.java)
-        // Sleep API delivers its payload as extras, so the PendingIntent must be MUTABLE (API 31+).
         var flags = PendingIntent.FLAG_UPDATE_CURRENT
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) flags = flags or PendingIntent.FLAG_MUTABLE
         return PendingIntent.getBroadcast(context, SLEEP_REQUEST_CODE, intent, flags)

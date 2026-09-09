@@ -35,7 +35,7 @@ object AllergyCatalogRemote {
         "https://raw.githubusercontent.com/oculink/HealthCare/main/docs/allergy_catalog.json"
 
     private const val CACHE_FILE = "allergy_catalog_cache.json"
-    private const val TTL_MS = 12L * 60 * 60 * 1000        // refresh at most twice a day
+    private const val TTL_MS = 12L * 60 * 60 * 1000
 
     private fun cacheFile(context: Context) = File(context.filesDir, CACHE_FILE)
 
@@ -69,7 +69,6 @@ object AllergyCatalogRemote {
             conn.disconnect()
             if (code !in 200..299) return@runCatching false
 
-            // Validate before we overwrite a good cache with junk.
             val parsed = parse(body)
             if (parsed.isEmpty()) return@runCatching false
 

@@ -21,8 +21,6 @@ class HealthDataManager(context: Context) {
     private val prefs: SharedPreferences =
         context.getSharedPreferences(scopedPrefsName("health_data"), Context.MODE_PRIVATE)
 
-    // Weight is NOT recorded here — it's part of the health profile (set at onboarding,
-    // editable in Settings). The Record Data screen only takes point-in-time vitals.
     fun saveReadings(
         bloodPressure: String,
         bloodSugar: String,
@@ -39,8 +37,6 @@ class HealthDataManager(context: Context) {
             .apply()
 
         appendHistory(bloodPressure, bloodSugar, heartRate, temperature, oxygen)
-        // UC-04: classify this reading against the recorded history, then attach the
-        // status flag to the record we mirror to Firestore.
         val analysis = HealthAnalysis.analyze(history())
         pushReading(bloodPressure, bloodSugar, heartRate, temperature, oxygen, analysis = analysis)
     }
@@ -51,7 +47,6 @@ class HealthDataManager(context: Context) {
     fun getTemperature(): String? = prefs.getString("temperature", null)
     fun getOxygen(): String? = prefs.getString("oxygen", null)
 
-    // ---- local history ----
 
     /** One recorded set of readings. Blank string means "not entered". */
     data class Reading(
@@ -90,7 +85,6 @@ class HealthDataManager(context: Context) {
                 put("ox", oxygen)
             }
         )
-        // keep the list bounded — a couple of years of daily readings is plenty
         val trimmed = if (arr.length() > MAX_HISTORY) {
             JSONArray().also { out ->
                 for (i in arr.length() - MAX_HISTORY until arr.length()) out.put(arr.get(i))
@@ -122,7 +116,6 @@ class HealthDataManager(context: Context) {
         return out.sortedBy { it.timestamp }
     }
 
-    // ---- cloud ----
 
     private fun pushReading(
         bloodPressure: String, bloodSugar: String, heartRate: String,
@@ -136,12 +129,9 @@ class HealthDataManager(context: Context) {
             "heartRate" to heartRate,
             "temperature" to temperature,
             "oxygen" to oxygen,
-            // serverTimestamp is authoritative once synced; clientTime is always present
-            // (even offline / before the server round-trip) so trends can sort/aggregate.
             "recordedAt" to FieldValue.serverTimestamp(),
             "clientTime" to System.currentTimeMillis(),
         )
-        // UC-04 postcondition: the analysis status is attached to the patient's record.
         analysis?.let {
             data["analysisLevel"] = it.overall.name
             data["analysisFlags"] = it.abnormal.map { m -> m.key }
@@ -199,7 +189,6 @@ class HealthDataManager(context: Context) {
             )
         }
 
-        // "latest reading of each type" — newest non-blank value wins, per field
         val newestFirst = sorted.asReversed()
         fun latest(select: (Reading) -> String): String? =
             newestFirst.map(select).firstOrNull { it.isNotBlank() }

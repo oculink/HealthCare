@@ -130,7 +130,7 @@ fun CatalogPickerScreen(
     val pickedSet = remember(alreadyPicked) { alreadyPicked.map { it.lowercase() }.toSet() }
 
     val listState = rememberLazyListState()
-    val leadingItems = 1  // the "add not listed" card sits before the sections
+    val leadingItems = 1
 
     val rows = remember(results) {
         buildList {

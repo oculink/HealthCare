@@ -84,13 +84,10 @@ fun MedicationScreen(
 ) {
     val context = LocalContext.current
 
-    // bumping this re-reads storage and re-evaluates every dose's state;
-    // Session.dataVersion changes when CloudHydrator refreshes the cache
     var refresh by remember { mutableStateOf(0) }
     val meds = remember(refresh, Session.dataVersion) { medManager.getAll() }
     val now = remember(refresh, Session.dataVersion) { Calendar.getInstance() }
 
-    // keep "Soon" -> "Missed" etc. moving while the screen is open
     LaunchedEffect(Unit) {
         while (true) {
             delay(60_000)
@@ -111,7 +108,6 @@ fun MedicationScreen(
     }
 
     val todayIdx = now.get(Calendar.DAY_OF_WEEK) - 1
-    // one entry per (medication, time) scheduled today, earliest first
     val todayDoses = meds
         .flatMap { m -> m.timesOn(todayIdx).map { m to it } }
         .sortedWith(compareBy({ hhmmMinutes(it.second) }, { it.first.name.lowercase() }))
@@ -123,7 +119,6 @@ fun MedicationScreen(
             .fillMaxSize()
             .appBackground(),
     ) {
-        // ===== Blue top bar =====
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -168,7 +163,6 @@ fun MedicationScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            // ===== Today header =====
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -209,7 +203,6 @@ fun MedicationScreen(
                 }
             }
 
-            // ===== Add New Medication card =====
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -277,10 +270,8 @@ private fun DoseCard(
     val tint = stateColor(state)
     var menuOpen by remember { mutableStateOf(false) }
     var confirmDelete by remember { mutableStateOf(false) }
-    // (button label, log action) the user tapped — held until they confirm the popup
     var pendingAction by remember { mutableStateOf<Pair<String, String?>?>(null) }
 
-    // A logged dose recolours the whole card: green when taken, red when missed.
     val cardOverlay = when (state) {
         DoseState.TAKEN -> GoodGreen.copy(alpha = 0.28f)
         DoseState.MISSED -> BadRed.copy(alpha = 0.28f)
@@ -312,8 +303,6 @@ private fun DoseCard(
                     Text(med.description, fontSize = 11.sp, color = LabelGray)
                 }
             }
-            // "Taken" / "Missed" no longer get a pill here — the card colour + the
-            // chip by the buttons carry that. Other states still show their pill.
             if (state != DoseState.TAKEN && state != DoseState.MISSED) {
                 StatusPill(state, tint)
             }
@@ -359,7 +348,6 @@ private fun DoseCard(
                     ) {
                         Text(chipLabel, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = chipColor)
                     }
-                    // push the action button(s) to the far right
                     Spacer(Modifier.weight(1f))
                 }
                 actions.forEachIndexed { index, (label, action) ->
@@ -367,7 +355,7 @@ private fun DoseCard(
                     val color = when (action) {
                         "missed" -> BadRed
                         "taken" -> GoodGreen
-                        else -> LabelGray   // "Undo"
+                        else -> LabelGray
                     }
                     if (primary) {
                         Box(
@@ -510,7 +498,6 @@ private fun MedSummaryCard(
 
 @Composable
 private fun StatusPill(state: DoseState, tint: Color) {
-    // TAKEN / MISSED are shown by recolouring the card + a chip near the buttons.
     val (icon, label) = when (state) {
         DoseState.SOON -> Icons.Filled.Schedule to "Due now"
         DoseState.UPCOMING -> Icons.Filled.Schedule to "Upcoming"

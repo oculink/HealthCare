@@ -38,26 +38,21 @@ fun Modifier.appBackground(): Modifier {
     val dark = AppTheme.isDark
     val patterned = AppTheme.iconStyle == IconStyle.NORMAL
     val base = if (dark) Color(0xFF121316) else Color(0xFFEFF1F6)
-    // top-lit sheen
     val sheenTop = if (dark) Color(0xFF1B1D22) else Color(0xFFF7F8FB)
     val sheenBottom = if (dark) Color(0xFF0E0F12) else Color(0xFFE7E9EF)
-    // weave lines
     val line = if (dark) Color.White.copy(alpha = 0.022f) else Color.Black.copy(alpha = 0.025f)
-    // motif ink — stronger than the weave so the little shapes read, still subtle
     val motif = if (dark) Color.White.copy(alpha = 0.070f) else Color.Black.copy(alpha = 0.080f)
 
     return this.drawWithCache {
         val step = 7.dp.toPx()
         val w = size.width
         val h = size.height
-        // small cell -> lots of motifs
         val cell = 34.dp.toPx()
         val jitter = cell * 0.5f
         val baseSize = 20.dp.toPx()
         onDrawBehind {
             drawRect(base)
             drawRect(Brush.verticalGradient(listOf(sheenTop, base, sheenBottom)))
-            // diagonal cross-hatch (two directions) — cheap, drawn once per size
             var x = -h
             while (x < w) {
                 drawLine(line, Offset(x, 0f), Offset(x + h, h), strokeWidth = 1f)
@@ -72,7 +67,6 @@ fun Modifier.appBackground(): Modifier {
                 for (gy in -1 until rows) {
                     for (gx in -1 until cols) {
                         val seed = hash(gx, gy)
-                        // ~1 in 6 cells stays empty, for irregular breathing room
                         if (seed % 6 == 0) continue
                         val rx = frac(seed) - 0.5f
                         val ry = frac(seed shr 8) - 0.5f
@@ -165,7 +159,6 @@ private fun helixPath(s: Float): Path = Path().apply {
     cubicTo(half * 0.9f, -half * 0.5f, -half * 0.9f, half * 0.5f, half * 0.5f, half)
     moveTo(half * 0.5f, -half)
     cubicTo(-half * 0.9f, -half * 0.5f, half * 0.9f, half * 0.5f, -half * 0.5f, half)
-    // rungs
     moveTo(-half * 0.32f, -half * 0.5f); lineTo(half * 0.32f, -half * 0.5f)
     moveTo(-half * 0.38f, 0f); lineTo(half * 0.38f, 0f)
     moveTo(-half * 0.32f, half * 0.5f); lineTo(half * 0.32f, half * 0.5f)

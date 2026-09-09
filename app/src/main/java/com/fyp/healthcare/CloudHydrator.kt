@@ -27,12 +27,10 @@ object CloudHydrator {
         val target = Cloud.targetUid ?: return
         val userRef = Firebase.firestore.collection("users").document(target)
 
-        // ----- profile doc (health profile + step goal) -----
         runCatching {
             val snap = readDoc(userRef) ?: return@runCatching
             if (!snap.exists()) return@runCatching
             val profile = profileFromSnapshot(snap)
-            // never overwrite a real local profile with an empty cloud one
             if (profile.name.isNotBlank() || !profile.isBlank) {
                 ProfileManager(context).hydrateLocal(profile)
             }
@@ -47,7 +45,6 @@ object CloudHydrator {
             am.hydrateSleep(snap.get("sleepByDevice"))
         }
 
-        // ----- recorded vitals history -----
         runCatching {
             val hm = HealthDataManager(context)
             val readings = runCatching { hm.cloudHistory(fromServer = true) }.getOrNull()
@@ -56,7 +53,6 @@ object CloudHydrator {
             hm.hydrateLocal(readings)
         }
 
-        // ----- medications -----
         runCatching {
             val mm = MedicationManager(context)
             val meds = runCatching { mm.cloudList(fromServer = true) }.getOrNull()
@@ -65,7 +61,6 @@ object CloudHydrator {
             mm.hydrateLocal(meds)
         }
 
-        // ----- appointments -----
         runCatching {
             val am = AppointmentManager(context)
             val appts = runCatching { am.cloudList(fromServer = true) }.getOrNull()
@@ -74,7 +69,6 @@ object CloudHydrator {
             am.hydrateLocal(appts)
         }
 
-        // tell the screens fresh data has landed so they re-read
         Session.bumpDataVersion()
     }
 

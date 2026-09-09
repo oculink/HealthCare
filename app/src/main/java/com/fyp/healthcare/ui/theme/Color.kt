@@ -15,7 +15,6 @@ val BloodSugarOrange = Color(0xFFFF9800)
 val TextPrimary = Color(0xFF202124)
 val TextSecondary = Color(0xFF70757A)
 
-// Old colors for compatibility if needed
 val Purple80 = Color(0xFFD0BCFF)
 val PurpleGrey80 = Color(0xFFCCC2DC)
 val Pink80 = Color(0xFFEFB8C8)

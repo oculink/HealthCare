@@ -20,7 +20,7 @@ import java.util.Locale
 /** One person to call in an emergency. Shown on the Emergency Profile screen. */
 data class EmergencyContact(
     val name: String = "",
-    val relation: String = "",   // "Wife", "Son", "Doctor", ...
+    val relation: String = "",
     val phone: String = "",
 ) {
     val isBlank: Boolean get() = name.isBlank() && phone.isBlank()
@@ -31,10 +31,10 @@ data class HealthProfile(
     val bloodType: String = "",
     val heightCm: String = "",
     val weightKg: String = "",
-    val birthDate: String = "",     // ISO "yyyy-MM-dd"
-    val sex: String = "",           // "" | "Male" | "Female" | "Other"
-    val allergies: List<String> = emptyList(),       // e.g. ["Penicillin", "Seafood"]
-    val conditions: List<String> = emptyList(),      // e.g. ["Diabetic", "Hypertension"]
+    val birthDate: String = "",
+    val sex: String = "",
+    val allergies: List<String> = emptyList(),
+    val conditions: List<String> = emptyList(),
     val emergencyContacts: List<EmergencyContact> = emptyList(),
 ) {
     /** Age in whole years, or null if the birth date isn't set / valid. */
@@ -149,7 +149,6 @@ class ProfileManager(context: Context) {
     }
 }
 
-// ----- tag lists (allergies / conditions) are stored as one comma-separated string -----
 
 fun splitTags(raw: String): List<String> =
     raw.split(",").map { it.trim() }.filter { it.isNotEmpty() }
@@ -157,7 +156,6 @@ fun splitTags(raw: String): List<String> =
 fun joinTags(tags: List<String>): String =
     tags.map { it.trim() }.filter { it.isNotEmpty() }.joinToString(", ")
 
-// ----- emergency contacts are stored as a small JSON array -----
 
 private fun serializeContacts(contacts: List<EmergencyContact>): String {
     val arr = JSONArray()

@@ -64,7 +64,6 @@ object AllergyCatalog {
     // ===================================================================
     val BUILT_IN: List<Entry> = listOf(
 
-        // ----- Food: peanut, tree nuts & seeds -----
         Entry("Peanut", Category.FOOD, "Legume; one of the most common causes of severe food reactions"),
         Entry("Almond", Category.FOOD, "Tree nut"),
         Entry("Brazil nut", Category.FOOD, "Tree nut"),
@@ -81,12 +80,10 @@ object AllergyCatalog {
         Entry("Poppy seed", Category.FOOD, "Seed"),
         Entry("Mustard", Category.FOOD, "Seed / condiment; a priority allergen in Europe and Canada"),
 
-        // ----- Food: milk, egg -----
         Entry("Cow's milk", Category.FOOD, "Dairy; common in young children, often outgrown"),
         Entry("Goat's milk", Category.FOOD, "Dairy; can cross-react with cow's milk"),
         Entry("Egg", Category.FOOD, "Mostly egg white; common in children, often outgrown"),
 
-        // ----- Food: grains -----
         Entry("Wheat", Category.FOOD, "Grain; separate from coeliac disease"),
         Entry("Gluten", Category.FOOD, "Protein in wheat, barley and rye"),
         Entry("Barley", Category.FOOD, "Grain"),
@@ -96,7 +93,6 @@ object AllergyCatalog {
         Entry("Rice", Category.FOOD, "Grain"),
         Entry("Buckwheat", Category.FOOD, "Pseudo-grain; notable allergen in East Asia"),
 
-        // ----- Food: legumes & soy -----
         Entry("Soybean (soy)", Category.FOOD, "Legume; hidden in many processed foods"),
         Entry("Lentil", Category.FOOD, "Legume; a common pulse allergy in the Mediterranean"),
         Entry("Chickpea", Category.FOOD, "Legume"),
@@ -104,7 +100,6 @@ object AllergyCatalog {
         Entry("Green bean", Category.FOOD, "Legume"),
         Entry("Lupin", Category.FOOD, "Legume; flour used in baking, cross-reacts with peanut"),
 
-        // ----- Food: fish -----
         Entry("Fish (all)", Category.FOOD, "Finned fish in general; often lifelong"),
         Entry("Cod", Category.FOOD, "Finned fish"),
         Entry("Salmon", Category.FOOD, "Finned fish"),
@@ -115,7 +110,6 @@ object AllergyCatalog {
         Entry("Tilapia", Category.FOOD, "Finned fish"),
         Entry("Anchovy", Category.FOOD, "Finned fish; hidden in sauces and dressings"),
 
-        // ----- Food: shellfish -----
         Entry("Shellfish (all)", Category.FOOD, "Crustaceans and molluscs in general"),
         Entry("Shrimp / prawn", Category.FOOD, "Crustacean; the most common shellfish allergy"),
         Entry("Crab", Category.FOOD, "Crustacean"),
@@ -129,7 +123,6 @@ object AllergyCatalog {
         Entry("Octopus", Category.FOOD, "Mollusc"),
         Entry("Snail", Category.FOOD, "Mollusc; cross-reacts with dust mite"),
 
-        // ----- Food: meat -----
         Entry("Beef", Category.FOOD, "Red meat"),
         Entry("Pork", Category.FOOD, "Red meat; pork-cat syndrome in some people"),
         Entry("Lamb / mutton", Category.FOOD, "Red meat"),
@@ -138,7 +131,6 @@ object AllergyCatalog {
         Entry("Alpha-gal (red meat)", Category.FOOD, "Delayed reaction to mammalian meat after a tick bite"),
         Entry("Gelatin", Category.FOOD, "From beef or pork; also used in some vaccines and capsules"),
 
-        // ----- Food: fruit -----
         Entry("Apple", Category.FOOD, "Birch-pollen food syndrome; often only raw"),
         Entry("Peach", Category.FOOD, "Rosaceae fruit; LTP allergy can be severe"),
         Entry("Apricot", Category.FOOD, "Rosaceae fruit"),
@@ -158,7 +150,6 @@ object AllergyCatalog {
         Entry("Citrus (orange, lemon)", Category.FOOD, "Usually mild oral symptoms"),
         Entry("Coconut", Category.FOOD, "Botanically a fruit, not a true nut"),
 
-        // ----- Food: vegetables -----
         Entry("Celery", Category.FOOD, "A priority allergen in Europe; root, stalk and spice"),
         Entry("Carrot", Category.FOOD, "Birch- and mugwort-pollen food syndrome"),
         Entry("Tomato", Category.FOOD, "Can trigger oral and skin symptoms"),
@@ -168,7 +159,6 @@ object AllergyCatalog {
         Entry("Onion", Category.FOOD, "Cross-reacts with garlic"),
         Entry("Spinach", Category.FOOD, "Can be high in histamine"),
 
-        // ----- Food: spices & other -----
         Entry("Cinnamon", Category.FOOD, "Spice; also a contact allergen"),
         Entry("Coriander / cilantro", Category.FOOD, "Spice; cross-reacts with mugwort pollen"),
         Entry("Cumin", Category.FOOD, "Spice"),
@@ -180,14 +170,12 @@ object AllergyCatalog {
         Entry("Mushroom", Category.FOOD, "Cross-reacts with mould spores"),
         Entry("Honey", Category.FOOD, "May carry pollen proteins"),
 
-        // ----- Food: additives -----
         Entry("Sulfites", Category.FOOD, "Preservative in wine, dried fruit; can trigger asthma"),
         Entry("Monosodium glutamate (MSG)", Category.FOOD, "Flavour enhancer"),
         Entry("Carmine (cochineal)", Category.FOOD, "Red colouring from insects (E120)"),
         Entry("Tartrazine (E102)", Category.FOOD, "Yellow food dye"),
         Entry("Benzoates", Category.FOOD, "Preservative (E210–E213)"),
 
-        // ----- Environmental: pollen -----
         Entry("Birch pollen", Category.ENVIRONMENTAL, "Spring tree pollen; drives many food cross-reactions"),
         Entry("Oak pollen", Category.ENVIRONMENTAL, "Spring tree pollen"),
         Entry("Olive / ash pollen", Category.ENVIRONMENTAL, "Spring tree pollen, major in the Mediterranean"),
@@ -199,7 +187,6 @@ object AllergyCatalog {
         Entry("Nettle / pellitory pollen", Category.ENVIRONMENTAL, "Long weed-pollen season in warm climates"),
         Entry("Plantain pollen", Category.ENVIRONMENTAL, "Weed pollen"),
 
-        // ----- Environmental: mites, mould, misc -----
         Entry("House dust mite", Category.ENVIRONMENTAL, "Year-round indoor allergen in bedding and carpets"),
         Entry("Storage mite", Category.ENVIRONMENTAL, "In flour and stored grain"),
         Entry("Mould — Alternaria", Category.ENVIRONMENTAL, "Outdoor mould, linked to severe asthma"),
@@ -209,7 +196,6 @@ object AllergyCatalog {
         Entry("Cockroach", Category.ENVIRONMENTAL, "Indoor allergen in dust, linked to asthma"),
         Entry("Feathers", Category.ENVIRONMENTAL, "Bedding and down jackets"),
 
-        // ----- Environmental: animal dander -----
         Entry("Cat dander", Category.ENVIRONMENTAL, "From skin, saliva and urine (Fel d 1)"),
         Entry("Dog dander", Category.ENVIRONMENTAL, "From skin, saliva and urine"),
         Entry("Horse dander", Category.ENVIRONMENTAL, "Can cause strong reactions"),
@@ -218,7 +204,6 @@ object AllergyCatalog {
         Entry("Mouse / rat", Category.ENVIRONMENTAL, "Urinary proteins; home and lab exposure"),
         Entry("Hamster", Category.ENVIRONMENTAL, "Pet allergen"),
 
-        // ----- Insect venom & bites -----
         Entry("Honeybee sting", Category.VENOM, "Venom allergy can be life-threatening"),
         Entry("Bumblebee sting", Category.VENOM, "Cross-reacts with honeybee venom"),
         Entry("Wasp / yellow jacket sting", Category.VENOM, "The most common venom allergy in Europe"),
@@ -229,7 +214,6 @@ object AllergyCatalog {
         Entry("Horsefly bite", Category.VENOM, "Painful bite, occasional allergic reaction"),
         Entry("Tick bite", Category.VENOM, "Can trigger alpha-gal (red-meat) allergy"),
 
-        // ----- Medications -----
         Entry("Penicillin", Category.DRUG, "The most commonly reported drug allergy"),
         Entry("Amoxicillin", Category.DRUG, "Penicillin-class antibiotic"),
         Entry("Cephalosporins", Category.DRUG, "Antibiotic class; small cross-reactivity with penicillin"),
@@ -255,7 +239,6 @@ object AllergyCatalog {
         Entry("Vaccines", Category.DRUG, "Reactions are rare; usually to a component such as gelatin or egg"),
         Entry("Corticosteroids", Category.DRUG, "Rare delayed or immediate reactions"),
 
-        // ----- Contact / other -----
         Entry("Latex (natural rubber)", Category.CONTACT, "Gloves, balloons, catheters; cross-reacts with banana, avocado, kiwi"),
         Entry("Nickel", Category.CONTACT, "Jewellery, buckles, phone cases — the most common contact allergy"),
         Entry("Cobalt", Category.CONTACT, "Often alongside nickel; in metal and pigments"),

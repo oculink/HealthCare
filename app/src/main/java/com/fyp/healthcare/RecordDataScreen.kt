@@ -63,8 +63,6 @@ private val TextDark: Color @Composable get() = themed(Color(0xFF1B1D23), Color(
 private val LabelGray: Color @Composable get() = themed(Color(0xFF5F6673), Color(0xFF9BA1AC))
 private val PlaceholderGray: Color @Composable get() = themed(Color(0xFFA6ACB8), Color(0xFF6A7079))
 
-// FUTURE: record data will be uploaded to SQL automatically into the user's account.
-// The validation here is the first line of defense — the server must re-validate too.
 
 @Composable
 fun RecordDataScreen(
@@ -82,7 +80,6 @@ fun RecordDataScreen(
 
     Column(modifier = Modifier.fillMaxSize().appBackground()) {
 
-        // ===== Blue top bar =====
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -102,10 +99,9 @@ fun RecordDataScreen(
                 textAlign = TextAlign.Center,
                 modifier = Modifier.weight(1f)
             )
-            Spacer(Modifier.width(48.dp)) // balances the back icon so the title is centered
+            Spacer(Modifier.width(48.dp))
         }
 
-        // ===== Form card =====
         Column(
             modifier = Modifier
                 .weight(1f)

@@ -62,7 +62,6 @@ fun DataRecordedScreen(
     ) {
         Spacer(Modifier.height(48.dp))
 
-        // Big green check
         Box(
             modifier = Modifier
                 .size(120.dp)
@@ -105,7 +104,6 @@ fun DataRecordedScreen(
 
         Spacer(Modifier.height(24.dp))
 
-        // ===== Analysis =====
         if (analysis != null && analysis.metrics.isNotEmpty()) {
             Column(
                 modifier = Modifier

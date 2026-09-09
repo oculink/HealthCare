@@ -79,11 +79,8 @@ fun HealthTrendsScreen(
     healthData: HealthDataManager,
     onBackClick: () -> Unit,
 ) {
-    // UC-04 (<<include>>): analysis of this account's own latest reading.
     val analysis = remember(Session.dataVersion) { healthData.analyzeLatest() }
     var selectedPeriod by remember { mutableStateOf("Weekly") }
-    // UC-05: which metric the single chart shows, and whether it plots the global
-    // (all-users) average or this account's own recorded readings.
     var selectedMetric by remember { mutableStateOf(Metric.HEART_RATE) }
     var chartSource by remember { mutableStateOf(ChartSource.GLOBAL) }
     val dayIds = remember(selectedPeriod) { periodDayIds(selectedPeriod) }
@@ -102,7 +99,6 @@ fun HealthTrendsScreen(
 
     Column(modifier = Modifier.fillMaxSize().appBackground()) {
 
-        // ===== Blue top bar =====
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -133,12 +129,10 @@ fun HealthTrendsScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
 
-            // ===== Your latest analysis (per-user) =====
             LatestAnalysisCard(analysis)
 
             PeriodSelector(selectedPeriod) { selectedPeriod = it }
 
-            // ===== The switchable metric chart =====
             val metric = selectedMetric
             val window = remember(selectedPeriod) { periodWindow(selectedPeriod) }
             val (startMs, slotCount) = window
@@ -157,7 +151,6 @@ fun HealthTrendsScreen(
             val sourceWord = if (isGlobal) "all users" else "you"
             val periodWord = if (selectedPeriod == "Weekly") "This week" else "This month"
 
-            // metric title + "Change type"
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     "${metric.title} (${metric.unit})",
@@ -212,7 +205,6 @@ fun HealthTrendsScreen(
                 )
             }
 
-            // ===== Global / Local toggle (under the chart) =====
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -233,7 +225,6 @@ fun HealthTrendsScreen(
                 )
             }
 
-            // ===== Min / Avg / Max for the selected metric + source =====
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -255,7 +246,6 @@ fun HealthTrendsScreen(
                 }
             }
 
-            // A1: no records for the selected period / source
             if (slots.all { it == null } && stat == null) {
                 Text(
                     if (isGlobal)
@@ -335,7 +325,7 @@ private fun periodWindow(period: String): Pair<Long, Int> {
     c.set(Calendar.SECOND, 0)
     c.set(Calendar.MILLISECOND, 0)
     return if (period == "Weekly") {
-        val dow = c.get(Calendar.DAY_OF_WEEK) // 1 = Sunday .. 7 = Saturday
+        val dow = c.get(Calendar.DAY_OF_WEEK)
         c.add(Calendar.DAY_OF_MONTH, -(dow - 1))
         c.timeInMillis to 7
     } else {
@@ -362,7 +352,6 @@ private fun periodLabels(period: String): List<String> {
 /** 1240 -> "1,240" */
 private fun formatCount(n: Long): String = "%,d".format(n)
 
-// ===== Chart =====
 
 @Composable
 private fun MetricChart(
@@ -466,7 +455,6 @@ private fun MetricChart(
     }
 }
 
-// ===== Small building blocks =====
 
 @Composable
 private fun PeriodSelector(selected: String, onSelect: (String) -> Unit) {
@@ -507,7 +495,6 @@ private fun StatCell(title: String, value: String?, color: Color, modifier: Modi
     }
 }
 
-// ===== UC-04: this account's latest-reading analysis =====
 
 @Composable
 private fun LatestAnalysisCard(analysis: ReadingAnalysis?) {

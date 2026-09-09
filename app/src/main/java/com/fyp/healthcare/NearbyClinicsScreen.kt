@@ -124,7 +124,7 @@ private fun kindColor(kind: String) = when (kind) {
     "hospital" -> Color(0xFFD32F2F)
     "pharmacy" -> Color(0xFF2E9E6B)
     "doctors" -> Color(0xFF7B4BD6)
-    else -> BrandBlue // clinic
+    else -> BrandBlue
 }
 
 private fun kindLabel(kind: String) = kind.replaceFirstChar { it.uppercase() }
@@ -133,7 +133,7 @@ private fun kindIcon(kind: String): androidx.compose.ui.graphics.vector.ImageVec
     "hospital" -> Icons.Filled.LocalHospital
     "pharmacy" -> Icons.Filled.LocalPharmacy
     "doctors" -> Icons.Filled.MedicalServices
-    else -> Icons.Filled.HealthAndSafety // clinic
+    else -> Icons.Filled.HealthAndSafety
 }
 
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
@@ -171,7 +171,6 @@ fun NearbyClinicsScreen(onBackClick: () -> Unit) {
         if (kindFilter == "all") places else places.filter { it.kind == kindFilter }
     }
 
-    // ---- the Leaflet map, held across recompositions ----
     val map = remember {
         LeafletMap(
             onMoveEnd = { lat, lon -> mapCenter = lat to lon },
@@ -182,8 +181,6 @@ fun NearbyClinicsScreen(onBackClick: () -> Unit) {
 
     LaunchedEffect(shown) { map.setPlaces(shown) }
 
-    // Mount the WebView one frame late so the header + list paint instantly
-    // instead of waiting on Chromium's first-run initialisation.
     var mountMap by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { mountMap = true }
 
@@ -193,16 +190,11 @@ fun NearbyClinicsScreen(onBackClick: () -> Unit) {
     //   mapExpanded  big map, only "Your location" stays below it
     val density = LocalDensity.current
     val mapNormal = 260.dp
-    // The sheet is drawn this far up over the map so its rounded corners reveal
-    // the map behind them (not the screen background).
     val sheetOverlap = 20.dp
-    // Live-measured heights of the fixed chrome, so the map can animate to *exactly*
-    // the point where the address box (its lower limit) sits flush above the nav bar.
     var rootPx by remember { mutableIntStateOf(0) }
     var headerPx by remember { mutableIntStateOf(0) }
     var handlePx by remember { mutableIntStateOf(0) }
     var addressPx by remember { mutableIntStateOf(0) }
-    // Space between the header/handle/address chrome — the map's full extent.
     val mapSlot = with(density) {
         (rootPx - headerPx - handlePx - addressPx).coerceAtLeast(0).toDp()
     }
@@ -219,7 +211,6 @@ fun NearbyClinicsScreen(onBackClick: () -> Unit) {
     val resultsHeight = if (rootPx == 0) 320.dp
         else maxOf(mapSlot - mapHeight, mapExpanded - mapNormal).coerceAtLeast(0.dp)
 
-    // Trim (cache only) to the current radius, then sort nearest-first.
     fun arrange(list: List<NearbyClinics.Place>, fromCache: Boolean): List<NearbyClinics.Place> {
         val o = origin
         val trimmed = if (fromCache && o != null) {
@@ -283,7 +274,7 @@ fun NearbyClinicsScreen(onBackClick: () -> Unit) {
         addrEditing = false
         suggestions = emptyList()
         focusManager.clearFocus()
-        places = emptyList()   // drop stale results from the previous location
+        places = emptyList()
         selectedId = null
         origin = lat to lon
         mapCenter = lat to lon
@@ -295,18 +286,15 @@ fun NearbyClinicsScreen(onBackClick: () -> Unit) {
         runSearch(lat to lon)
     }
 
-    // Tapping the map drops a manual location pin and searches around it.
     LaunchedEffect(pendingTap) {
         val t = pendingTap ?: return@LaunchedEffect
         goTo(t.first, t.second, null)
     }
 
-    // Keep the address field in sync with the resolved location unless the user is editing it.
     LaunchedEffect(address, addrEditing) {
         if (!addrEditing) addressField = address ?: ""
     }
 
-    // Debounced address autocomplete.
     LaunchedEffect(addressField, addrEditing) {
         if (!addrEditing || addressField.trim().length < 3) {
             suggestions = emptyList()
@@ -338,7 +326,6 @@ fun NearbyClinicsScreen(onBackClick: () -> Unit) {
             .onSizeChanged { rootPx = it.height },
     ) {
 
-        // ===== Header =====
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -364,11 +351,9 @@ fun NearbyClinicsScreen(onBackClick: () -> Unit) {
             }
         }
 
-        // ===== Map =====
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                // draw an extra strip that the sheet's rounded corners sit over
                 .height((mapHeight.coerceIn(0.dp, mapExpanded) + sheetOverlap))
                 .background(Color(0xFFDDE3EA))
                 .clipToBounds()
@@ -404,14 +389,12 @@ fun NearbyClinicsScreen(onBackClick: () -> Unit) {
             modifier = Modifier
                 .fillMaxWidth()
                 .wrapContentHeight(align = Alignment.Top, unbounded = true)
-                // pulled up over the map so the rounded corners reveal the map behind
                 .offset(y = -sheetOverlap)
                 .shadow(10.dp, RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp))
                 .clip(RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp))
                 .appBackground(),
         ) {
 
-        // ===== Drag handle: swipe up to hide the map, down to enlarge it =====
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -422,10 +405,8 @@ fun NearbyClinicsScreen(onBackClick: () -> Unit) {
                     onDragStopped = { velocity ->
                         val h = mapHeight
                         val target = when {
-                            // fast flick — move one snap point in the flick direction
                             velocity < -700f -> if (h > mapNormal) mapNormal else 0.dp
                             velocity > 700f -> if (h < mapNormal) mapNormal else mapExpanded
-                            // otherwise settle on the nearest snap point
                             else -> listOf(0.dp, mapNormal, mapExpanded)
                                 .minBy { kotlin.math.abs((it - h).value) }
                         }
@@ -447,7 +428,6 @@ fun NearbyClinicsScreen(onBackClick: () -> Unit) {
             )
         }
 
-        // ===== Editable address with autocomplete (the map's lower drag limit) =====
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -526,7 +506,6 @@ fun NearbyClinicsScreen(onBackClick: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
 
-            // ----- Range slider (circular thumb) -----
             item {
                 Column {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -581,7 +560,6 @@ fun NearbyClinicsScreen(onBackClick: () -> Unit) {
                 }
             }
 
-            // ----- Category filter -----
             item {
                 Row(
                     modifier = Modifier
@@ -618,7 +596,6 @@ fun NearbyClinicsScreen(onBackClick: () -> Unit) {
                 }
             }
 
-            // ----- Status line -----
             status?.let { msg ->
                 item {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -735,7 +712,7 @@ fun NearbyClinicsScreen(onBackClick: () -> Unit) {
                 )
             }
         }
-        } // end handle + address + results block
+        }
     }
 }
 
@@ -960,7 +937,6 @@ internal class LeafletMap(
 internal suspend fun currentLocation(context: Context): Pair<Double, Double>? {
     val lm = context.getSystemService(Context.LOCATION_SERVICE) as? LocationManager ?: return null
 
-    // 1. best recent fix from any provider
     val providers = listOf(
         LocationManager.GPS_PROVIDER,
         LocationManager.NETWORK_PROVIDER,
@@ -970,7 +946,6 @@ internal suspend fun currentLocation(context: Context): Pair<Double, Double>? {
         .maxByOrNull { it.time }
         ?.let { return it.latitude to it.longitude }
 
-    // 2. otherwise wait for one fresh update
     val provider = when {
         runCatching { lm.isProviderEnabled(LocationManager.GPS_PROVIDER) }.getOrDefault(false) ->
             LocationManager.GPS_PROVIDER

@@ -87,7 +87,6 @@ fun AppointmentsScreen(
     val now = remember(refresh, Session.dataVersion) { System.currentTimeMillis() }
     val all = remember(refresh, Session.dataVersion) { apptManager.getAll() }
 
-    // keep relative labels / "upcoming -> past" moving while the screen is open
     LaunchedEffect(Unit) {
         while (true) {
             delay(60_000)
@@ -108,7 +107,6 @@ fun AppointmentsScreen(
 
     Column(modifier = Modifier.fillMaxSize().appBackground()) {
 
-        // ===== Blue top bar =====
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -175,7 +173,6 @@ fun AppointmentsScreen(
                 }
             }
 
-            // ===== Add card =====
             Row(
                 modifier = Modifier
                     .fillMaxWidth()

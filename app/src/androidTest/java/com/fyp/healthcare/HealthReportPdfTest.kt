@@ -48,7 +48,5 @@ class HealthReportPdfTest {
         assertTrue("pdf missing", pdf.exists())
         assertTrue("pdf far too small (blank render?): ${pdf.length()}", pdf.length() > 8000)
         android.util.Log.i("HealthReportPdfTest", "built ${pdf.length()} byte PDF at ${pdf.absolutePath}")
-        // To eyeball it: add `HealthReportExport.download(ctx, report)` here, re-run, then
-        // `adb pull /sdcard/Download/CareApp-Health-Report-*.pdf`.
     }
 }

@@ -103,8 +103,6 @@ object Session {
      * Kept: `session`, `app_prefs` (theme), `cloud_sync` (per-uid backlog flags).
      */
     private fun clearLocalData(context: Context) {
-        // Self-mode files have fixed names; caretaker-scoped copies are `<base>__<patientUid>`.
-        // Enumerate shared_prefs/ so both are covered.
         val known = DATA_PREFS.toMutableSet()
         java.io.File(context.applicationInfo.dataDir, "shared_prefs").listFiles()?.forEach { f ->
             val n = f.name.removeSuffix(".xml")
@@ -115,8 +113,6 @@ object Session {
         }
     }
 
-    // "steps" holds the phone step-counter's daily baseline — device/account-specific, so a
-    // new sign-in on this phone must re-baseline rather than inherit the previous user's count.
     private val DATA_PREFS =
         listOf("health_data", "profile", "activity", "medications", "appointments", "steps")
 

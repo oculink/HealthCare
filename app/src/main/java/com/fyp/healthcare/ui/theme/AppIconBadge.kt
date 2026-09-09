@@ -21,7 +21,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
-// Curved sheen: full width at the top, bottom edge bulges down in the middle.
 private val glossShape = GenericShape { size, _ ->
     moveTo(0f, 0f)
     lineTo(size.width, 0f)

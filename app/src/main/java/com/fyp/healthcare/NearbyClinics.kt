@@ -37,7 +37,7 @@ object NearbyClinics {
     data class Place(
         val id: Long,
         val name: String,
-        val kind: String,      // clinic | hospital | pharmacy | doctors
+        val kind: String,
         val lat: Double,
         val lon: Double,
         val phone: String?,
@@ -45,7 +45,6 @@ object NearbyClinics {
         val address: String?,
     )
 
-    // Tried in order — if the primary is down or rate-limiting, fall through to a mirror.
     private val ENDPOINTS = listOf(
         "https://overpass-api.de/api/interpreter",
         "https://overpass.kumi.systems/api/interpreter",
@@ -59,7 +58,7 @@ object NearbyClinics {
     // keep running (until their socket times out) without blocking the caller.
     private val raceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private const val RACE_BUDGET_MS = 22_000L
-    private const val LINGER_MS = 4_000L   // grace period for extra mirrors after the first full result
+    private const val LINGER_MS = 4_000L
     private const val PROBE_RADIUS_M = 1_800
 
     private class Reply(val full: Boolean, val places: List<Place>?)
@@ -98,12 +97,10 @@ object NearbyClinics {
         val total = ENDPOINTS.size + 1
         val replies = Channel<Reply>(total)
 
-        // quick short-radius probe on the primary endpoint → fastest possible first paint
         raceScope.launch {
             val r = runCatching { fetch(ENDPOINTS[0], lat, lon, minOf(radiusM, PROBE_RADIUS_M)) }.getOrNull()
             replies.trySend(Reply(full = false, places = r))
         }
-        // full-radius query on every mirror at once
         ENDPOINTS.forEach { endpoint ->
             raceScope.launch {
                 val r = runCatching { fetch(endpoint, lat, lon, radiusM) }
@@ -126,7 +123,6 @@ object NearbyClinics {
                     if (rep.full) haveFull = true
                 }
                 if (haveFull) {
-                    // got a complete result — give slower mirrors a short grace period, then stop
                     withTimeoutOrNull(LINGER_MS) {
                         while (seen < total) {
                             val more = replies.receive()
@@ -217,7 +213,6 @@ object NearbyClinics {
             conn.disconnect()
             if (code !in 200..299) return@runCatching null
             val full = JSONObject(text).optString("display_name").ifBlank { null }
-            // keep it to the first few segments — the full string is very long
             full?.split(",")?.map { it.trim() }?.take(4)?.joinToString(", ")
         }.getOrNull()
     }
@@ -293,7 +288,7 @@ object NearbyClinics {
         if (h.equals("24/7", true) || h.contains("24/7")) return true
 
         val cal = Calendar.getInstance()
-        val todayIdx = cal.get(Calendar.DAY_OF_WEEK) - 1 // 0 = Sunday … 6 = Saturday
+        val todayIdx = cal.get(Calendar.DAY_OF_WEEK) - 1
         val nowMin = cal.get(Calendar.HOUR_OF_DAY) * 60 + cal.get(Calendar.MINUTE)
         val names = listOf("Su", "Mo", "Tu", "We", "Th", "Fr", "Sa")
         val timeRange = Regex("""(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})""")
@@ -314,7 +309,7 @@ object NearbyClinics {
                 val (h1, m1, h2, m2) = m.destructured
                 val start = h1.toInt() * 60 + m1.toInt()
                 var end = h2.toInt() * 60 + m2.toInt()
-                if (end <= start) end += 24 * 60 // wraps past midnight
+                if (end <= start) end += 24 * 60
                 if (nowMin in start until end) return true
             }
         }
@@ -351,7 +346,6 @@ object NearbyClinics {
         return r * 2 * atan2(sqrt(a), sqrt(1 - a))
     }
 
-    // ---- last-result cache (so a demo isn't empty if Overpass is down) ----
 
     private fun cache(context: Context, places: List<Place>) {
         val arr = JSONArray()

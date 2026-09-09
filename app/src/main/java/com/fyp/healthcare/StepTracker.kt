@@ -65,7 +65,6 @@ object StepTracker {
         val sm = app.getSystemService(Context.SENSOR_SERVICE) as? SensorManager ?: return
         val sensor = sm.getDefaultSensor(Sensor.TYPE_STEP_COUNTER) ?: return
 
-        // show the last persisted value straight away in case the sensor is slow to fire
         todaySteps = ActivityDataManager(app).steps()
 
         val l = object : SensorEventListener {

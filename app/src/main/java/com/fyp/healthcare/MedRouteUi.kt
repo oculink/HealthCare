@@ -19,14 +19,14 @@ import androidx.compose.ui.graphics.vector.ImageVector
  */
 val MedRoute.icon: ImageVector
     get() = when (this) {
-        MedRoute.ORAL -> Icons.Filled.Medication          // pill bottle
-        MedRoute.TOPICAL -> Icons.Filled.Sanitizer         // tube / pump
-        MedRoute.INJECTABLE -> Icons.Filled.Vaccines       // syringe
-        MedRoute.INHALED -> Icons.Filled.Air               // breath
-        MedRoute.SUBLINGUAL -> Icons.Filled.Face           // under the tongue
-        MedRoute.NASAL -> Icons.Filled.WaterDrop           // spray / mist
-        MedRoute.RECTAL -> Icons.Filled.Science            // suppository formulation
-        MedRoute.OPHTHALMIC -> Icons.Filled.Visibility     // eye / ear
-        MedRoute.TRANSDERMAL -> Icons.Filled.Healing       // patch
+        MedRoute.ORAL -> Icons.Filled.Medication
+        MedRoute.TOPICAL -> Icons.Filled.Sanitizer
+        MedRoute.INJECTABLE -> Icons.Filled.Vaccines
+        MedRoute.INHALED -> Icons.Filled.Air
+        MedRoute.SUBLINGUAL -> Icons.Filled.Face
+        MedRoute.NASAL -> Icons.Filled.WaterDrop
+        MedRoute.RECTAL -> Icons.Filled.Science
+        MedRoute.OPHTHALMIC -> Icons.Filled.Visibility
+        MedRoute.TRANSDERMAL -> Icons.Filled.Healing
         MedRoute.OTHER -> Icons.Filled.MedicalServices
     }

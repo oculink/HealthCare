@@ -82,7 +82,7 @@ fun ActivityScreen(
     onBackClick: () -> Unit,
 ) {
     @Suppress("UNUSED_VARIABLE")
-    val dataVersion = Session.dataVersion // recompose when the cache is refreshed
+    val dataVersion = Session.dataVersion
     val steps = activity.steps()
     val goal = activity.stepGoal()
     val falls = activity.fallCount()
@@ -97,7 +97,6 @@ fun ActivityScreen(
             .fillMaxSize()
             .appBackground(),
     ) {
-        // ===== Blue top bar =====
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -143,7 +142,6 @@ fun ActivityScreen(
                 lastSync = activity.lastSyncLabel(),
             )
 
-            // ===== Step gauge =====
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -163,7 +161,6 @@ fun ActivityScreen(
                 )
             }
 
-            // ===== Calories / Distance / Active time =====
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -177,7 +174,6 @@ fun ActivityScreen(
                 StatCell(Icons.Filled.Bed, GoodGreen, idleMin?.let(::formatDuration) ?: "--", "Idle Time", Modifier.weight(1f))
             }
 
-            // ===== Hourly activity =====
             Text("Hourly Activity", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextDark)
             Column(
                 modifier = Modifier
@@ -188,7 +184,6 @@ fun ActivityScreen(
                 HourlyActivityChart(hourly)
             }
 
-            // ===== Sleep =====
             Text("Sleep Last Night", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextDark)
             SleepCard(sleep)
 
@@ -286,7 +281,7 @@ private fun RadarActivityGauge(steps: Int?, goal: Int, modifier: Modifier = Modi
         label = "sweep",
     )
 
-    val trackColor = TrackGray   // hoist out of the DrawScope lambda (not composable)
+    val trackColor = TrackGray
 
     Box(modifier = modifier.size(196.dp), contentAlignment = Alignment.Center) {
         Canvas(Modifier.fillMaxSize()) {
@@ -294,7 +289,6 @@ private fun RadarActivityGauge(steps: Int?, goal: Int, modifier: Modifier = Modi
             val radius = (size.minDimension - stroke) / 2f
             val c = center
 
-            // concentric radar rings
             for (i in 1..3) {
                 drawCircle(
                     color = BrandBlue.copy(alpha = 0.07f),
@@ -303,7 +297,6 @@ private fun RadarActivityGauge(steps: Int?, goal: Int, modifier: Modifier = Modi
                     style = Stroke(width = 1.dp.toPx()),
                 )
             }
-            // track
             drawCircle(
                 color = trackColor,
                 radius = radius,
@@ -541,7 +534,6 @@ private fun EmptyBlock(icon: ImageVector, title: String, subtitle: String) {
     }
 }
 
-// ---- formatting ----
 
 private fun format(n: Int): String = String.format(Locale.getDefault(), "%,d", n)
 private fun percent(value: Int, of: Int): Int =

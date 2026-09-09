@@ -109,7 +109,6 @@ fun MedicationPickerScreen(
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
 
-    // One item before the sections (the "add not listed" card).
     val leadingItems = 1
 
     val rows = remember(results) {
@@ -123,7 +122,6 @@ fun MedicationPickerScreen(
             }
         }
     }
-    // letter -> LazyColumn item index of that section's header
     val indexOfLetter = remember(rows) {
         buildMap {
             rows.forEachIndexed { i, row ->
@@ -133,7 +131,6 @@ fun MedicationPickerScreen(
     }
     val letters = remember(rows) { rows.filterIsInstance<PickerRow.Section>().map { it.letter } }
 
-    // Which section the top of the list is currently in.
     val currentLetter by remember(rows) {
         derivedStateOf {
             val rowIdx = listState.firstVisibleItemIndex - leadingItems
@@ -153,7 +150,6 @@ fun MedicationPickerScreen(
     var barActive by remember { mutableStateOf(false) }
     var pickedLetter by remember { mutableStateOf<String?>(null) }
 
-    // The bubble shows while the bar is touched or the list is flinging, then lingers briefly.
     var bubbleVisible by remember { mutableStateOf(false) }
     LaunchedEffect(barActive, listState.isScrollInProgress) {
         if (barActive || listState.isScrollInProgress) {
@@ -175,7 +171,6 @@ fun MedicationPickerScreen(
 
     Column(modifier = Modifier.fillMaxSize().appBackground()) {
 
-        // ===== Blue top bar =====
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -198,7 +193,6 @@ fun MedicationPickerScreen(
             Spacer(Modifier.width(48.dp))
         }
 
-        // ===== Search =====
         OutlinedTextField(
             value = query,
             onValueChange = { query = it },
@@ -283,7 +277,6 @@ fun MedicationPickerScreen(
                 }
             }
 
-            // ===== A–Z index (right edge, vertically centred) =====
             if (letters.size > 1) {
                 val barBg by animateColorAsState(
                     if (barActive) BrandBlue.copy(alpha = 0.10f) else Color.Transparent,
@@ -349,7 +342,6 @@ fun MedicationPickerScreen(
                 }
             }
 
-            // ===== letter bubble (like Contacts) =====
             val bubbleAlpha by animateFloatAsState(
                 targetValue = if (bubbleVisible && bubbleLetter != null) 1f else 0f,
                 animationSpec = spring(dampingRatio = 0.7f, stiffness = 500f),

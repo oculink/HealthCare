@@ -67,7 +67,6 @@ fun MedicationAddedScreen(
     ) {
         Spacer(Modifier.height(60.dp))
 
-        // Orange pill circle
         Box(
             modifier = Modifier.size(140.dp).clip(CircleShape).background(MedOrange.copy(alpha = 0.15f)),
             contentAlignment = Alignment.Center
@@ -106,7 +105,6 @@ fun MedicationAddedScreen(
 
         Spacer(Modifier.height(28.dp))
 
-        // Summary card
         Column(
             modifier = Modifier
                 .fillMaxWidth()

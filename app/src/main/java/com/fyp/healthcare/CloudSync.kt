@@ -64,7 +64,6 @@ object Cloud {
      * fills the backlog. Runs at most once per account per install.
      */
     fun pushBacklog(context: Context) {
-        // Only the account's own local backlog — never run while acting on a patient's data.
         if (Session.isCaretakerMode) return
         val u = selfUid ?: return
         val prefs = context.getSharedPreferences("cloud_sync", Context.MODE_PRIVATE)
@@ -100,8 +99,6 @@ object Cloud {
     private val METRIC_KEYS = listOf("hr", "sys", "sugar", "oxy")
 
     private val statsDoc get() = Firebase.firestore.collection("stats").document("vitals")
-    // One doc per calendar day: stats/vitals/daily/{yyyy-MM-dd} — {k}Count / {k}Sum only.
-    // Powers the Health Trends chart (each point = that day's global average).
     private fun dailyDoc(dayId: String) = statsDoc.collection("daily").document(dayId)
 
     private fun dayId(millis: Long = System.currentTimeMillis()): String {
@@ -138,7 +135,6 @@ object Cloud {
 
         dailyDoc(dayId()).set(countSumIncrements(counts, values), SetOptions.merge())
 
-        // Min/Max (all-time only): best-effort, non-transactional.
         statsDoc.get().addOnSuccessListener { snap ->
             val mm = HashMap<String, Any>()
             for ((k, v) in values) {
@@ -298,17 +294,14 @@ object Cloud {
  */
 internal suspend fun DocumentReference.getFresh(attempts: Int = 4): DocumentSnapshot? {
     runCatching { get(Source.SERVER).awaitResult() }.getOrNull()?.let { return it }
-    // A returning user has the doc cached — fast path, no waiting.
     runCatching { get(Source.CACHE).awaitResult() }.getOrNull()?.let { return it }
-    // Nothing cached and the server read failed: most likely the post-sign-in token race.
     repeat(attempts) { i ->
-        delay(250L + 250L * i)   // 250, 500, 750, 1000
+        delay(250L + 250L * i)
         runCatching { get(Source.SERVER).awaitResult() }.getOrNull()?.let { return it }
     }
     return null
 }
 
-// Task<T> -> suspend, without pulling in kotlinx-coroutines-play-services.
 internal suspend fun <T> Task<T>.awaitResult(): T = suspendCancellableCoroutine { cont ->
     addOnCompleteListener { task ->
         val e = task.exception

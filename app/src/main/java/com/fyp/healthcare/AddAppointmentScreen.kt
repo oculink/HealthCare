@@ -110,7 +110,6 @@ fun AddAppointmentScreen(
     var notes by remember { mutableStateOf(editing?.notes ?: "") }
     var remindMinutes by remember { mutableIntStateOf(editing?.remindMinutesBefore ?: 60) }
 
-    // Debounced address type-ahead (Photon), same source Nearby Clinics uses.
     LaunchedEffect(address, addrEditing) {
         if (!addrEditing || address.trim().length < 3) {
             addrSuggestions = emptyList()
@@ -120,7 +119,6 @@ fun AddAppointmentScreen(
         addrSuggestions = NearbyClinics.suggestAddresses(address)
     }
 
-    // start date+time — default: next hour, rounded, tomorrow morning if that's already late
     val cal = remember {
         Calendar.getInstance().apply {
             editing?.let { timeInMillis = it.startMillis } ?: run {
@@ -147,7 +145,7 @@ fun AddAppointmentScreen(
             },
             c.get(Calendar.YEAR), c.get(Calendar.MONTH), c.get(Calendar.DAY_OF_MONTH),
         ).apply {
-            datePicker.minDate = System.currentTimeMillis() - 86_400_000L // allow "today"
+            datePicker.minDate = System.currentTimeMillis() - 86_400_000L
         }.show()
     }
 
@@ -169,7 +167,6 @@ fun AddAppointmentScreen(
 
     Column(modifier = Modifier.fillMaxSize().appBackground()) {
 
-        // ===== Blue top bar =====
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -214,7 +211,6 @@ fun AddAppointmentScreen(
                 ApptField(specialty, { specialty = it }, "Specialty (optional)", "e.g. Cardiologist", Icons.Filled.MedicalServices)
                 ApptField(clinic, { clinic = it }, "Clinic / hospital (optional)", "e.g. Pantai Hospital KL", Icons.Filled.LocalHospital)
 
-                // ===== Address — type-ahead + a map picker, like Nearby Clinics =====
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         "Address (optional)",
@@ -280,19 +276,16 @@ fun AddAppointmentScreen(
                 }
                 Spacer(Modifier.height(14.dp))
 
-                // ===== Date =====
                 Text("Date", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = LabelGray)
                 Spacer(Modifier.height(6.dp))
                 SelectorRow(Icons.Filled.Event, dateFmt.format(Date(startMillis))) { openDatePicker() }
                 Spacer(Modifier.height(14.dp))
 
-                // ===== Time =====
                 Text("Time", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = LabelGray)
                 Spacer(Modifier.height(6.dp))
                 SelectorRow(Icons.Filled.Schedule, timeFmt.format(Date(startMillis))) { openTimePicker() }
                 Spacer(Modifier.height(14.dp))
 
-                // ===== Reminder lead time =====
                 Text("Remind me", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = LabelGray)
                 Spacer(Modifier.height(6.dp))
                 Row(
@@ -364,7 +357,6 @@ fun AddAppointmentScreen(
                                 startMillis = startMillis,
                                 notes = notes,
                                 remindMinutesBefore = remindMinutes,
-                                // editing a cancelled/attended one back into the future re-opens it
                                 status = if (editing?.isCancelled == true || editing?.isCompleted == true) {
                                     if (startMillis > System.currentTimeMillis()) Appointment.STATUS_UPCOMING
                                     else editing.status

@@ -101,7 +101,6 @@ fun HealthReportScreen(
 
     Column(modifier = Modifier.fillMaxSize().appBackground()) {
 
-        // ===== Blue top bar =====
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -132,7 +131,6 @@ fun HealthReportScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
 
-            // ===== Generate card =====
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -163,7 +161,7 @@ fun HealthReportScreen(
                         if (!generating) {
                             generating = true
                             scope.launch {
-                                delay(1100)  // brief pause so the summary reads as "prepared", not instant
+                                delay(1100)
                                 report = HealthReport.generate(profile, readings, meds, patientName)
                                 generating = false
                             }
@@ -297,7 +295,6 @@ private fun PreviewCard(report: HealthReport) {
             .fillMaxWidth()
             .glossySurface(RoundedCornerShape(20.dp), CardWhite),
     ) {
-        // Blue letterhead
         Column(
             modifier = Modifier
                 .fillMaxWidth()

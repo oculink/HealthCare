@@ -40,7 +40,6 @@ import com.google.firebase.firestore.SetOptions
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
-// main
 
 /** Pre-Home routes that a late cloud-sync is allowed to bounce the user off of. */
 private val ENTRY_ROUTES = setOf("role_select", "onboarding", "caretaker_link")
@@ -61,13 +60,9 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         AppTheme.init(applicationContext)
         Session.init(applicationContext)
-        // existing users (installed before the role screen) who already finished onboarding
-        // are patients — don't send them back through role selection
         if (Session.role.isBlank() && ProfileManager(applicationContext).isOnboarded()) {
             Session.setRole(applicationContext, "patient")
         }
-        // Edge-to-edge with light (white) status-bar icons on every API level, since the top
-        // of every screen sits on the brand-blue header / backdrop.
         enableEdgeToEdge(
             statusBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
         )
@@ -76,8 +71,6 @@ class MainActivity : ComponentActivity() {
         ) {
             notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
-        // Step counter for Home's "Today's Summary" — patient's own phone only (StepTracker
-        // no-ops in caretaker mode). ACTIVITY_RECOGNITION is a runtime permission from API 29.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q &&
             checkSelfPermission(Manifest.permission.ACTIVITY_RECOGNITION)
             != PackageManager.PERMISSION_GRANTED
@@ -86,25 +79,19 @@ class MainActivity : ComponentActivity() {
         }
         if (savedInstanceState == null) {
             lifecycleScope.launch(Dispatchers.IO) {
-                // make sure the local session (role + caretaker link) matches the cloud
                 runCatching { FamilyLink.restoreSession(applicationContext) }
                 // pull the current target account's data down from Firestore into the local
                 // cache, so a linked caretaker's edits (or the patient's own, from another
                 // device) show up on open
                 runCatching { CloudHydrator.hydrate(applicationContext) }
-                // re-arm every medication + appointment reminder in case the app was force-stopped
                 ReminderScheduler.syncAll(applicationContext)
                 AppointmentReminderScheduler.syncAll(applicationContext)
-                // push any data saved before cloud sync / while offline (runs once per account)
                 Cloud.pushBacklog(applicationContext)
-                // fold this account's existing readings into the community aggregate (once)
                 Cloud.seedCommunityBacklog(applicationContext)
             }
         }
         setContent {
             HealthCareTheme {
-                // Rebuilt when caretaker mode switches, so they read/write the right account's
-                // store (own prefs in self mode, `*__<patientUid>` prefs in caretaker mode).
                 val dataScope = Session.controlledPatientUid
                 val medManager = remember(dataScope) { MedicationManager(applicationContext) }
                 val apptManager = remember(dataScope) { AppointmentManager(applicationContext) }
@@ -114,7 +101,6 @@ class MainActivity : ComponentActivity() {
                 val profileManager = remember(dataScope) { ProfileManager(applicationContext) }
                 val navController = rememberNavController()
 
-                // draft carried between the two Add-Medication steps (details -> schedule)
                 var medDraft by remember { mutableStateOf<Medication?>(null) }
                 var medDraftIsEdit by remember { mutableStateOf(false) }
 
@@ -130,8 +116,6 @@ class MainActivity : ComponentActivity() {
                         Session.role == "caretaker" -> "home"
                         Session.role == "patient" ->
                             if (profileManager.isOnboarded()) "home" else "onboarding"
-                        // role not known on this device yet: an already-onboarded account is a
-                        // returning patient — don't send them back through role selection
                         profileManager.isOnboarded() -> "home"
                         else -> "role_select"
                     }
@@ -178,20 +162,16 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
-                // Brand blue — every screen header hardcodes this same value.
                 val brandBlue = Color(0xFF2A6DE1)
 
                 Box(modifier = Modifier.fillMaxSize()) {
 
                 NavHost(navController = navController, startDestination = startDestination) {
 
-                    // ===== Auth =====
                     composable("signin") {
                         SignInScreen(
                             userManager = userManager,
                             onSignedIn = {
-                                // SignInScreen already restored the session + hydrated this
-                                // account's caches (and bumped dataVersion) before calling us.
                                 Thread {
                                     Cloud.pushBacklog(applicationContext)
                                     Cloud.seedCommunityBacklog(applicationContext)
@@ -220,7 +200,6 @@ class MainActivity : ComponentActivity() {
                                 }
                             },
                             onSaved = {
-                                // profile is done -> now the "patient" role is real: persist it
                                 Cloud.selfDoc?.set(mapOf("role" to "patient"), SetOptions.merge())
                                 navController.navigate("home") {
                                     popUpTo("onboarding") { inclusive = true }
@@ -229,7 +208,6 @@ class MainActivity : ComponentActivity() {
                         )
                     }
 
-                    // ===== Role + Family Caregiver linking =====
                     composable("role_select") {
                         RoleSelectScreen(
                             onPatient = {
@@ -246,8 +224,6 @@ class MainActivity : ComponentActivity() {
                                 }
                             },
                             onCaretaker = {
-                                // role committed to the cloud only on a successful link
-                                // (FamilyLink.link writes it); backing out leaves no trace.
                                 Session.setRole(applicationContext, "caretaker")
                                 navController.navigate("caretaker_link") {
                                     popUpTo("role_select") { inclusive = true }
@@ -270,8 +246,6 @@ class MainActivity : ComponentActivity() {
                                     applicationContext, info.uid, info.name, info.photoUrl
                                 )
                                 refreshCache()
-                                // this account is now a caregiver — stop tracking THIS phone's
-                                // own steps / sleep; show the patient's synced figures instead
                                 StepTracker.stop()
                                 SleepTracker.unregister(applicationContext)
                                 PatientMonitor.start(applicationContext)
@@ -297,7 +271,6 @@ class MainActivity : ComponentActivity() {
                         )
                     }
 
-                    // ===== Main tabs =====
                     composable("home") {
                         TabScaffold("home", switchTab) {
                             HomeScreen(
@@ -318,7 +291,6 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
-                    // Medication reminders live on the "reminders" bottom-nav tab
                     val medicationList: @Composable () -> Unit = {
                         TabScaffold("reminders", switchTab) {
                             MedicationScreen(
@@ -491,7 +463,6 @@ class MainActivity : ComponentActivity() {
                         )
                     }
 
-                    // ===== Record Data flow =====
                     composable("record_data") {
                         RecordDataScreen(
                             healthData = healthData,
@@ -510,7 +481,6 @@ class MainActivity : ComponentActivity() {
                         )
                     }
 
-                    // ===== Other quick actions =====
                     composable("clinics") {
                         NearbyClinicsScreen(onBackClick = { navController.popBackStack() })
                     }
@@ -533,7 +503,6 @@ class MainActivity : ComponentActivity() {
                         )
                     }
 
-                    // ===== Appointments (manual log + local reminders + caregiver sync) =====
                     composable("appointments") {
                         AppointmentsScreen(
                             apptManager = apptManager,
@@ -563,8 +532,6 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
-                    // Opaque backdrop behind the transparent, edge-to-edge status bar so the top
-                    // of every screen is the brand colour instead of a blank/undrawn strip.
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -579,17 +546,12 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        // refresh the local cache from Firestore whenever we come back to the foreground
         if (Firebase.auth.currentUser != null) {
             lifecycleScope.launch(Dispatchers.IO) {
                 runCatching { CloudHydrator.hydrate(applicationContext) }
             }
-            // in caretaker mode, keep the patient's data streaming in live while foregrounded
             PatientMonitor.start(applicationContext)
-            // sample the phone step counter while foregrounded (self mode only)
             StepTracker.start(applicationContext)
-            // (re)subscribe to the phone Sleep API — self mode only; the subscription itself
-            // outlives the app being closed so the morning sleep segment still lands
             SleepTracker.register(applicationContext)
         }
     }

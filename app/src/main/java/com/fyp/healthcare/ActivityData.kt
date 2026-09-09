@@ -40,7 +40,6 @@ class ActivityDataManager(context: Context) {
     private val ctx = context.applicationContext
     private val prefs = ctx.getSharedPreferences(scopedPrefsName("activity"), Context.MODE_PRIVATE)
 
-    // ---------- real settings (not radar) ----------
 
     fun stepGoal(): Int = prefs.getInt(KEY_GOAL, DEFAULT_STEP_GOAL)
 
@@ -108,7 +107,6 @@ class ActivityDataManager(context: Context) {
         val today = dateKey()
         prefs.edit().putString(K_STEPS_DAY, today).putInt(K_STEPS, c).apply()
 
-        // don't hammer Firestore on every sensor tick — push on a new day, a reset, or +25 steps
         val lastDay = prefs.getString(K_STEPS_CLOUD_DAY, null)
         val lastCloud = prefs.getInt(K_STEPS_CLOUD, -1)
         if (lastDay == today && c != 0 && c - lastCloud < 25) return
@@ -128,11 +126,10 @@ class ActivityDataManager(context: Context) {
         }
     }
 
-    // ---------- from the mmWave radar (null until connected) ----------
 
     fun isRadarConnected(): Boolean = false
 
-    fun lastSyncLabel(): String? = null          // e.g. "2 min ago"
+    fun lastSyncLabel(): String? = null
 
     fun presenceDetected(): Boolean? = null
 
@@ -178,7 +175,7 @@ class ActivityDataManager(context: Context) {
     /** Persist a completed sleep segment + mirror it to users/{uid}. Called from [SleepReceiver]. */
     fun recordSleepSegment(startMillis: Long, endMillis: Long, source: String = "phone") {
         val durationMin = ((endMillis - startMillis) / 60_000L).toInt()
-        if (durationMin < MIN_SLEEP_MINUTES) return   // too short to be a real night's sleep
+        if (durationMin < MIN_SLEEP_MINUTES) return
 
         val quality = sleepQuality(durationMin)
         prefs.edit()
@@ -187,7 +184,7 @@ class ActivityDataManager(context: Context) {
             .putString(K_SLEEP_QUALITY, quality)
             .putString(K_SLEEP_SOURCE, source)
             .putInt(K_SLEEP_AWK, -1)
-            .remove(K_SLEEP_CLASSIFY)                 // this session's classify buffer is spent
+            .remove(K_SLEEP_CLASSIFY)
             .apply()
 
         Cloud.userDoc?.set(
@@ -247,11 +244,11 @@ class ActivityDataManager(context: Context) {
     private companion object {
         const val KEY_GOAL = "step_goal"
         const val DEFAULT_STEP_GOAL = 8_000
-        const val K_STEPS = "steps_today"            // this phone's own live count
+        const val K_STEPS = "steps_today"
         const val K_STEPS_DAY = "steps_day"
-        const val K_STEPS_CLOUD = "steps_cloud"      // last value this phone pushed (throttle)
+        const val K_STEPS_CLOUD = "steps_cloud"
         const val K_STEPS_CLOUD_DAY = "steps_cloud_day"
-        const val K_STEPS_SYNCED = "steps_synced"    // cross-device max from the cloud
+        const val K_STEPS_SYNCED = "steps_synced"
         const val K_STEPS_SYNCED_DAY = "steps_synced_day"
         const val K_DEVICE_ID = "device_id"
 
@@ -322,14 +319,12 @@ fun estimateWalkingCalories(
     if (steps <= 0) return 0
     val female = sex.equals("Female", ignoreCase = true)
 
-    // stride length (m): ~0.414 × height is the usual rule of thumb
     val strideM = when {
         heightCm != null && heightCm > 60.0 -> heightCm / 100.0 * (if (female) 0.413 else 0.415)
         else -> if (female) 0.67 else 0.72
     }
     val distanceKm = steps * strideM / 1000.0
 
-    // assume ~110 steps/min casual cadence → walking speed
     val speedKmh = (110.0 * strideM * 60.0) / 1000.0
     val met = when {
         speedKmh < 3.2 -> 2.8
@@ -348,10 +343,10 @@ fun estimateWalkingCalories(
 
 data class SleepSummary(
     val totalMinutes: Int,
-    val bedTime: String,    // 24h "HH:mm"
-    val wakeTime: String,   // 24h "HH:mm"
-    val quality: String,    // "Good" | "Fair" | "Poor"
-    val source: String = "radar",   // "phone" (Sleep API) | "radar" | "wearable"
+    val bedTime: String,
+    val wakeTime: String,
+    val quality: String,
+    val source: String = "radar",
     val awakenings: Int? = null,
 )
 

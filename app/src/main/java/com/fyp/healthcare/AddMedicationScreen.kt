@@ -98,10 +98,8 @@ fun AddMedicationScreen(
     var name by remember { mutableStateOf(editing?.name ?: "") }
     var description by remember { mutableStateOf(editing?.description ?: "") }
     var route by remember { mutableStateOf(MedRoute.of(editing?.route)) }
-    // true = show an editable name field; false = show the "choose from list" selector.
     var customMode by remember { mutableStateOf(isEdit) }
 
-    // Apply a result coming back from the medication picker.
     LaunchedEffect(pickedName, pickedDescription, pickedRoute, pickedCustom) {
         when {
             pickedCustom -> {
@@ -128,7 +126,6 @@ fun AddMedicationScreen(
 
     Column(modifier = Modifier.fillMaxSize().appBackground()) {
 
-        // ===== Blue top bar =====
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -151,7 +148,6 @@ fun AddMedicationScreen(
             Spacer(Modifier.width(48.dp))
         }
 
-        // ===== Form card =====
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -170,7 +166,6 @@ fun AddMedicationScreen(
                 Text("Fill in the details for your reminder", fontSize = 12.sp, color = LabelGray)
                 Spacer(Modifier.height(20.dp))
 
-                // ===== Medication name: pick from the catalogue, or type your own =====
                 Text("Medication Name", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = LabelGray)
                 Spacer(Modifier.height(6.dp))
                 if (customMode) {
@@ -215,7 +210,6 @@ fun AddMedicationScreen(
                 }
                 Spacer(Modifier.height(14.dp))
 
-                // ===== How it's taken (picks the units for the fields below) =====
                 Text("How it's taken", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = LabelGray)
                 Spacer(Modifier.height(6.dp))
                 Box {
@@ -290,8 +284,6 @@ fun AddMedicationScreen(
                 GlossyButton(
                     onClick = {
                         val amt = amount.toIntOrNull()
-                        // strength is optional; when given (and not the free-text "Other"
-                        // route) it must be a positive number
                         val strengthOk = strength.isBlank() ||
                             route == MedRoute.OTHER ||
                             (strength.toDoubleOrNull()?.let { it > 0.0 } == true)

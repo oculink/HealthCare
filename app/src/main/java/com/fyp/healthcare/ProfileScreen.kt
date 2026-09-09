@@ -174,7 +174,6 @@ fun ProfileScreen(
                 }
             }
 
-            // ===== Account =====
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -201,7 +200,6 @@ fun ProfileScreen(
                 }
             }
 
-            // ===== Health profile =====
             SectionLabel("Health Profile")
             Column(
                 modifier = Modifier
@@ -239,7 +237,6 @@ fun ProfileScreen(
                 }
             }
 
-            // ===== Emergency contacts =====
             SectionLabel("Emergency Contacts")
             Column(
                 modifier = Modifier
@@ -276,7 +273,6 @@ fun ProfileScreen(
                 }
             }
 
-            // ===== Connections =====
             SectionLabel("Connections")
             Column(
                 modifier = Modifier
@@ -294,7 +290,6 @@ fun ProfileScreen(
                 NavRow(Icons.Filled.Radar, "mmWave Radar Sensor", "Not connected", tint = Color(0xFF7B4BD6))
             }
 
-            // ===== Preferences =====
             SectionLabel("Preferences")
             Column(
                 modifier = Modifier
@@ -330,7 +325,6 @@ fun ProfileScreen(
                 NavRow(Icons.Filled.Straighten, "Units", "Metric (kg, cm)", tint = Color(0xFF1FA971))
             }
 
-            // ===== Sign out =====
             GlossyButton(
                 onClick = { confirmSignOut = true },
                 modifier = Modifier.fillMaxWidth(),
@@ -468,7 +462,6 @@ private fun StepGoalDialog(current: Int, onDismiss: () -> Unit, onConfirm: (Int)
     )
 }
 
-// ===== small pieces =====
 
 @Composable
 private fun SectionLabel(text: String) {

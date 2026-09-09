@@ -40,7 +40,6 @@ object PatientMonitor {
     private val registrations = mutableListOf<ListenerRegistration>()
     private var watching: String? = null
 
-    // hydrateLocal rebuilds JSON + writes SharedPreferences; keep it off the main thread.
     private val worker: Executor = Executors.newSingleThreadExecutor()
 
     /**
@@ -58,7 +57,6 @@ object PatientMonitor {
         val userRef: DocumentReference =
             Firebase.firestore.collection("users").document(patientUid)
 
-        // ----- profile + step goal -----
         registrations += userRef.addSnapshotListener(worker, MetadataChanges.EXCLUDE) { snap, err ->
             if (err != null || snap == null || !snap.exists()) return@addSnapshotListener
             runCatching {
@@ -79,7 +77,6 @@ object PatientMonitor {
             Session.bumpDataVersion()
         }
 
-        // ----- recorded vitals history -----
         registrations += userRef.collection("readings")
             .addSnapshotListener(worker, MetadataChanges.EXCLUDE) { snap, err ->
                 if (err != null || snap == null) return@addSnapshotListener
@@ -92,7 +89,6 @@ object PatientMonitor {
                 Session.bumpDataVersion()
             }
 
-        // ----- medications + adherence log -----
         registrations += userRef.collection("medications")
             .addSnapshotListener(worker, MetadataChanges.EXCLUDE) { snap, err ->
                 if (err != null || snap == null) return@addSnapshotListener
@@ -103,7 +99,6 @@ object PatientMonitor {
                 Session.bumpDataVersion()
             }
 
-        // ----- appointments -----
         registrations += userRef.collection("appointments")
             .addSnapshotListener(worker, MetadataChanges.EXCLUDE) { snap, err ->
                 if (err != null || snap == null) return@addSnapshotListener

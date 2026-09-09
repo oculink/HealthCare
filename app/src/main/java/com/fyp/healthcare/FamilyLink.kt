@@ -28,7 +28,7 @@ import com.google.firebase.firestore.firestore
  */
 object FamilyLink {
 
-    private const val ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789" // no I/O/0/1
+    private const val ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"
     const val CODE_LENGTH = 8
 
     private val db get() = Firebase.firestore
@@ -47,7 +47,7 @@ object FamilyLink {
             if (!codes().document(code).get().awaitResult().exists()) return code
             code = randomCode()
         }
-        return code // 30^8 space — a remaining collision is vanishingly unlikely
+        return code
     }
 
     // ===================================================================
@@ -118,7 +118,6 @@ object FamilyLink {
         val remaining = (snap.get("caretakers") as? List<Map<String, Any?>>).orEmpty()
             .filterNot { it["uid"] == uid }
 
-        // rewrite the whole `caretakers` list — arrayRemove doesn't reliably match map elements
         users().document(self).set(
             mapOf(
                 "caretakerUids" to FieldValue.arrayRemove(uid),
@@ -169,10 +168,8 @@ object FamilyLink {
         )
 
         return runCatching {
-            // 1. append myself to the code doc (authorised by knowing the code = doc id)
             codes().document(code)
                 .update("caretakerUids", FieldValue.arrayUnion(self)).awaitResult()
-            // 2. attach to the patient doc (rule cross-checks the code doc)
             users().document(patientUid).set(
                 mapOf(
                     "caretakerUids" to FieldValue.arrayUnion(self),
@@ -180,7 +177,6 @@ object FamilyLink {
                 ),
                 SetOptions.merge(),
             ).awaitResult()
-            // 3. record the link on my own doc
             users().document(self).set(
                 mapOf("linkedPatientUid" to patientUid, "role" to "caretaker"),
                 SetOptions.merge(),
@@ -201,7 +197,6 @@ object FamilyLink {
         val selfSnap = users().document(self).get().awaitResult()
         val patientUid = selfSnap.getString("linkedPatientUid") ?: return
 
-        // while still authorised (isCaretakerOf), strip my entry from the patient doc
         runCatching {
             val p = users().document(patientUid).get().awaitResult()
             @Suppress("UNCHECKED_CAST")
@@ -234,8 +229,6 @@ object FamilyLink {
      */
     suspend fun restoreSession(context: Context) {
         val self = Cloud.selfUid ?: return
-        // getFresh(): right after sign-in the first Firestore read can race the auth token
-        // and be denied — retry before giving up, or routing/onboarding misfires.
         val snap = users().document(self).getFresh() ?: return
 
         val role = snap.getString("role").orEmpty()

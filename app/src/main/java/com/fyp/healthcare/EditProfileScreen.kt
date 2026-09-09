@@ -93,7 +93,7 @@ fun EditProfileScreen(
     val fallbackName = remember { userManager.currentAccount()?.name.orEmpty() }
 
     var name by remember { mutableStateOf(existing.name.ifBlank { fallbackName }) }
-    var birthDate by remember { mutableStateOf(existing.birthDate) }   // ISO "yyyy-MM-dd" or ""
+    var birthDate by remember { mutableStateOf(existing.birthDate) }
     var sex by remember { mutableStateOf(existing.sex) }
     var bloodType by remember { mutableStateOf(existing.bloodType) }
     var heightCm by remember { mutableStateOf(existing.heightCm) }
@@ -105,11 +105,7 @@ fun EditProfileScreen(
     val contacts = remember { mutableStateListOf<EmergencyContact>().apply { addAll(existing.emergencyContacts) } }
     var error by remember { mutableStateOf<String?>(null) }
 
-    // During onboarding the system back gesture maps to the header's "Go back"
-    // (which signs the half-finished account out), rather than silently doing nothing.
     BackHandler(enabled = firstRun) { onBackClick() }
-    // The allergen / condition pickers sit over this screen (not nav destinations, so
-    // nothing typed into the form is lost); system back closes them first.
     BackHandler(enabled = showAllergyPicker) { showAllergyPicker = false }
     BackHandler(enabled = showConditionPicker) { showConditionPicker = false }
 
@@ -125,7 +121,7 @@ fun EditProfileScreen(
             },
             y, m, d,
         ).apply {
-            datePicker.maxDate = System.currentTimeMillis() // no future birth dates
+            datePicker.maxDate = System.currentTimeMillis()
         }.show()
     }
 
@@ -195,7 +191,6 @@ fun EditProfileScreen(
             ) {
                 Field("Name", name, { name = it }, "Your name")
 
-                // ----- Birth date: dropdown button opening a date picker -----
                 Text("Date of birth", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = LabelGray)
                 Spacer(Modifier.height(6.dp))
                 Row(

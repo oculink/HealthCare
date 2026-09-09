@@ -24,15 +24,15 @@ enum class VitalLevel { NORMAL, WARNING, CRITICAL, UNKNOWN }
 enum class VitalTrend { RISING, FALLING, STABLE, INSUFFICIENT }
 
 data class MetricAnalysis(
-    val key: String,          // "bp" | "hr" | "sugar" | "oxy" | "temp"
-    val label: String,        // "Blood Pressure"
-    val display: String,      // "168/104"
-    val unit: String,         // "mmHg"
+    val key: String,
+    val label: String,
+    val display: String,
+    val unit: String,
     val level: VitalLevel,
-    val statusText: String,   // "High" / "Critical" / "Good" …
-    val note: String,         // "Above the normal range (normal <130/85 mmHg)"
+    val statusText: String,
+    val note: String,
     val trend: VitalTrend,
-    val recentAvg: String?,   // "recent avg 150" — null when there isn't enough history
+    val recentAvg: String?,
 )
 
 data class ReadingAnalysis(
@@ -52,7 +52,7 @@ object HealthAnalysis {
 
     private const val MIN_HISTORY_FOR_TREND = 3
     private const val TREND_LOOKBACK = 5
-    private const val TREND_REL_THRESHOLD = 0.08   // ±8% vs the recent mean
+    private const val TREND_REL_THRESHOLD = 0.08
 
     fun analyze(history: List<HealthDataManager.Reading>): ReadingAnalysis? {
         val latest = history.lastOrNull() ?: return null
@@ -60,7 +60,6 @@ object HealthAnalysis {
 
         val metrics = ArrayList<MetricAnalysis>(5)
 
-        // ----- Blood pressure -----
         val sys = latest.systolic
         val dia = latest.diastolic
         if (sys != null && dia != null) {
@@ -243,7 +242,6 @@ object VitalRules {
     }
 }
 
-// ---- shared display helpers (plain, theme-neutral) ----
 
 fun VitalLevel.color(): Color = when (this) {
     VitalLevel.NORMAL -> Color(0xFF2E9E6B)
@@ -260,9 +258,9 @@ fun VitalLevel.label(): String = when (this) {
 }
 
 fun VitalTrend.arrow(): String = when (this) {
-    VitalTrend.RISING -> "▲"      // ▲
-    VitalTrend.FALLING -> "▼"     // ▼
-    VitalTrend.STABLE -> "→"      // →
+    VitalTrend.RISING -> "▲"
+    VitalTrend.FALLING -> "▼"
+    VitalTrend.STABLE -> "→"
     VitalTrend.INSUFFICIENT -> ""
 }
 

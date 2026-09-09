@@ -62,7 +62,6 @@ object AppointmentReminderScheduler {
     }
 }
 
-// ===== Runs when an appointment reminder time arrives =====
 class AppointmentReminderWorker(
     context: Context,
     params: WorkerParameters,
@@ -72,10 +71,8 @@ class AppointmentReminderWorker(
         val id = inputData.getLong(KEY_ID, -1L)
         if (id == -1L) return Result.success()
 
-        // reminders always come from THIS account's own appointment list
         val appt = AppointmentManager(applicationContext, forSelf = true).get(id)
             ?: return Result.success()
-        // deleted / cancelled / already attended -> nothing to fire
         if (appt.isCancelled || appt.isCompleted) return Result.success()
 
         val timeFmt = SimpleDateFormat("EEE d MMM · h:mm a", Locale.getDefault())
@@ -97,7 +94,6 @@ class AppointmentReminderWorker(
 
     companion object {
         const val KEY_ID = "appt_id"
-        // keep appointment notification ids well clear of the medication ones
         private const val APPT_NOTIF_BASE = 900_000
     }
 }

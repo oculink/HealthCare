@@ -16,9 +16,7 @@ class SleepReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val app = context.applicationContext
 
-        // Cold process: load the saved role / caretaker link before deciding what to do.
         Session.init(app)
-        // A caregiver's OWN phone sleep says nothing about the patient they monitor.
         if (Session.isCaretakerMode) return
 
         when {
@@ -35,7 +33,6 @@ class SleepReceiver : BroadcastReceiver() {
             }
 
             SleepClassifyEvent.hasEvents(intent) -> {
-                // Not used yet — kept for a future sleep-efficiency estimate.
                 ActivityDataManager(app).appendSleepClassify(SleepClassifyEvent.extractEvents(intent))
             }
         }
