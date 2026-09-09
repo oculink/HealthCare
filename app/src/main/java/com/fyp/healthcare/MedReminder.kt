@@ -111,7 +111,7 @@ object ReminderScheduler {
     /**
      * (Re)schedule the single next dose fire for this med; cancels it if nothing is upcoming.
      *
-     * Skipped while in caretaker mode (unless [force]) — medication reminders belong to the
+     * Skipped while in caretaker mode (unless [force]) - medication reminders belong to the
      * signed-in account, never a linked patient. [syncAll] / [ReminderWorker] pass force=true
      * because they only ever operate on this account's own list.
      */

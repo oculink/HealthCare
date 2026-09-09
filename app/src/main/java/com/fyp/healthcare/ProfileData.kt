@@ -12,10 +12,10 @@ import java.util.Locale
 /**
  * The user's own health / personal profile.
  *
- * Entered by the user (onboarding + the Edit Profile screen). Not radar data.
+ * Entered by the user (onboarding and the Edit Profile screen), not radar data.
  * The Emergency Profile screen will later read the same values.
  *
- * TODO (FUTURE - SQL): sync to the account so the caregiver can see it too.
+ * TODO: sync to the account so the caregiver can see it too.
  */
 /** One person to call in an emergency. Shown on the Emergency Profile screen. */
 data class EmergencyContact(

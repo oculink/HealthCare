@@ -52,14 +52,14 @@ import androidx.compose.ui.unit.sp
 import com.fyp.healthcare.ui.theme.themed
 
 /**
- * EMERGENCY PROFILE
+ * Emergency Profile.
  *
- * A single at-a-glance screen for a first responder / bystander: who the patient is,
+ * A single at-a-glance screen for a first responder or bystander: who the patient is,
  * the vitals that matter (blood type, weight, height), allergies, conditions, current
- * medications, and one-tap dialling for the patient's emergency contacts + 999.
+ * medications, and one-tap dialling for the patient's emergency contacts and 999.
  *
- * Everything here is read from the health profile (onboarding + Edit Profile) and the
- * medication list — no radar data. Reached from the Home "Emergency" quick action.
+ * Everything here comes from the health profile (onboarding and Edit Profile) and the
+ * medication list, with no radar data. Reached from the Home "Emergency" quick action.
  */
 
 private val BrandBlue = Color(0xFF2A6DE1)

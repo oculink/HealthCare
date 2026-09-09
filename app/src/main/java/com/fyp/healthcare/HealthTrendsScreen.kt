@@ -66,13 +66,13 @@ private val WEEK_LABELS = listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"
 private const val DAY_MS = 24L * 60 * 60 * 1000
 
 /**
- * Health Trends is a 100% GLOBAL view: every number and the chart come from the anonymous
- * community aggregate (`stats/vitals` all-time + `stats/vitals/daily/{date}` per day), so the
- * screen looks identical on every account. It is NOT a per-user screen.
+ * Health Trends is an entirely global view: every number and the chart come from the
+ * anonymous community aggregate (`stats/vitals` all-time plus `stats/vitals/daily/{date}`
+ * per day), so the screen looks identical on every account. It isn't a per-user screen.
  *
- * Chart point for a day = that day's average across all users (e.g. one user logs 73, another
- * 71 -> the point sits at 72). Both flows are live snapshot listeners, so the numbers move in
- * real time as anyone records a reading.
+ * A day's chart point is that day's average across all users (e.g. one user logs 73, another
+ * 71, so the point sits at 72). Both flows are live snapshot listeners, so the numbers move
+ * in real time as anyone records a reading.
  */
 @Composable
 fun HealthTrendsScreen(
@@ -312,10 +312,8 @@ private fun localStat(
     return Stat(values.min(), values.average().toFloat(), values.max(), values.size)
 }
 
-// =====================================================================
-// Period helpers — Weekly = current week (Sun..Sat, 7 slots),
+// Period helpers - Weekly = current week (Sun..Sat, 7 slots),
 // Monthly = current month (day 1..N).
-// =====================================================================
 
 /** Midnight of the first day of the period, then the number of day-slots. */
 private fun periodWindow(period: String): Pair<Long, Int> {

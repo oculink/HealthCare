@@ -14,20 +14,20 @@ import java.net.URL
  * working offline afterwards. Everything here is best-effort: any failure (offline, 404,
  * bad JSON) leaves [AllergyCatalog.BUILT_IN] as the list, and the picker never blocks on it.
  *
- * ── Hosting the JSON ────────────────────────────────────────────────────────────────────
+ * Hosting the JSON
  * [REMOTE_URL] points at a plain file in this repo, served raw by GitHub. To update the
- * list later, edit `docs/allergy_catalog.json`, commit and push — every installed client
+ * list later, edit `docs/allergy_catalog.json`, commit and push - every installed client
  * picks it up within [TTL_MS]. No server, no Firestore rules.
  *
- * Expected shape — a JSON array of objects:
+ * Expected shape - a JSON array of objects:
  *   [
  *     { "name": "Kiwi",   "category": "Food",          "note": "cross-reacts with latex" },
  *     { "name": "Quinoa", "category": "Food" }
  *   ]
  * `category` is matched leniently by [AllergyCatalog.Category.of]; `note` is optional.
  *
- * The AllergenOnline database (allergenonline.org) has no API or CSV/JSON feed — only an
- * annual PDF — so this file is the maintainer's own curated extract, not a live mirror.
+ * The AllergenOnline database (allergenonline.org) has no API or CSV/JSON feed - only an
+ * annual PDF - so this file is the maintainer's own curated extract, not a live mirror.
  */
 object AllergyCatalogRemote {
 

@@ -28,7 +28,7 @@ import kotlin.coroutines.resumeWithException
 
 /**
  * Auth is Google Sign-In via Credential Manager, backed by Firebase Auth.
- * There are no local passwords any more — the account IS the Firebase user.
+ * There are no local passwords any more - the account IS the Firebase user.
  *
  * On sign-in we also upsert a `users/{uid}` document in Firestore; that doc is
  * the anchor the rest of the app's data (readings, medications, activity) will
@@ -127,7 +127,7 @@ class UserManager(context: Context) {
     }
 
     private fun upsertUserDoc(user: FirebaseUser) {
-        // NOTE: never write "name" here — that field is the health-profile name, owned by
+        // NOTE: never write "name" here - that field is the health-profile name, owned by
         // ProfileManager. Writing the Google display name to it on every sign-in used to
         // clobber the onboarding name (and blank it for accounts with no display name,
         // forcing re-onboarding). The Google name goes in a separate "accountName" field.

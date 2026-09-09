@@ -3,21 +3,21 @@ package com.fyp.healthcare
 import android.content.Context
 
 /**
- * A built-in list of common allergens for the Allergies picker on the onboarding /
- * Edit Health Profile screen — so the user picks from a list instead of typing (and
+ * A built-in list of common allergens for the Allergies picker on the onboarding and
+ * Edit Health Profile screens, so the user picks from a list instead of typing (and
  * spelling) an allergen, the same way [MedicationCatalog] backs the medication picker.
  *
- * The set is curated for this app from the source organisms in FARRP's **AllergenOnline**
- * database (allergenonline.org — a peer-reviewed allergen list, version 24 / Jan 2026),
- * plus the common **drug** and **contact** allergens that a protein-sequence database
- * doesn't cover. It is deliberately NOT the whole AllergenOnline database: that is 2,300+
- * protein sequences meant for bioinformatics, not a "what am I allergic to" list.
+ * The set is curated for this app from the source organisms in FARRP's AllergenOnline
+ * database (allergenonline.org, a peer-reviewed allergen list, version 24 / Jan 2026),
+ * plus the common drug and contact allergens that a protein-sequence database doesn't
+ * cover. It deliberately isn't the whole AllergenOnline database: that's 2,300+ protein
+ * sequences meant for bioinformatics, not a "what am I allergic to" list.
  *
  * Three layers, merged by [all]:
- *   1. [BUILT_IN]           — this file, always available offline.
- *   2. remote refresh       — [AllergyCatalogRemote] pulls an updated JSON when online so
+ *   1. [BUILT_IN]           - this file, always available offline.
+ *   2. remote refresh       - [AllergyCatalogRemote] pulls an updated JSON when online so
  *                             the list can grow without shipping an app update.
- *   3. the user's own       — anything added via the picker's "Add an allergy not listed"
+ *   3. the user's own       - anything added via the picker's "Add an allergy not listed"
  *                             is remembered in [customAllergies] (works offline) so it
  *                             shows up pre-filled next time.
  */
@@ -59,9 +59,7 @@ object AllergyCatalog {
         }
     }
 
-    // ===================================================================
-    //  Bundled entries — guaranteed offline. Sorted A→Z by [all] / [search].
-    // ===================================================================
+    //  Bundled entries - guaranteed offline. Sorted A->Z by [all] / [search].
     val BUILT_IN: List<Entry> = listOf(
 
         Entry("Peanut", Category.FOOD, "Legume; one of the most common causes of severe food reactions"),
@@ -266,9 +264,7 @@ object AllergyCatalog {
         Entry("Exercise-induced anaphylaxis", Category.CONTACT, "Sometimes only when combined with a trigger food"),
     )
 
-    // ===================================================================
-    //  The user's own additions — remembered locally, offline.
-    // ===================================================================
+    //  The user's own additions - remembered locally, offline.
 
     private fun prefs(context: Context) =
         context.getSharedPreferences(scopedPrefsName("allergy_custom"), Context.MODE_PRIVATE)
@@ -294,12 +290,10 @@ object AllergyCatalog {
 
     private const val K_CUSTOM = "custom_allergies_v1"
 
-    // ===================================================================
     //  Merged view used by the picker.
-    // ===================================================================
 
-    /** [BUILT_IN] ∪ remote refresh ∪ the user's own, de-duplicated case-insensitively by
-     *  name (built-in wins the note/category), sorted A→Z. */
+    /** [BUILT_IN] plus the remote refresh plus the user's own, de-duplicated case-insensitively
+     *  by name (built-in wins the note/category), sorted A to Z. */
     fun all(context: Context): List<Entry> {
         val byKey = LinkedHashMap<String, Entry>()
         fun add(e: Entry) { byKey.putIfAbsent(e.name.lowercase(), e) }

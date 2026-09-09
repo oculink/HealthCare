@@ -47,7 +47,7 @@ enum class MedRoute(
  * [log] records what the user did for one specific dose:
  *   "yyyy-MM-dd HH:mm" -> "taken" | "missed".
  * A dose that isn't in the log is still pending (and shows as "Missed" on its own
- * once enough time has passed — see [slotState]).
+ * once enough time has passed - see [slotState]).
  */
 data class Medication(
     val id: Long,
@@ -76,7 +76,7 @@ data class Medication(
     val earliestMinutes: Int
         get() = allTimes.firstOrNull()?.let(::hhmmMinutes) ?: 0
 
-    /** Non-empty days with their times, ordered Sun→Sat. */
+    /** Non-empty days with their times, ordered Sun to Sat. */
     fun weeklyPlan(): List<Pair<Int, List<String>>> =
         (0..6).mapNotNull { d -> timesOn(d).takeIf { it.isNotEmpty() }?.let { d to it } }
 
@@ -179,13 +179,11 @@ fun formatTime12(time24: String): String {
  */
 class MedicationManager(context: Context, forSelf: Boolean = false) {
 
-    // =====================================================================
     //  Each medication AND every entry in `log` (taken/missed per dose) also
     //  syncs to Firestore (users/{uid}/medications), so a linked family
     //  caregiver can see and manage the patient's schedule + adherence.
     //  Locally it is stored as JSON in SharedPreferences; in caretaker mode
     //  the patient's copy lives in a separate `medications__<patientUid>` file.
-    // =====================================================================
 
     private val prefs: SharedPreferences =
         context.getSharedPreferences(
@@ -229,7 +227,7 @@ class MedicationManager(context: Context, forSelf: Boolean = false) {
         Cloud.userDoc?.collection("medications")?.document(id.toString())?.delete()
     }
 
-    /** action = "taken" | "missed" | null (null clears the entry — i.e. "undo"). */
+    /** action = "taken" | "missed" | null (null clears the entry - i.e. "undo"). */
     fun logStatus(id: Long, action: String?, doseKey: String) {
         save(load().map { m ->
             if (m.id != id) m
@@ -246,7 +244,7 @@ class MedicationManager(context: Context, forSelf: Boolean = false) {
     fun hydrateLocal(meds: List<Medication>) = save(meds)
 
     /**
-     * Read the medication list straight from Firestore (users/{uid}/medications) — the inverse
+     * Read the medication list straight from Firestore (users/{uid}/medications) - the inverse
      * of [pushMed]. Used to hydrate the local cache on app open / when a caretaker links.
      */
     suspend fun cloudList(fromServer: Boolean): List<Medication> {

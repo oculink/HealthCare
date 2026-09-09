@@ -122,8 +122,8 @@ class MainActivity : ComponentActivity() {
                 }
                 val startDestination = if (userManager.isSignedIn()) afterAuth() else "signin"
 
-                // If the post-sign-in cloud sync lands AFTER we first routed — e.g. a fresh
-                // device, where the profile wasn't in local storage yet — re-route now that it
+                // If the post-sign-in cloud sync lands after we first routed - e.g. a fresh
+                // device, where the profile wasn't in local storage yet - re-route now that it
                 // is, so an already-set-up account isn't stuck on role select / onboarding.
                 LaunchedEffect(Session.dataVersion, Session.role, Session.controlledPatientUid) {
                     if (!userManager.isSignedIn()) return@LaunchedEffect
@@ -151,7 +151,7 @@ class MainActivity : ComponentActivity() {
                 // Bottom-nav tab switch. Pop back to Home and remember each tab's
                 // state, but never *restore* Home itself. Quick actions (Record Data,
                 // Health Report, Profile) are plain-navigated on top of Home, so their
-                // routes get saved under Home's key when popped — restoring that
+                // routes get saved under Home's key when popped - restoring that
                 // sub-stack would immediately re-push the screen the user just left,
                 // making the Home tab button look like it does nothing.
                 val switchTab: (String) -> Unit = { route ->
@@ -190,7 +190,7 @@ class MainActivity : ComponentActivity() {
                             onBackClick = {
                                 // "Go back" from onboarding = return to role selection so
                                 // the user can switch between Patient and Caregiver. The role
-                                // isn't committed yet, so drop it (locally + cloud) — otherwise
+                                // isn't committed yet, so drop it (locally + cloud) - otherwise
                                 // a later sign-in would restore it and skip this screen.
                                 Session.setRole(applicationContext, "")
                                 Cloud.selfDoc?.set(mapOf("role" to ""), SetOptions.merge())
@@ -213,7 +213,7 @@ class MainActivity : ComponentActivity() {
                             onPatient = {
                                 Session.setRole(applicationContext, "patient")
                                 val onboarded = profileManager.isOnboarded()
-                                // only commit the role to the cloud once it's real — here that
+                                // only commit the role to the cloud once it's real - here that
                                 // means the profile is already done; otherwise onboarding's
                                 // onSaved writes it. Backing out before then leaves no trace.
                                 if (onboarded) {
@@ -382,7 +382,7 @@ class MainActivity : ComponentActivity() {
                                 onSave = { finalMed ->
                                     val saved = medManager.upsert(finalMed)
                                     ReminderScheduler.scheduleNext(applicationContext, saved)
-                                    // NOTE: don't clear medDraft here — nulling it recomposes this
+                                    // NOTE: don't clear medDraft here - nulling it recomposes this
                                     // destination (still briefly on the stack) into its null-guard,
                                     // which would pop the confirmation screen we're navigating to.
                                     navController.navigate("medication_added/${saved.id}") {
@@ -558,7 +558,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onStop() {
         super.onStop()
-        // drop the live listeners while backgrounded — CloudHydrator + PatientMonitor
+        // drop the live listeners while backgrounded - CloudHydrator + PatientMonitor
         // both refill / re-attach on the next resume; the step counter keeps counting in
         // hardware and we resample on the next open
         PatientMonitor.stop()

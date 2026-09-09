@@ -10,7 +10,7 @@ import java.util.Calendar
 
 /**
  * Renders the health-report PDF with sample data and copies it to external files so it can be
- * pulled off the device and eyeballed. Not a real assertion suite — a visual-check harness.
+ * pulled off the device and eyeballed. Not a real assertion suite - a visual-check harness.
  */
 @RunWith(AndroidJUnit4::class)
 class HealthReportPdfTest {

@@ -67,7 +67,7 @@ private fun rememberNatureMotif(seed: Int): Painter {
 }
 
 /**
- * Skeuomorphic "glossy" surface for cards and tappable tiles — a top-lit vertical
+ * Skeuomorphic "glossy" surface for cards and tappable tiles - a top-lit vertical
  * gradient, a bright rim highlight and a soft drop shadow, so panels read as raised,
  * tactile objects. Tuned for older eyes: real depth cues, strong edges, generous
  * shadow. On [IconStyle.MINIMAL] it falls back to a flat fill with a hairline edge.
@@ -125,8 +125,8 @@ fun Modifier.glossySurface(
  * alike: a soft light bloom drifting in from a random point near the top and a
  * field of gently rippling horizontal fibres (each a soft sine wave).
  *
- * The fibre and bloom colours are derived from the surface's own [base] colour —
- * a hair lighter and a hair darker — so the weave reads correctly on a white
+ * The fibre and bloom colours are derived from the surface's own [base] colour -
+ * a hair lighter and a hair darker - so the weave reads correctly on a white
  * card, a blue button or a red banner, and in either light or dark appearance,
  * without ever looking like a grey film laid on top. One quiet layer, not two.
  * All randomness is resolved once (per size + seed) and baked into two [Path]s,
@@ -256,10 +256,10 @@ fun GlossyButton(
 }
 
 /**
- * A small selectable pill / segment (gender picker, category filter, Normal/Minimal, …).
- * Selected → a glossy [accent] gradient with a bright top rim, so the choice pops for
- * older eyes. Unselected → transparent by default (for chips sitting on their own track),
- * or a soft raised chip of [unselectedFill] when that's given. [IconStyle.MINIMAL] → flat.
+ * A small selectable pill / segment (gender picker, category filter, Normal/Minimal, ...).
+ * Selected -> a glossy [accent] gradient with a bright top rim, so the choice pops for
+ * older eyes. Unselected -> transparent by default (for chips sitting on their own track),
+ * or a soft raised chip of [unselectedFill] when that's given. [IconStyle.MINIMAL] -> flat.
  */
 @Composable
 fun Modifier.glossyChip(
@@ -315,9 +315,9 @@ fun Modifier.glossyChip(
 }
 
 /**
- * A status badge (Good / High / Critical / Due now / Taken …) — a soft tinted gradient
+ * A status badge (Good / High / Critical / Due now / Taken ...) - a soft tinted gradient
  * of [color] with a matching edge, a touch more presence than a flat 12%-alpha wash so
- * it reads at a glance. [IconStyle.MINIMAL] → the plain flat wash.
+ * it reads at a glance. [IconStyle.MINIMAL] -> the plain flat wash.
  */
 @Composable
 fun Modifier.glossyBadge(color: Color, shape: Shape = RoundedCornerShape(50.dp)): Modifier {
@@ -341,7 +341,7 @@ fun Modifier.glossyBadge(color: Color, shape: Shape = RoundedCornerShape(50.dp))
  * The blue top-app-bar treatment: a top-lit vertical gradient of [color] plus a soft
  * dark line along the bottom edge, so the header reads as a raised bar the content
  * scrolls under. Drop-in for `.background(BrandBlue)` on a header Row.
- * [IconStyle.MINIMAL] → plain flat fill.
+ * [IconStyle.MINIMAL] -> plain flat fill.
  */
 @Composable
 fun Modifier.glossyTopBar(color: Color = PrimaryBlue): Modifier {

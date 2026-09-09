@@ -434,7 +434,7 @@ private fun MiniField(
 }
 
 /**
- * A tag list (allergies, medical conditions) shown as removable chips plus an "Add …" row
+ * A tag list (allergies, medical conditions) shown as removable chips plus an "Add ..." row
  * that opens a searchable catalogue picker with an offline "type your own" option.
  */
 @Composable

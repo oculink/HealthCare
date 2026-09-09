@@ -9,24 +9,24 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 /**
- * Optional online refresh for [ConditionCatalog] — same design as [AllergyCatalogRemote].
+ * Optional online refresh for [ConditionCatalog] - same design as [AllergyCatalogRemote].
  * Pulls a hosted JSON list of conditions so the picker can grow without an app update, and
  * caches it on disk so it keeps working offline. Best-effort: any failure leaves
  * [ConditionCatalog.BUILT_IN] as the list, and the picker never blocks on it.
  *
- * ── Hosting the JSON ────────────────────────────────────────────────────────────────────
+ * Hosting the JSON
  * [REMOTE_URL] points at `docs/condition_catalog.json` in this repo, served raw by GitHub.
- * To add conditions later, edit that file, commit and push — installed clients pick it up
+ * To add conditions later, edit that file, commit and push - installed clients pick it up
  * within [TTL_MS].
  *
- * Expected shape — a JSON array of objects:
+ * Expected shape - a JSON array of objects:
  *   [
  *     { "name": "Long COVID", "category": "Other", "note": "symptoms weeks after infection" },
  *     { "name": "Costochondritis", "category": "Bones, joints & muscles" }
  *   ]
  * `category` is matched leniently by [ConditionCatalog.Category.of]; `note` is optional.
  *
- * The NHS Health A–Z (nhs.uk/conditions) has no free feed, so this is the maintainer's own
+ * The NHS Health A-Z (nhs.uk/conditions) has no free feed, so this is the maintainer's own
  * curated extract mirroring the NHS names and summaries, not a live mirror.
  */
 object ConditionCatalogRemote {

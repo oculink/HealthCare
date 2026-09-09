@@ -28,7 +28,7 @@ object AppTheme {
     var iconStyle by mutableStateOf(IconStyle.NORMAL)
         private set
 
-    /** Load the saved choices — call once from MainActivity.onCreate. */
+    /** Load the saved choices - call once from MainActivity.onCreate. */
     fun init(context: Context) {
         mode = runCatching {
             ThemeMode.valueOf(prefs(context).getString(KEY, null) ?: ThemeMode.SYSTEM.name)

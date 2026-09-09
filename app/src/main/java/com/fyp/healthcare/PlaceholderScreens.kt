@@ -53,7 +53,7 @@ fun BlankScreen(title: String) {
 private val NavAccent = Color(0xFF2A6DE1)
 
 /**
- * Bottom navigation — a raised glossy bar. The selected tab's icon sits in a glossy
+ * Bottom navigation - a raised glossy bar. The selected tab's icon sits in a glossy
  * accent pill and its label goes bold blue, so the current place is obvious at a
  * glance. Larger icons + labels than the stock Material bar, for older eyes.
  */

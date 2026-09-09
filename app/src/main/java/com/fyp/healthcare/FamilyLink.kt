@@ -13,14 +13,14 @@ import com.google.firebase.firestore.firestore
  * Model (Firestore):
  *   users/{uid}
  *     role: "patient" | "caretaker"
- *     familyCode: "ABCD2345"                         (patient — created lazily by [myCode])
- *     caretakerUids: ["uid", …]                      (patient — read by the security rules)
- *     caretakers: [ {uid, name, photoUrl, linkedAt} ](patient — for display)
- *     linkedPatientUid: "uid"                        (caretaker — v1: one link)
+ *     familyCode: "ABCD2345"                         (patient - created lazily by [myCode])
+ *     caretakerUids: ["uid", ...]                      (patient - read by the security rules)
+ *     caretakers: [ {uid, name, photoUrl, linkedAt} ](patient - for display)
+ *     linkedPatientUid: "uid"                        (caretaker - v1: one link)
  *
  *   familyCodes/{CODE}          (document id IS the code)
  *     patientUid: "uid"
- *     caretakerUids: ["uid", …] (mirror; the users/{uid} attach rule cross-checks this)
+ *     caretakerUids: ["uid", ...] (mirror; the users/{uid} attach rule cross-checks this)
  *
  * A caretaker who knows a code can append their own uid to familyCodes/{CODE} (authorised by
  * knowing the doc id); that then lets the rules accept them attaching to users/{patientUid}.
@@ -50,9 +50,7 @@ object FamilyLink {
         return code
     }
 
-    // ===================================================================
     // Patient side
-    // ===================================================================
 
     /** This account's family code, creating one on first use. */
     suspend fun myCode(): String {
@@ -134,9 +132,7 @@ object FamilyLink {
         }
     }
 
-    // ===================================================================
     // Caretaker side
-    // ===================================================================
 
     /** Link this account to the patient who owns [rawCode]. */
     suspend fun link(rawCode: String): Result<PatientInfo> {
@@ -223,7 +219,7 @@ object FamilyLink {
     }
 
     /**
-     * Rebuild [Session] from the signed-in account's cloud doc — the chosen role, and any
+     * Rebuild [Session] from the signed-in account's cloud doc - the chosen role, and any
      * existing caretaker link. Call right after sign-in (local session state is per-device and
      * is cleared on sign-out, so a returning user must be restored from the cloud).
      */

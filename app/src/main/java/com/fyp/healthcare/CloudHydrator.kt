@@ -11,9 +11,9 @@ import com.google.firebase.firestore.firestore
  * SharedPreferences cache, so the screens (which read locally and synchronously) show
  * the right thing:
  *
- *  - self mode  → refreshes the signed-in user's own cache on every app open, so a
+ *  - self mode  -> refreshes the signed-in user's own cache on every app open, so a
  *                 linked caretaker's changes appear.
- *  - caretaker mode → fills the `*__<patientUid>` cache with the patient's data.
+ *  - caretaker mode -> fills the `*__<patientUid>` cache with the patient's data.
  *
  * Which account is the target is decided by [Cloud.targetUid] (driven by [Session]).
  * Writes still flow the other way through the managers' normal mirror-to-cloud path.

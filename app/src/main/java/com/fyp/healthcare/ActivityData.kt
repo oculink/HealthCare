@@ -13,13 +13,10 @@ import kotlin.math.roundToInt
 /**
  * Data for the Activity Monitoring screen.
  *
- * =====================================================================
- * FYP — mmWave RADAR
- *  Everything the radar will supply is `null` right now. When the mmWave
- *  sensor + its signal-processing pipeline are connected, fill these in
- *  (most likely by caching the latest values pushed from a
- *  BroadcastReceiver / foreground Service / server sync, then reading
- *  them back here).
+ * The mmWave radar isn't wired up yet, so everything it will supply reads `null` for now.
+ * Once the sensor and its signal-processing pipeline are connected, fill these in, most
+ * likely by caching the latest values pushed from a BroadcastReceiver, foreground Service
+ * or server sync and reading them back here:
  *
  *      isRadarConnected() -> radar link / heartbeat is alive
  *      lastSyncLabel()    -> when the radar last reported in
@@ -29,11 +26,10 @@ import kotlin.math.roundToInt
  *      idleMinutes()      -> minutes the person has lain still on the bed
  *      hourlyActivity()   -> 24 movement buckets for the bar chart
  *
- *  The daily step goal is a user setting, NOT radar data, so it's real.
- *  Steps and sleep() are ALSO real now: steps from the phone step counter
- *  ([StepTracker]) and sleep from the phone's Sleep API ([SleepTracker]),
- *  both flagged in the UI as phone estimates until the radar takes over.
- * =====================================================================
+ * The daily step goal is a user setting rather than radar data, so it's real. Steps and
+ * sleep() are real now too: steps from the phone step counter ([StepTracker]) and sleep
+ * from the phone's Sleep API ([SleepTracker]), both flagged in the UI as phone estimates
+ * until the radar takes over.
  */
 class ActivityDataManager(context: Context) {
 
@@ -65,7 +61,7 @@ class ActivityDataManager(context: Context) {
     }
 
     /**
-     * Overwrite the local sleep record from the cloud `sleepByDevice` map (hydration — the
+     * Overwrite the local sleep record from the cloud `sleepByDevice` map (hydration - the
      * caregiver view, and self-correction when several of the account's phones each logged a
      * segment). [pickSleep] chooses the longest recent session.
      */
@@ -80,13 +76,13 @@ class ActivityDataManager(context: Context) {
             .apply()
     }
 
-    // ---------- today's step count (phone hardware step counter, patient's own phone) ----------
+    // today's step count (phone hardware step counter, patient's own phone)
     // Written by [StepTracker] in self mode; see [StepTracker] for the daily-baseline math.
     //
-    // MULTI-DEVICE: each phone on the account writes ONLY its own entry in the `stepsByDevice`
-    // map on users/{uid} — { deviceId: { c: count, d: "yyyy-MM-dd" } } — via a merge write
+    // Multi-device: each phone on the account writes just its own entry in the `stepsByDevice`
+    // map on users/{uid} - { deviceId: { c: count, d: "yyyy-MM-dd" } } - via a merge write
     // (offline-safe, never clobbers another device's key). Today's number, everywhere (this
-    // phone, the account's other phones, a linked caregiver), is the MAX across those entries
+    // phone, the account's other phones, a linked caregiver), is the max across those entries
     // for today (see [stepsFromByDevice]); summing would double-count a day both phones were
     // carried. `K_STEPS*` = this phone's own live count; `K_STEPS_SYNCED*` = the cross-device
     // max pulled down by CloudHydrator / PatientMonitor.
@@ -118,7 +114,7 @@ class ActivityDataManager(context: Context) {
         )
     }
 
-    /** Stable random id for THIS install/device — kept in `cloud_sync` so it survives sign-out. */
+    /** Stable random id for THIS install/device - kept in `cloud_sync` so it survives sign-out. */
     private fun deviceId(): String {
         val p = ctx.getSharedPreferences("cloud_sync", Context.MODE_PRIVATE)
         return p.getString(K_DEVICE_ID, null) ?: UUID.randomUUID().toString().also {
@@ -136,7 +132,7 @@ class ActivityDataManager(context: Context) {
     /** Times the radar detected a fall from the bed today. */
     fun fallCount(): Int? = null
 
-    /** Significant movements the radar picked up — excludes breathing / micro-motion. */
+    /** Significant movements the radar picked up - excludes breathing / micro-motion. */
     fun movementCount(): Int? = null
 
     /** Minutes the person has lain still on the bed under the radar. */
@@ -145,16 +141,16 @@ class ActivityDataManager(context: Context) {
     /** 24 values, index = hour of day (0..23). Null when there's no data. */
     fun hourlyActivity(): List<Int>? = null
 
-    // ---------- last night's sleep (phone Sleep API, patient's own phone) ----------
+    // last night's sleep (phone Sleep API, patient's own phone)
     // Written by [SleepReceiver] from a SleepSegmentEvent in self mode; a linked caregiver
-    // (and the account's other phones) read it back via [hydrateSleep]. Phone estimate —
-    // the UI says so.
+    // (and the account's other phones) read it back via [hydrateSleep]. It's a phone
+    // estimate, and the UI says so.
     //
-    // MULTI-DEVICE: like steps, each phone writes ONLY its own entry in a `sleepByDevice`
-    // map on users/{uid} — { deviceId: { s, e, q, src, awk } } — via merge (no clobber).
-    // The displayed session is the LONGEST recent one ([pickSleep]): a phone left on a desk
+    // Multi-device: like steps, each phone writes just its own entry in a `sleepByDevice`
+    // map on users/{uid} - { deviceId: { s, e, q, src, awk } } - via merge (no clobber).
+    // The displayed session is the longest recent one ([pickSleep]): a phone left on a desk
     // overnight can log a shorter false "sleep"; the phone by the bed logs the real one.
-    // Local `K_SLEEP_*` = whatever this phone last recorded, self-corrected on each hydrate.
+    // Local `K_SLEEP_*` = whatever this phone last recorded, corrected on each hydrate.
 
     /** Last night's sleep, or null if nothing recent (hidden once >30h stale). */
     fun sleep(): SleepSummary? {
@@ -223,7 +219,7 @@ class ActivityDataManager(context: Context) {
     }
 
     /**
-     * Buffer overnight SleepClassifyEvents (bounded). Not interpreted yet — reserved for a
+     * Buffer overnight SleepClassifyEvents (bounded). Not interpreted yet - reserved for a
      * future sleep-efficiency / awakenings figure once the confidence semantics are pinned down.
      */
     fun appendSleepClassify(events: List<SleepClassifyEvent>) {
@@ -263,7 +259,7 @@ class ActivityDataManager(context: Context) {
     }
 }
 
-/** Parsed sleep session from the `sleepByDevice` map — internal; [SleepSummary] is UI-facing. */
+/** Parsed sleep session from the `sleepByDevice` map - internal; [SleepSummary] is UI-facing. */
 data class SleepRecord(
     val start: Long,
     val end: Long,
@@ -272,7 +268,7 @@ data class SleepRecord(
     val awakenings: Int?,
 )
 
-/** Coarse sleep-quality label from total sleep minutes (elderly target: 7–8 h). */
+/** Coarse sleep-quality label from total sleep minutes (elderly target: 7-8 h). */
 fun sleepQuality(totalMinutes: Int): String = when {
     totalMinutes >= 7 * 60 -> "Good"
     totalMinutes >= 5 * 60 + 30 -> "Fair"
@@ -281,7 +277,7 @@ fun sleepQuality(totalMinutes: Int): String = when {
 
 /**
  * Today's step count as the MAX across all of the account's devices, from the `stepsByDevice`
- * map on `users/{uid}` — `{ deviceId: { c: count, d: "yyyy-MM-dd" } }`. Each phone writes only
+ * map on `users/{uid}` - `{ deviceId: { c: count, d: "yyyy-MM-dd" } }`. Each phone writes only
  * its own entry, so whichever recorded the most today wins (summing would double-count a day
  * both phones were carried together). Returns null when no device has reported today.
  */
@@ -301,12 +297,12 @@ fun stepsFromByDevice(raw: Any?, today: String = dateKey()): Int? {
  * Rough estimate of calories burned walking [steps] steps today, personalised to the
  * user's profile:
  *
- *   steps → distance   (stride length derived from height + sex)
- *   distance → speed    (assumed casual cadence)
- *   speed → MET         (walking-intensity table)
+ *   steps -> distance   (stride length derived from height + sex)
+ *   distance -> speed    (assumed casual cadence)
+ *   speed -> MET         (walking-intensity table)
  *   kcal = MET × weightKg × hours, with a small taper for age > 30
  *
- * Every input is optional — population defaults fill any gap. This is a fitness-tracker
+ * Every input is optional - population defaults fill any gap. This is a fitness-tracker
  * style estimate, not a clinical figure.
  */
 fun estimateWalkingCalories(

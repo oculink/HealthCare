@@ -22,15 +22,15 @@ import kotlin.math.sin
 import kotlin.math.sqrt
 
 /**
- * NEARBY CLINICS — data layer.
+ * Nearby Clinics, data layer.
  *
  * Finds hospitals / clinics / pharmacies / doctors around a coordinate by querying the
- * free, key-less **Overpass API** over OpenStreetMap data. No Google Cloud project, no
+ * free, key-less Overpass API over OpenStreetMap data. No Google Cloud project, no
  * billing account, no API key. The only etiquette rules are a real User-Agent and not
  * hammering the endpoint (we query on screen-open and on an explicit "search this area").
  *
  * Overpass is community-run and can occasionally be slow or down, so the last successful
- * result is cached to SharedPreferences and returned as a fallback — a demo is never empty.
+ * result is cached to SharedPreferences and returned as a fallback - a demo is never empty.
  */
 object NearbyClinics {
 
@@ -152,7 +152,7 @@ object NearbyClinics {
     data class Suggestion(val label: String, val lat: Double, val lon: Double)
 
     /**
-     * Address autocomplete via Photon (photon.komoot.io) — a free, key-less geocoder built
+     * Address autocomplete via Photon (photon.komoot.io) - a free, key-less geocoder built
      * for type-ahead. Returns a handful of ranked matches for a partial address string.
      */
     suspend fun suggestAddresses(text: String): List<Suggestion> = withContext(Dispatchers.IO) {

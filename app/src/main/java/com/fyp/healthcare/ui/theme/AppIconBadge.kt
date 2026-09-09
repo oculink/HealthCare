@@ -33,7 +33,7 @@ private val glossShape = GenericShape { size, _ ->
  * The app's standard icon badge. Renders as an old-iOS glossy tile when the user has
  * [IconStyle.NORMAL] selected, or a flat tinted square when [IconStyle.MINIMAL].
  *
- * Drop-in for the old `Box { Icon(tint = c) }` pattern — pass the same accent [tint].
+ * Drop-in for the old `Box { Icon(tint = c) }` pattern - pass the same accent [tint].
  */
 @Composable
 fun AppIconBadge(

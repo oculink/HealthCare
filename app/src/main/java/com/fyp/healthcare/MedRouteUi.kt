@@ -14,7 +14,7 @@ import androidx.compose.material.icons.filled.WaterDrop
 import androidx.compose.ui.graphics.vector.ImageVector
 
 /**
- * A distinct icon per consumption route — used on the Medication Reminder cards and
+ * A distinct icon per consumption route - used on the Medication Reminder cards and
  * the "How it's taken" selector so each style of medicine reads at a glance.
  */
 val MedRoute.icon: ImageVector

@@ -69,7 +69,7 @@ private val SaveGreenBg: Color @Composable get() = themed(Color(0xFFE0F5EC), Col
 private val GoodGreen = Color(0xFF2E9E6B)
 
 /**
- * HEALTH REPORT — reached from the Home "Health Report" quick action.
+ * Health Report, reached from the Home "Health Report" quick action.
  *
  * "Generate" builds a two-day [HealthReport] (yesterday + today) from the local vitals history,
  * the health profile and the medication log, previews it, and offers a two-page PDF to share

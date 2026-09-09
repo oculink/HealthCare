@@ -76,7 +76,7 @@ private val PickPlaceholder: Color @Composable get() = themed(Color(0xFFA6ACB8),
 /**
  * Full-screen location picker, styled like Nearby Clinics: a Leaflet map you can tap to
  * drop a pin, and an address box at the bottom with type-ahead suggestions (Photon). Used
- * as an overlay from [AddAppointmentScreen] — not a nav route (same pattern as the catalog
+ * as an overlay from [AddAppointmentScreen] - not a nav route (same pattern as the catalog
  * pickers). Confirming hands back the chosen address string plus its coordinates (or nulls
  * if the user just typed free text).
  *

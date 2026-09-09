@@ -44,7 +44,7 @@ object Session {
 
     fun bumpDataVersion() { dataVersion++ }
 
-    /** Load the saved choice — call once from MainActivity.onCreate, before setContent. */
+    /** Load the saved choice - call once from MainActivity.onCreate, before setContent. */
     fun init(context: Context) {
         val p = prefs(context)
         role = p.getString(KEY_ROLE, "") ?: ""
@@ -83,7 +83,7 @@ object Session {
             .apply()
     }
 
-    /** Full reset — called on sign out. */
+    /** Full reset - called on sign out. */
     fun clear(context: Context) {
         role = ""
         controlledPatientUid = null
@@ -95,9 +95,9 @@ object Session {
 
     /**
      * Wipe the per-account local caches so the NEXT account doesn't inherit this one's data.
-     * In self mode these files have fixed names (`health_data`, `profile`, …) shared by every
+     * In self mode these files have fixed names (`health_data`, `profile`, ...) shared by every
      * signed-in account, so without this a new sign-in shows the previous user's readings,
-     * profile and meds until (if ever) the cloud overwrites them. Firestore stays untouched —
+     * profile and meds until (if ever) the cloud overwrites them. Firestore stays untouched -
      * each account re-hydrates its own data on next open.
      *
      * Kept: `session`, `app_prefs` (theme), `cloud_sync` (per-uid backlog flags).

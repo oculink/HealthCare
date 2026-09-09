@@ -19,7 +19,7 @@ import java.util.concurrent.Executors
  * This adds the *live tail*: while a caretaker is in caretaker mode AND the app is in the
  * foreground, it keeps Firestore snapshot listeners open on the patient's docs, so a
  * reading the patient records (or a dose they log, or a profile edit) lands in the
- * caretaker's local `*__<patientUid>` cache within a second — no reopen, no pull-to-refresh.
+ * caretaker's local `*__<patientUid>` cache within a second - no reopen, no pull-to-refresh.
  *
  * It writes through the SAME [ProfileManager.hydrateLocal] / [HealthDataManager.hydrateLocal]
  * / [MedicationManager.hydrateLocal] path the hydrator uses and then bumps
@@ -29,11 +29,11 @@ import java.util.concurrent.Executors
  * Foreground-only by design: `MainActivity` calls [start] from `onResume` and [stop] from
  * `onStop`. Firestore keeps the listener's last payload in its on-device cache, so the next
  * resume shows fresh data instantly while the listeners re-attach. Backgrounded push alerts
- * would need FCM + a server (not available on the Spark plan) — see the FYP report.
+ * would need FCM + a server (not available on the Spark plan) - see the FYP report.
  */
 object PatientMonitor {
 
-    /** true while live listeners are attached to a patient — drives the Home "· live" pill. */
+    /** true while live listeners are attached to a patient - drives the Home "· live" pill. */
     var isLive by mutableStateOf(false)
         private set
 

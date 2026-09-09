@@ -23,7 +23,7 @@ import kotlin.coroutines.resumeWithException
 /**
  * Phase-1 cloud sync.
  *
- * Every local save in the app is ALSO mirrored to Firestore under `users/{uid}`:
+ * Every local save in the app is also mirrored to Firestore under `users/{uid}`:
  *   users/{uid}                     <- health profile fields + stepGoal
  *   users/{uid}/readings/{auto}     <- one doc per recorded set of vitals
  *   users/{uid}/medications/{id}    <- one doc per medication (incl. the taken/missed log)
@@ -34,12 +34,12 @@ import kotlin.coroutines.resumeWithException
  * follow the account across devices. Firestore is the durable copy + the basis for
  * multi-device / the caregiver view later.
  *
- * Writes are fire-and-forget — Firestore's on-device cache queues them while offline and
+ * Writes are fire-and-forget - Firestore's on-device cache queues them while offline and
  * flushes automatically on reconnect.
  */
 object Cloud {
 
-    /** The signed-in account, always — used for auth-scoped writes (role, family link). */
+    /** The signed-in account, always - used for auth-scoped writes (role, family link). */
     val selfUid: String? get() = Firebase.auth.currentUser?.uid
 
     val selfDoc: DocumentReference?
@@ -52,7 +52,7 @@ object Cloud {
      */
     val targetUid: String? get() = Session.controlledPatientUid ?: selfUid
 
-    /** Back-compat alias — many callers still read `Cloud.uid`. */
+    /** Back-compat alias - many callers still read `Cloud.uid`. */
     val uid: String? get() = targetUid
 
     val userDoc: DocumentReference?
@@ -79,22 +79,20 @@ object Cloud {
         prefs.edit().putBoolean("backlog_$u", true).apply()
     }
 
-    // ===================================================================
-    // Community baseline — anonymous, aggregate-only.
+    // Community baseline - anonymous, aggregate-only.
     //
     // Every user's readings roll up into ONE shared doc `stats/vitals`, so the
     // Health Trends screen can show "you vs. everyone". No individual reading and
-    // no identity is stored here — only running count / sum / min / max per metric.
+    // no identity is stored here - only running count / sum / min / max per metric.
     // Metric keys: "hr" (BPM), "sys" (systolic), "sugar" (mg/dL), "oxy" (%).
     //
-    // Count + Sum are bumped with FieldValue.increment() — atomic on the server AND
+    // Count + Sum are bumped with FieldValue.increment() - atomic on the server AND
     // offline-safe: the write queues in the on-device cache and flushes on reconnect
     // (a transaction, by contrast, needs a live server round-trip and is simply
-    // dropped when offline — which is why the aggregate never appeared on the
+    // dropped when offline - which is why the aggregate never appeared on the
     // emulator). Min/Max are a best-effort read-then-merge; a rare race only widens
-    // the range slightly. A tampered client could still skew the numbers — acceptable
+    // the range slightly. A tampered client could still skew the numbers - acceptable
     // for the FYP; a Cloud Function would make it tamper-proof later.
-    // ===================================================================
 
     private val METRIC_KEYS = listOf("hr", "sys", "sugar", "oxy")
 
@@ -228,7 +226,7 @@ object Cloud {
         return parseCommunity(snap)
     }
 
-    /** Live all-time community aggregate — emits now and on every server-side change. */
+    /** Live all-time community aggregate - emits now and on every server-side change. */
     fun communityStatsFlow(): Flow<Map<String, CommunityStat>> = callbackFlow {
         if (uid == null) {
             trySend(emptyMap())
@@ -290,7 +288,7 @@ object Cloud {
  * Read a document, retrying the SERVER fetch a few times before falling back to the local
  * cache. Right after sign-in the Firestore SDK can fire its first request before it has
  * picked up the fresh auth token, so a lone `get()` comes back PERMISSION_DENIED (the rules
- * require `signedIn()`). The token propagates within ~1s — spaced retries ride over it.
+ * require `signedIn()`). The token propagates within ~1s - spaced retries ride over it.
  */
 internal suspend fun DocumentReference.getFresh(attempts: Int = 4): DocumentSnapshot? {
     runCatching { get(Source.SERVER).awaitResult() }.getOrNull()?.let { return it }

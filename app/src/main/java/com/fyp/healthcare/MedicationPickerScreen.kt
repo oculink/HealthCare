@@ -90,9 +90,9 @@ private sealed interface PickerRow {
 }
 
 /**
- * "Choose Medication" — a searchable A–Z list backed by [MedicationCatalog], plus an
+ * "Choose Medication" - a searchable A-Z list backed by [MedicationCatalog], plus an
  * always-available option to enter a medication that isn't listed. A compact Contacts-style
- * A–Z index sits on the right edge: tap or drag it to jump, and a letter bubble pops up
+ * A-Z index sits on the right edge: tap or drag it to jump, and a letter bubble pops up
  * while the list is scrolling.
  *
  * [onPickEntry] fires with the chosen name, its description and its route (how it's taken).

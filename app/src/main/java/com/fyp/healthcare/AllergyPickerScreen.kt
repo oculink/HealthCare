@@ -6,8 +6,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 
 /**
- * "Choose Allergen" — a thin wrapper over [CatalogPickerScreen] backed by [AllergyCatalog]
- * (bundled list ∪ online refresh ∪ the user's own past additions). [onPick] fires with the
+ * "Choose Allergen" - a thin wrapper over [CatalogPickerScreen] backed by [AllergyCatalog]
+ * (bundled list  plus  online refresh  plus  the user's own past additions). [onPick] fires with the
  * chosen allergen name; [alreadyPicked] are names already on the profile.
  */
 @Composable

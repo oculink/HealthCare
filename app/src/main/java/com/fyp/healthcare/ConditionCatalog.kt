@@ -4,13 +4,13 @@ import android.content.Context
 
 /**
  * A built-in list of common medical conditions for the picker on the onboarding /
- * Edit Health Profile screen — so the user picks from a list instead of typing (and
+ * Edit Health Profile screen - so the user picks from a list instead of typing (and
  * spelling) a diagnosis, the same way [MedicationCatalog] / [AllergyCatalog] back the
  * medication and allergy pickers.
  *
- * The set is curated for this app from the **NHS Health A–Z** (nhs.uk/conditions), whose
+ * The set is curated for this app from the NHS Health A-Z (nhs.uk/conditions), whose
  * plain-language condition names and one-line summaries this mirrors. It's the common
- * subset — the NHS A–Z has ~1,000 entries, many of them rare. Anything not listed is
+ * subset - the NHS A-Z has ~1,000 entries, many of them rare. Anything not listed is
  * covered by the picker's "Add a condition not listed" option, which works offline;
  * entries the user adds that way are remembered in [customConditions] so they show up
  * next time. [ConditionCatalogRemote] can refresh/extend the list from a hosted JSON.
@@ -63,9 +63,7 @@ object ConditionCatalog {
         }
     }
 
-    // ===================================================================
-    //  Bundled entries — guaranteed offline. Sorted A→Z by [all] / [search].
-    // ===================================================================
+    //  Bundled entries - guaranteed offline. Sorted A->Z by [all] / [search].
     val BUILT_IN: List<Entry> = listOf(
 
         Entry("Acne", Category.SKIN, "Spots, oily skin and sometimes painful lumps, mainly on the face and back"),
@@ -266,9 +264,7 @@ object ConditionCatalog {
         Entry("Womb (uterus) cancer", Category.CANCER, ""),
     )
 
-    // ===================================================================
-    //  The user's own additions — remembered locally, offline.
-    // ===================================================================
+    //  The user's own additions - remembered locally, offline.
 
     private fun prefs(context: Context) =
         context.getSharedPreferences(scopedPrefsName("condition_custom"), Context.MODE_PRIVATE)
@@ -291,9 +287,7 @@ object ConditionCatalog {
 
     private const val K_CUSTOM = "custom_conditions_v1"
 
-    // ===================================================================
     //  Merged view used by the picker.
-    // ===================================================================
 
     fun all(context: Context): List<Entry> {
         val byKey = LinkedHashMap<String, Entry>()

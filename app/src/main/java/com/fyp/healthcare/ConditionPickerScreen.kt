@@ -6,8 +6,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 
 /**
- * "Choose Condition" — a thin wrapper over [CatalogPickerScreen] backed by
- * [ConditionCatalog] (bundled NHS Health A–Z subset ∪ online refresh ∪ the user's own
+ * "Choose Condition" - a thin wrapper over [CatalogPickerScreen] backed by
+ * [ConditionCatalog] (bundled NHS Health A-Z subset  plus  online refresh  plus  the user's own
  * past additions). [onPick] fires with the chosen condition name; [alreadyPicked] are
  * names already on the profile.
  */

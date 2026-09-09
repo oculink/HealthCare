@@ -8,7 +8,7 @@ import com.google.android.gms.location.SleepSegmentEvent
 
 /**
  * Receives Android Sleep API broadcasts (see [SleepTracker]). Manifest-registered so it fires
- * even when the app process is dead — the nightly [SleepSegmentEvent] typically arrives
+ * even when the app process is dead - the nightly [SleepSegmentEvent] typically arrives
  * mid-morning, long after the app was last open.
  */
 class SleepReceiver : BroadcastReceiver() {

@@ -94,10 +94,10 @@ private sealed interface CatalogRow {
 }
 
 /**
- * A generic searchable A–Z picker: search box, Contacts-style A–Z fast-scroll index with a
+ * A generic searchable A-Z picker: search box, Contacts-style A-Z fast-scroll index with a
  * letter bubble, an always-available "add something not listed" inline field (works
  * offline), and rows that grey out when already chosen. Backs the medication / allergy /
- * condition pickers — see [AllergyPickerScreen], [ConditionPickerScreen].
+ * condition pickers - see [AllergyPickerScreen], [ConditionPickerScreen].
  *
  * @param search       returns the entries matching a query ("" = everything), already sorted.
  * @param refresh      best-effort online catalogue refresh; returns true when the list changed.

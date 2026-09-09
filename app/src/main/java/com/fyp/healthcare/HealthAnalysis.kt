@@ -7,7 +7,7 @@ import kotlin.math.roundToInt
  * UC-04 "Analyze Health Data".
  *
  * Takes the recorded vitals history and produces, for the most recent reading:
- *  - a per-metric judgement against predefined reference ranges (step 2–3)
+ *  - a per-metric judgement against predefined reference ranges (step 2-3)
  *  - a short-term trend for each metric vs. the mean of the previous readings (step 4)
  *  - an overall status flag Normal / Warning / Critical (step 5)
  *
@@ -156,7 +156,7 @@ object HealthAnalysis {
         }
     }
 
-    /** Mean of the last few readings incl. the current one — null when history is too thin. */
+    /** Mean of the last few readings incl. the current one - null when history is too thin. */
     private fun recentAvg(current: Float, priors: List<Float>): Float? {
         if (priors.size < MIN_HISTORY_FOR_TREND) return null
         return (priors + current).takeLast(TREND_LOOKBACK).average().toFloat()
@@ -177,11 +177,11 @@ object HealthAnalysis {
 /**
  * Simplified adult reference ranges. Sources to cite in the FYP report:
  *  - Blood pressure: ACC/AHA 2017 Hypertension Guideline
- *  - Heart rate: American Heart Association (resting adult 60–100 BPM)
+ *  - Heart rate: American Heart Association (resting adult 60-100 BPM)
  *  - SpO₂: WHO Pulse Oximetry Training Manual / BTS oxygen guideline
  *  - Blood glucose (casual / random, mg/dL): American Diabetes Association
  *  - Body temperature: NICE / standard clinical references
- * These are screening thresholds for a consumer app, NOT a diagnostic tool.
+ * These are screening thresholds for a consumer app, not a diagnostic tool.
  */
 object VitalRules {
 

@@ -26,19 +26,19 @@ import java.util.Locale
 import kotlin.math.roundToInt
 
 /**
- * HEALTH REPORT
+ * Health Report.
  *
- * A two-day snapshot (yesterday + today) the patient — or their linked caregiver — can
+ * A two-day snapshot (yesterday and today) the patient, or their linked caregiver, can
  * generate on demand and hand to a doctor. Built entirely from data already on the device:
  * the recorded vitals history ([HealthDataManager.history]), the health profile and the
- * medication log. Offline, and never invents numbers.
+ * medication log. Works offline and never invents numbers.
  *
  * Page 1: patient info, overall status, a 6-metric summary and a 2x2 grid of trend charts.
- * Page 2: written health insights. Status wording ("Good / Normal / Low / High / Critical")
- * is the same [VitalStatus] scale the Home dashboard uses.
+ * Page 2: written health insights. The status wording ("Good / Normal / Low / High /
+ * Critical") is the same [VitalStatus] scale the Home dashboard uses.
  */
 
-/** Which vital a card / insight / chart belongs to — drives its icon and accent colour. */
+/** Which vital a card / insight / chart belongs to - drives its icon and accent colour. */
 enum class MetricKind(val display: String, @get:DrawableRes val icon: Int, val accent: Int) {
     HEART_RATE("Heart Rate", R.drawable.ic_rpt_heart, 0xFFE5484D.toInt()),
     BLOOD_PRESSURE("Blood Pressure", R.drawable.ic_rpt_gauge, 0xFFEA6A2C.toInt()),
@@ -81,7 +81,7 @@ enum class ReportStatus(val label: String) {
 
 enum class OverallStatus(val label: String) { GOOD("All Good"), ATTENTION("Needs Attention") }
 
-/** One point on a trend chart — a day's average for that metric. */
+/** One point on a trend chart - a day's average for that metric. */
 data class TrendPoint(
     val dateLabel: String,
     val caption: String,
@@ -139,7 +139,7 @@ data class HealthReport(
 
     companion object {
 
-        /** Build the report for TODAY + YESTERDAY from local data. Pure — no I/O. */
+        /** Build the report for TODAY + YESTERDAY from local data. Pure - no I/O. */
         fun generate(
             profile: HealthProfile,
             readings: List<HealthDataManager.Reading>,
@@ -466,9 +466,7 @@ data class HealthReport(
 private fun trimReportNumber(v: Float): String =
     if (v == v.toLong().toFloat()) v.toLong().toString() else String.format(Locale.US, "%.1f", v)
 
-// =====================================================================
-//  Export — a plain-text body for the share sheet and a two-page PDF.
-// =====================================================================
+//  Export - a plain-text body for the share sheet and a two-page PDF.
 
 object HealthReportExport {
 

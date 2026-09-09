@@ -68,7 +68,7 @@ private val ChipBlueBg: Color @Composable get() = themed(Color(0xFFE1ECFF), Colo
  *
  * Starts at "once every day" and lets the user add extra times, and set different
  * times per day (e.g. Mon 6am & 5pm, Tue 8am, Fri 6am/2pm/8pm). Large text and
- * controls — it's the screen an older user touches most often.
+ * controls - it's the screen an older user touches most often.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable

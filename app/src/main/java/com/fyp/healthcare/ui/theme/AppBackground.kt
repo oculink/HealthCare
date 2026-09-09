@@ -24,8 +24,8 @@ import kotlin.math.roundToInt
  * a base colour, a soft top-lit vertical gradient, and a faint linen cross-hatch
  * texture (like a subtle fabric weave). Works in light and dark.
  *
- * On the **Normal** icon style ([IconStyle.NORMAL]) it also scatters a dense,
- * randomised health-motif texture on top — many small hearts, plus-crosses,
+ * On the Normal icon style ([IconStyle.NORMAL]) it also scatters a dense,
+ * randomised health-motif texture on top - many small hearts, plus-crosses,
  * pulse lines, pills, droplets, rings, cells and helices, each jittered, rotated
  * and scaled by a deterministic per-cell hash (so it looks hand-strewn but stays
  * stable and cached). Same spirit as a WhatsApp chat wallpaper, but our own.

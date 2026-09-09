@@ -14,21 +14,21 @@ import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
 
 /**
- * TODAY'S STEP COUNT — from the phone's hardware step counter (`Sensor.TYPE_STEP_COUNTER`).
+ * Today's step count, from the phone's hardware step counter (`Sensor.TYPE_STEP_COUNTER`).
  *
  * The sensor reports steps accumulated since the last device reboot, and the OS keeps
  * counting even while the app is closed / in the background. So we don't need a foreground
- * service — we just *sample* it: `MainActivity` registers this listener in `onResume` and
+ * service - we just *sample* it: `MainActivity` registers this listener in `onResume` and
  * unregisters in `onPause`; the hardware keeps counting regardless and we catch up on the
  * next open.
  *
  * "Today" is derived by remembering the raw counter value at the first sample of each
  * calendar day (the baseline): today's steps = current raw − baseline. On a reboot the raw
  * value drops below the baseline, so we re-baseline (steps taken before the reboot that day
- * are lost — acceptable for the FYP).
+ * are lost, which is acceptable for the FYP).
  *
- * SELF MODE ONLY. A caregiver's phone steps say nothing about the patient they monitor, so
- * [start] no-ops in caretaker mode — the caregiver's Home reads the patient's mirrored
+ * Self mode only. A caregiver's phone steps say nothing about the patient they monitor, so
+ * [start] no-ops in caretaker mode - the caregiver's Home reads the patient's mirrored
  * count from [ActivityDataManager] instead (hydrated from `users/{patientUid}`).
  *
  * Storage is a dedicated unscoped `steps` prefs file (wiped on sign-out via
@@ -89,7 +89,7 @@ object StepTracker {
         sensorManager = null
     }
 
-    /** Raw cumulative counter → today's steps, maintaining the stored daily baseline. */
+    /** Turns the raw cumulative counter into today's steps, maintaining the stored daily baseline. */
     private fun foldReading(context: Context, raw: Long): Int {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val today = dateKey()

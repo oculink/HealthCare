@@ -13,11 +13,11 @@ import java.util.Locale
 import java.util.concurrent.TimeUnit
 
 /**
- * Local, phone-based reminders for medical appointments — the same WorkManager approach
+ * Local, phone-based reminders for medical appointments - the same WorkManager approach
  * [ReminderScheduler] uses for medication.
  *
  * One appointment fires at most one reminder, [Appointment.remindMinutesBefore] before the
- * start time. No push / server involved (Spark plan) — see the FYP report. A caretaker's
+ * start time. No push / server involved (Spark plan) - see the FYP report. A caretaker's
  * phone never schedules a linked patient's appointment reminders: [scheduleNext] no-ops in
  * caretaker mode unless [force]d, and [syncAll] / [AppointmentReminderWorker] only ever
  * touch the signed-in account's own list.

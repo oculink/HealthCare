@@ -71,7 +71,7 @@ private val PlaceholderGray: Color @Composable get() = themed(Color(0xFFA6ACB8),
 
 /**
  * Step 1 of adding/editing a medication: name, route, strength, amount, description.
- * "Next" hands a draft [Medication] (schedule still empty) to [onNext] — the Reminder
+ * "Next" hands a draft [Medication] (schedule still empty) to [onNext] - the Reminder
  * Times screen fills in the weekly schedule and does the actual save.
  *
  * The medication name can be chosen from [MedicationCatalog] via the picker screen

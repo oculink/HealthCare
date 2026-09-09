@@ -104,7 +104,7 @@ import kotlin.coroutines.resume
 import kotlin.math.roundToInt
 
 /**
- * NEARBY CLINICS — an in-app map of hospitals / clinics / pharmacies near the user.
+ * Nearby Clinics: an in-app map of hospitals, clinics and pharmacies near the user.
  *
  * Map: an embedded WebView running Leaflet (from cdnjs) over free OpenStreetMap tiles.
  * Places: [NearbyClinics] (Overpass API). No Google Maps SDK, no API key, no billing.
@@ -205,8 +205,8 @@ fun NearbyClinicsScreen(onBackClick: () -> Unit) {
         mapHeight = (mapHeight + delta).coerceIn(0.dp, mapExpanded)
     }
     // Results section (Range + filters + list) height:
-    //  - map hidden/small  → grows to fill the space the map gave up (no grey gap)
-    //  - map past normal    → keeps its natural size so its rows slide off the edge
+    //  - map hidden/small  -> grows to fill the space the map gave up (no grey gap)
+    //  - map past normal    -> keeps its natural size so its rows slide off the edge
     //    intact rather than collapsing
     val resultsHeight = if (rootPx == 0) 320.dp
         else maxOf(mapSlot - mapHeight, mapExpanded - mapNormal).coerceAtLeast(0.dp)
@@ -381,7 +381,7 @@ fun NearbyClinicsScreen(onBackClick: () -> Unit) {
             }
         }
 
-        // Handle + address + results, as one block that is NEVER squished by the
+        // Handle + address + results, as one block that is never squished by the
         // parent Column (unbounded). As the map grows this block is pushed down and
         // its lower part (the results section) slides off the bottom edge intact,
         // while the handle + address stay pinned just under the map.
@@ -930,7 +930,7 @@ internal class LeafletMap(
 }
 
 // ---------------------------------------------------------------------------
-// Location — framework LocationManager, no Play Services dependency
+// Location - framework LocationManager, no Play Services dependency
 // ---------------------------------------------------------------------------
 
 @SuppressLint("MissingPermission")

@@ -9,12 +9,13 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 /**
- * HEALTH DATA STORAGE
- * - Local SharedPreferences holds the LATEST reading of each type (fast, offline-safe reads).
- * - Local "history" keeps every recorded set with its timestamp, so the Health Trends screen
- *   can compute Min / Avg / Max and draw the line chart without a network round-trip.
- * - Every recording is ALSO written to Firestore: users/{uid}/readings/{auto} — one doc per
- *   recorded set, timestamped. That subcollection is the cloud history / caregiver view.
+ * Health-data storage.
+ *
+ * Local SharedPreferences holds the latest reading of each type, for fast offline-safe reads.
+ * A local "history" keeps every recorded set with its timestamp, so the Health Trends screen
+ * can compute min/avg/max and draw the line chart without a network round-trip.
+ * Every recording also goes to Firestore at users/{uid}/readings/{auto}, one timestamped doc
+ * per recorded set. That subcollection is the cloud history and caregiver view.
  */
 
 class HealthDataManager(context: Context) {
@@ -158,7 +159,7 @@ class HealthDataManager(context: Context) {
      * same [Reading] shape the Health Trends screen aggregates.
      *
      * [fromServer] = false reads the on-device Firestore cache only (instant, offline-safe);
-     * true forces a network fetch. Throws if signed out or the fetch fails — the caller
+     * true forces a network fetch. Throws if signed out or the fetch fails - the caller
      * decides whether to fall back to the cache or to local [history].
      */
     suspend fun cloudHistory(fromServer: Boolean): List<Reading> {
@@ -169,7 +170,7 @@ class HealthDataManager(context: Context) {
 
     /**
      * Replace the local store with [readings] pulled from Firestore (hydration on app open /
-     * when a caretaker links). Does NOT re-push to the cloud — this is a download.
+     * when a caretaker links). Doesn't re-push to the cloud; this is a download.
      */
     fun hydrateLocal(readings: List<Reading>) {
         if (readings.isEmpty()) return
@@ -210,7 +211,7 @@ class HealthDataManager(context: Context) {
             getTemperature(), getOxygen(),
         ).any { it != null }
         if (!any) return
-        // Backlog only mirrors the latest snapshot — don't fold it into the community
+        // Backlog only mirrors the latest snapshot - don't fold it into the community
         // aggregate (those readings were already counted when first recorded, or are a
         // one-off snapshot that shouldn't skew the average).
         pushReading(

@@ -34,7 +34,7 @@ import java.net.URL
  *
  * The photo comes from FirebaseUser.photoUrl (a public lh3.googleusercontent.com URL that
  * Google Sign-In fills in). It's fetched once and cached on disk, so later screens paint
- * it without hitting the network again. No image-loading library — it's a single small JPEG.
+ * it without hitting the network again. No image-loading library - it's a single small JPEG.
  */
 @Composable
 fun AccountAvatar(

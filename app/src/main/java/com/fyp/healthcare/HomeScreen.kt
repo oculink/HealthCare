@@ -73,9 +73,9 @@ private val LabelGray: Color @Composable get() = themed(Color(0xFF5F6673), Color
 private val HairlineBorder: Color @Composable get() = themed(Color(0xFFE7EAF0), Color(0xFF2A2C33))
 
 /**
- * FUTURE ROADMAP (HOME):
- * - Will replace emojis into images/icons (asset images) in the future.
- * - VitalStatus ranges are simplified adult averages — verify/cite medical sources later.
+ * Roadmap notes for Home:
+ * - Replace the emojis with image/icon assets later.
+ * - VitalStatus ranges are simplified adult averages; verify and cite medical sources later.
  * - Tapping the blue header card opens the Profile page (sign out lives there now).
  */
 
@@ -109,7 +109,7 @@ fun HomeScreen(
 
     // TODO: replace with real data later.
     // This null state will also be reused for the offline state later.
-    // Readings now come from the Record Data page (null until first recording —
+    // Readings now come from the Record Data page (null until first recording -
     // this same null state will be reused for offline later)
     val heartRate = healthData.getHeartRate()
     val bloodPressure = healthData.getBloodPressure()
@@ -155,7 +155,7 @@ fun HomeScreen(
     // UC-04 A2 (<<extend>> Caregiver Remote Monitoring): flag the latest reading if it
     // landed in the Warning / Critical zone. In caretaker mode `healthData` is scoped to
     // the patient, so this is exactly the "instant warning to the caregiver" the proposal
-    // describes — passive (shown on open / sync), since the Spark plan has no push.
+    // describes - passive (shown on open / sync), since the Spark plan has no push.
     val analysis = remember(dataVersion) { healthData.analyzeLatest() }
     val alert = analysis?.takeIf {
         it.overall == VitalLevel.WARNING || it.overall == VitalLevel.CRITICAL

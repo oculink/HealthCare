@@ -82,7 +82,7 @@ private val LabelGray: Color @Composable get() = themed(Color(0xFF5F6673), Color
 private val PlaceholderGray: Color @Composable get() = themed(Color(0xFFA6ACB8), Color(0xFF6A7079))
 
 /**
- * Add or edit one [Appointment]. Everything is typed by hand — the app does not talk to
+ * Add or edit one [Appointment]. Everything is typed by hand - the app does not talk to
  * any clinic system. "Next available" style booking is out of scope (see the FYP report):
  * the user records an appointment they already made, and the app reminds them of it.
  */

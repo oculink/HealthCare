@@ -11,23 +11,23 @@ import com.google.android.gms.location.ActivityRecognition
 import com.google.android.gms.location.SleepSegmentRequest
 
 /**
- * PHONE-BASED SLEEP TRACKING — a fallback until the bedside mmWave radar is connected.
+ * Phone-based sleep tracking. A fallback until the bedside mmWave radar is connected.
  *
- * Uses Google Play Services' **Sleep API** (`ActivityRecognition`): an on-device model over
- * the phone's motion + ambient-light sensors that infers the main nightly sleep period from
- * "dark + still + no interaction for hours". Results arrive at [SleepReceiver]:
- *   - `SleepClassifyEvent` — ~every 10 min overnight (confidence the user is asleep). Ignored
- *     for now; stored for a possible future "efficiency" figure.
- *   - `SleepSegmentEvent`  — once after waking: the night's start / end / duration. This is
+ * Uses Google Play Services' Sleep API (`ActivityRecognition`): an on-device model over the
+ * phone's motion and ambient-light sensors that infers the main nightly sleep period from
+ * "dark and still with no interaction for hours". Results arrive at [SleepReceiver]:
+ *   - `SleepClassifyEvent` - roughly every 10 min overnight (confidence the user is asleep).
+ *     Ignored for now; stored for a possible future "efficiency" figure.
+ *   - `SleepSegmentEvent`  - once after waking: the night's start, end and duration. This is
  *     what populates the "Sleep" row.
  *
- * Accuracy is actigraphy-class: fine for duration / bedtime trends, **no sleep stages**, and
+ * Accuracy is actigraphy-class: fine for duration and bedtime trends, no sleep stages, and
  * only as good as where the phone spends the night. The UI shows a note that the figure is a
  * phone estimate, not a radar reading. The radar will replace this.
  *
- * SELF MODE ONLY (like [StepTracker]); a caregiver reads the patient's synced value. The
- * subscription intentionally OUTLIVES the app being closed (the segment lands mid-morning) —
- * it's only torn down on sign-out or when the account becomes a caregiver.
+ * Self mode only, like [StepTracker]; a caregiver reads the patient's synced value. The
+ * subscription deliberately outlives the app being closed, since the segment lands
+ * mid-morning; it's only torn down on sign-out or when the account becomes a caregiver.
  */
 object SleepTracker {
 

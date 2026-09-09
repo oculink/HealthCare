@@ -73,7 +73,7 @@ private val AlertRed = Color(0xFFD32F2F)
 
 /**
  * Activity Monitoring. Every metric here is meant to be driven by the mmWave
- * radar — see [ActivityDataManager]. Until it's wired up they all read `null`
+ * radar - see [ActivityDataManager]. Until it's wired up they all read `null`
  * and the screen shows "waiting for radar" placeholders.
  */
 @Composable
@@ -192,9 +192,7 @@ fun ActivityScreen(
     }
 }
 
-// =====================================================================
 // Radar status
-// =====================================================================
 
 @Composable
 private fun RadarStatusCard(connected: Boolean, presence: Boolean?, lastSync: String?) {
@@ -259,11 +257,9 @@ private fun presenceLabel(presence: Boolean?): String = when (presence) {
     null -> "--"
 }
 
-// =====================================================================
-// Step gauge — the "graphical" centrepiece.
+// Step gauge - the "graphical" centrepiece.
 // A circular progress ring over a radar-style backdrop. With no data it
 // runs an idle sweep, like a radar scanning for a signal.
-// =====================================================================
 
 @Composable
 private fun RadarActivityGauge(steps: Int?, goal: Int, modifier: Modifier = Modifier) {
@@ -342,9 +338,7 @@ private fun RadarActivityGauge(steps: Int?, goal: Int, modifier: Modifier = Modi
     }
 }
 
-// =====================================================================
 // Hourly bar chart
-// =====================================================================
 
 @Composable
 private fun HourlyActivityChart(data: List<Int>?) {
@@ -405,9 +399,7 @@ private fun hourLabel(h: Int): String = when {
     else -> "${h - 12}p"
 }
 
-// =====================================================================
 // Sleep
-// =====================================================================
 
 @Composable
 private fun SleepCard(sleep: SleepSummary?) {
@@ -484,9 +476,7 @@ private fun SleepQualityPill(quality: String) {
     }
 }
 
-// =====================================================================
 // Small shared pieces
-// =====================================================================
 
 @Composable
 private fun StatCell(

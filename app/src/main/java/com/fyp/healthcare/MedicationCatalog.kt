@@ -5,12 +5,12 @@ package com.fyp.healthcare
  * what each one is for. Used by the "Choose Medication" picker on the Add Medication
  * screen so the user doesn't have to type (or spell) a drug name.
  *
- * This is a curated set of the medicines people most often take on a schedule — it is
- * NOT the entire drugs.com A–Z database (that is licensed data and tens of thousands of
- * entries). Anything not listed is covered by the picker's "Add a medication not listed"
- * option, where the user types their own name and an optional description.
+ * This is a curated set of the medicines people most often take on a schedule, not the
+ * entire drugs.com A-Z database (that is licensed data and tens of thousands of entries).
+ * Anything not listed is covered by the picker's "Add a medication not listed" option,
+ * where the user types their own name and an optional description.
  *
- * Descriptions are short, general information written for this app — not dosing advice.
+ * Descriptions are short, general information written for this app, not dosing advice.
  */
 object MedicationCatalog {
 
@@ -32,7 +32,7 @@ object MedicationCatalog {
         }
     }
 
-    /** Every entry, sorted A→Z by name. */
+    /** Every entry, sorted A to Z by name. */
     val ALL: List<Entry> = listOf(
         Entry("Acetaminophen (Tylenol)", "Pain reliever and fever reducer"),
         Entry("Acetazolamide", "Carbonic anhydrase inhibitor for glaucoma, altitude sickness and seizures"),

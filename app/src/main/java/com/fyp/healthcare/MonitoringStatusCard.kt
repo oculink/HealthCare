@@ -34,12 +34,12 @@ private val LabelGray: Color @Composable get() = themed(Color(0xFF5F6673), Color
 private val IdleGray: Color @Composable get() = themed(Color(0xFF9AA1AC), Color(0xFF6A7079))
 
 /**
- * The "Monitoring" status strip at the bottom of Home — mirrors the Figma design.
+ * The "Monitoring" status strip at the bottom of Home - mirrors the Figma design.
  *
- *  - Caretaker mode → green, names the patient being managed, with a way back.
- *  - Patient with a linked caregiver → green "Monitoring active" + the caregiver's name
+ *  - Caretaker mode -> green, names the patient being managed, with a way back.
+ *  - Patient with a linked caregiver -> green "Monitoring active" + the caregiver's name
  *    and photo. No action (status only).
- *  - Patient with nobody linked → grey "Monitoring not active".
+ *  - Patient with nobody linked -> grey "Monitoring not active".
  */
 @Composable
 fun MonitoringStatusCard(

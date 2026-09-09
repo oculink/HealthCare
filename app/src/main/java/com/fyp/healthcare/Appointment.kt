@@ -15,7 +15,7 @@ import java.util.Locale
 /**
  * One medical appointment the user (patient) or a linked caregiver has entered by hand.
  *
- * The app never discovers appointments on its own — someone books by phone / at the
+ * The app never discovers appointments on its own - someone books by phone / at the
  * counter, then records it here. A "doctor" is just the [doctorName] + [clinicName]
  * text; there is no doctor account. Once saved, the entry drives a local reminder
  * ([AppointmentReminderScheduler]) and shows on the Appointments list + Home.
@@ -36,7 +36,7 @@ data class Appointment(
     val notes: String = "",
     /** Minutes before [startMillis] to fire the reminder. 0 = no reminder. */
     val remindMinutesBefore: Int = 60,
-    /** "upcoming" | "completed" | "cancelled" — set by the user. */
+    /** "upcoming" | "completed" | "cancelled" - set by the user. */
     val status: String = STATUS_UPCOMING,
     val createdAt: Long = System.currentTimeMillis(),
 ) {
@@ -71,7 +71,7 @@ data class Appointment(
         const val STATE_COMPLETED = "completed"
         const val STATE_CANCELLED = "cancelled"
 
-        /** Lead-time options offered on the Add screen — label to minutes. */
+        /** Lead-time options offered on the Add screen - label to minutes. */
         val REMINDER_CHOICES: List<Pair<String, Int>> = listOf(
             "None" to 0,
             "15 min" to 15,
@@ -121,7 +121,7 @@ fun Appointment.reminderFireAt(): Long? {
 }
 
 /**
- * "Today" / "Tomorrow" / "In 3 days" / "5 days ago" — a friendly relative day label,
+ * "Today" / "Tomorrow" / "In 3 days" / "5 days ago" - a friendly relative day label,
  * falling back to the plain date once it's more than a week out.
  */
 fun relativeDayLabel(startMillis: Long, now: Long = System.currentTimeMillis()): String {
@@ -144,7 +144,7 @@ fun relativeDayLabel(startMillis: Long, now: Long = System.currentTimeMillis()):
 
 /**
  * @param forSelf when true, always use the signed-in account's own store, ignoring
- *        caretaker mode — used by the reminder scheduler / worker so a caretaker's phone
+ *        caretaker mode - used by the reminder scheduler / worker so a caretaker's phone
  *        only ever fires its own appointment notifications, never a linked patient's.
  */
 class AppointmentManager(context: Context, forSelf: Boolean = false) {
@@ -213,7 +213,7 @@ class AppointmentManager(context: Context, forSelf: Boolean = false) {
     /** Replace the local list with [appts] pulled from Firestore (hydration). No re-push. */
     fun hydrateLocal(appts: List<Appointment>) = save(appts)
 
-    /** Read the appointment list straight from Firestore — the inverse of [push]. */
+    /** Read the appointment list straight from Firestore - the inverse of [push]. */
     suspend fun cloudList(fromServer: Boolean): List<Appointment> {
         val col = Cloud.userDoc?.collection("appointments") ?: return emptyList()
         val snap = col.get(if (fromServer) Source.SERVER else Source.CACHE).awaitResult()
