@@ -117,7 +117,7 @@ fun RecordDataScreen(
             Text("All data is securely saved & analyzed", fontSize = 12.sp, color = LabelGray)
             Spacer(Modifier.height(20.dp))
 
-            ReadingField(bloodPressure, { bloodPressure = it }, "Blood Pressure", "e.g. 120/80 mmHg", Icons.Filled.Bloodtype, KeyboardType.Phone)
+            ReadingField(bloodPressure, { bloodPressure = it }, "Blood Pressure", "e.g. 120/80 mmHg", Icons.Filled.Bloodtype, KeyboardType.Text)
             ReadingField(bloodSugar, { bloodSugar = it }, "Blood Sugar", "e.g. 95 mg/dL", Icons.Filled.Cookie, KeyboardType.Decimal)
             ReadingField(heartRate, { heartRate = it }, "Heart Rate", "e.g. 72 BPM", Icons.Filled.MonitorHeart, KeyboardType.Number)
             ReadingField(temperature, { temperature = it }, "Temperature", "e.g. 36.6 °C", Icons.Filled.DeviceThermostat, KeyboardType.Decimal)
