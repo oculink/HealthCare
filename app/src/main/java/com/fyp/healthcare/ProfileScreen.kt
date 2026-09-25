@@ -5,7 +5,7 @@ import com.fyp.healthcare.ui.theme.glossyTopBar
 import com.fyp.healthcare.ui.theme.GlossyButton
 import com.fyp.healthcare.ui.theme.glossySurface
 import com.fyp.healthcare.ui.theme.AppTheme
-import com.fyp.healthcare.ui.theme.IconStyle
+import com.fyp.healthcare.ui.theme.Decoration
 import com.fyp.healthcare.ui.theme.ThemeMode
 import com.fyp.healthcare.ui.theme.themed
 import androidx.compose.foundation.background
@@ -35,6 +35,7 @@ import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.ContactPhone
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FamilyRestroom
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.MedicalInformation
@@ -48,6 +49,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -67,6 +69,9 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 private val BrandBlue = Color(0xFF2A6DE1)
 private val CardWhite: Color @Composable get() = themed(Color(0xFFFFFFFF), Color(0xFF1C1D22))
@@ -80,8 +85,10 @@ fun ProfileScreen(
     userManager: UserManager,
     profileManager: ProfileManager,
     activity: ActivityDataManager,
+    healthData: HealthDataManager,
     onEditProfile: () -> Unit,
     onOpenFamilyCaregiver: () -> Unit,
+    onOpenHistory: () -> Unit,
     onSignOut: () -> Unit,
     onBackClick: () -> Unit,
 ) {
@@ -112,7 +119,7 @@ fun ProfileScreen(
     val context = LocalContext.current
     var showGoalDialog by remember { mutableStateOf(false) }
     var showThemeDialog by remember { mutableStateOf(false) }
-    var showIconStyleDialog by remember { mutableStateOf(false) }
+    var showLookDialog by remember { mutableStateOf(false) }
     var confirmSignOut by remember { mutableStateOf(false) }
 
     Column(
@@ -237,6 +244,49 @@ fun ProfileScreen(
                 }
             }
 
+            val history = remember(Session.dataVersion) {
+                healthData.history().sortedByDescending { it.timestamp }
+            }
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .glossySurface(RoundedCornerShape(20.dp), CardWhite)
+                    .padding(16.dp),
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconCircle(Icons.Filled.History, BrandBlue)
+                    Spacer(Modifier.width(12.dp))
+                    Text("Reading history", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = TextDark, modifier = Modifier.weight(1f))
+                    TextButton(onClick = onOpenHistory) {
+                        Text(
+                            if (history.isEmpty()) "Open" else "See all",
+                            fontSize = 13.sp, color = BrandBlue, fontWeight = FontWeight.Bold,
+                        )
+                    }
+                }
+                if (history.isEmpty()) {
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        "Nothing recorded yet. Readings you enter will be listed here.",
+                        fontSize = 12.sp, color = LabelGray,
+                    )
+                } else {
+                    Spacer(Modifier.height(8.dp))
+                    history.take(3).forEach { r ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                formatHistoryStamp(r.timestamp),
+                                fontSize = 12.sp, color = LabelGray, modifier = Modifier.weight(1f),
+                            )
+                            Text(readingSummary(r), fontSize = 13.sp, fontWeight = FontWeight.Bold, color = TextDark)
+                        }
+                    }
+                }
+            }
+
             SectionLabel("Emergency Contacts")
             Column(
                 modifier = Modifier
@@ -306,7 +356,7 @@ fun ProfileScreen(
                 Divider()
                 NavRow(
                     Icons.Filled.DarkMode,
-                    "Appearance",
+                    "Dark mode",
                     themeLabel(AppTheme.mode),
                     tint = Color(0xFF37474F),
                     onClick = { showThemeDialog = true },
@@ -314,10 +364,10 @@ fun ProfileScreen(
                 Divider()
                 NavRow(
                     Icons.Filled.AutoAwesome,
-                    "Theme",
-                    if (AppTheme.iconStyle == IconStyle.NORMAL) "Normal" else "Minimal",
+                    "Look and feel",
+                    lookLabel(AppTheme.decoration),
                     tint = Color(0xFFEE7B2E),
-                    onClick = { showIconStyleDialog = true },
+                    onClick = { showLookDialog = true },
                 )
                 Divider()
                 NavRow(Icons.Filled.Notifications, "Notifications", "On", tint = Color(0xFFE23539))
@@ -362,7 +412,7 @@ fun ProfileScreen(
     if (showThemeDialog) {
         AlertDialog(
             onDismissRequest = { showThemeDialog = false },
-            title = { Text("Appearance") },
+            title = { Text("Dark mode") },
             text = {
                 Column {
                     ThemeMode.entries.forEach { m ->
@@ -389,36 +439,52 @@ fun ProfileScreen(
         )
     }
 
-    if (showIconStyleDialog) {
+    if (showLookDialog) {
         AlertDialog(
-            onDismissRequest = { showIconStyleDialog = false },
-            title = { Text("Theme") },
+            onDismissRequest = { showLookDialog = false },
+            title = { Text("Look and feel") },
             text = {
-                Column {
-                    listOf(
-                        IconStyle.NORMAL to "Normal — glossy icons",
-                        IconStyle.MINIMAL to "Minimal — flat icons",
-                    ).forEach { (style, label) ->
+                // Stays open after each change, so the screen behind the dialog updates while
+                // the person is choosing rather than closing on the first tap.
+                Column(
+                    modifier = Modifier.verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
+                    Decoration.entries.forEach { value ->
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(8.dp))
-                                .clickable {
-                                    AppTheme.setIconStyle(context, style)
-                                    showIconStyleDialog = false
-                                }
-                                .padding(vertical = 8.dp),
+                                .clip(RoundedCornerShape(10.dp))
+                                .clickable { AppTheme.setDecoration(context, value) }
+                                .padding(vertical = 8.dp, horizontal = 4.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            RadioButton(selected = AppTheme.iconStyle == style, onClick = null)
-                            Spacer(Modifier.width(8.dp))
-                            Text(label, fontSize = 15.sp, color = TextDark)
+                            RadioButton(selected = AppTheme.decoration == value, onClick = null)
+                            Spacer(Modifier.width(10.dp))
+                            Column {
+                                Text(lookLabel(value), fontSize = 15.sp, fontWeight = FontWeight.Medium, color = TextDark)
+                                Text(lookHint(value), fontSize = 12.sp, color = LabelGray, lineHeight = 16.sp)
+                            }
                         }
                     }
+
+                    Spacer(Modifier.height(10.dp))
+                    // The page's own Divider() is inset for the list rows; inside a dialog a
+                    // full-width rule reads better.
+                    Box(
+                        Modifier
+                            .fillMaxWidth()
+                            .height(1.dp)
+                            .background(themed(Color(0xFFE5E8EE), Color(0xFF2A2C33))),
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    SwitchRow("Card shadows", AppTheme.shadows) { AppTheme.setShadows(context, it) }
+                    SwitchRow("Leaf patterns on cards", AppTheme.leafPatterns) { AppTheme.setLeafPatterns(context, it) }
+                    SwitchRow("Patterned background", AppTheme.backgroundPattern) { AppTheme.setBackgroundPattern(context, it) }
                 }
             },
             confirmButton = {},
-            dismissButton = { TextButton(onClick = { showIconStyleDialog = false }) { Text("Close") } },
+            dismissButton = { TextButton(onClick = { showLookDialog = false }) { Text("Close") } },
         )
     }
 
@@ -522,3 +588,45 @@ private fun themeLabel(m: ThemeMode): String = when (m) {
     ThemeMode.LIGHT -> "Light"
     ThemeMode.DARK -> "Dark"
 }
+
+private fun lookLabel(d: Decoration): String = when (d) {
+    Decoration.CALM -> "Calm"
+    Decoration.STANDARD -> "Standard"
+    Decoration.RICH -> "Rich"
+}
+
+private fun lookHint(d: Decoration): String = when (d) {
+    Decoration.CALM -> "Flat colours and thin edges, no texture or depth"
+    Decoration.STANDARD -> "Soft gradients, gentle shadows and a faint leaf pattern"
+    Decoration.RICH -> "The same look, deeper shadows and more visible texture"
+}
+
+/** A switch whose whole row is the tap target, with the label read out beside it. */
+@Composable
+private fun SwitchRow(label: String, checked: Boolean, onChange: (Boolean) -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .clickable { onChange(!checked) }
+            .padding(vertical = 8.dp, horizontal = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(label, fontSize = 15.sp, color = TextDark, modifier = Modifier.weight(1f))
+        Switch(checked = checked, onCheckedChange = onChange)
+    }
+}
+
+private fun formatHistoryStamp(millis: Long): String =
+    SimpleDateFormat("d MMM, h:mm a", Locale.getDefault()).format(Date(millis))
+
+/**
+ * The values a reading actually holds, joined for the compact row on this page. Only the three
+ * vitals Home also shows - a longer list would just wrap in the narrow space beside the date.
+ */
+private fun readingSummary(r: HealthDataManager.Reading): String =
+    listOfNotNull(
+        r.heartRate.trim().takeIf { it.isNotEmpty() }?.let { "$it bpm" },
+        r.bloodPressure.trim().takeIf { it.isNotEmpty() },
+        r.oxygen.trim().takeIf { it.isNotEmpty() }?.let { "$it%" },
+    ).joinToString("  ·  ").ifBlank { "—" }

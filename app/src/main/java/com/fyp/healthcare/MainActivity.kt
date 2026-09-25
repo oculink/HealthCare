@@ -282,11 +282,19 @@ class MainActivity : ComponentActivity() {
                             )
                         }
                     }
-                    composable("health") {
+                    composable(
+                        route = "health?metric={metric}&period={period}",
+                        arguments = listOf(
+                            navArgument("metric") { type = NavType.StringType; defaultValue = "" },
+                            navArgument("period") { type = NavType.StringType; defaultValue = "" },
+                        ),
+                    ) { entry ->
                         TabScaffold("health", switchTab) {
                             HealthTrendsScreen(
                                 healthData = healthData,
                                 onBackClick = { navController.popBackStack() },
+                                initialMetric = entry.arguments?.getString("metric").orEmpty(),
+                                initialPeriod = entry.arguments?.getString("period").orEmpty(),
                             )
                         }
                     }
@@ -442,8 +450,10 @@ class MainActivity : ComponentActivity() {
                                 userManager = userManager,
                                 profileManager = profileManager,
                                 activity = activityData,
+                                healthData = healthData,
                                 onEditProfile = { navController.navigate("edit_profile") },
                                 onOpenFamilyCaregiver = { navController.navigate("family_caregiver") },
+                                onOpenHistory = { navController.navigate("history") },
                                 onSignOut = {
                                     userManager.signOut(applicationContext)
                                     Session.clear(applicationContext)
@@ -452,6 +462,12 @@ class MainActivity : ComponentActivity() {
                                 onBackClick = { navController.popBackStack() },
                             )
                         }
+                    }
+                    composable("history") {
+                        ReadingHistoryScreen(
+                            healthData = healthData,
+                            onBackClick = { navController.popBackStack() },
+                        )
                     }
                     composable("edit_profile") {
                         EditProfileScreen(
@@ -500,6 +516,13 @@ class MainActivity : ComponentActivity() {
                             medManager = medManager,
                             onBackClick = { navController.popBackStack() },
                             onEditProfile = { navController.navigate("edit_profile") },
+                        )
+                    }
+
+                    composable("emotional_support") {
+                        EmotionalSupportScreen(
+                            onBackClick = { navController.popBackStack() },
+                            onEmergencyClick = { navController.navigate("emergency") },
                         )
                     }
 

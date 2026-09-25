@@ -78,10 +78,22 @@ private const val DAY_MS = 24L * 60 * 60 * 1000
 fun HealthTrendsScreen(
     healthData: HealthDataManager,
     onBackClick: () -> Unit,
+    initialMetric: String = "",
+    initialPeriod: String = "",
 ) {
     val analysis = remember(Session.dataVersion) { healthData.analyzeLatest() }
-    var selectedPeriod by remember { mutableStateOf("Weekly") }
-    var selectedMetric by remember { mutableStateOf(Metric.HEART_RATE) }
+    // The Home vital cards deep-link in with a tab already chosen. Anything unrecognised -
+    // including the bare "health" route from the bottom bar and the alert banner - lands on
+    // the original defaults, so this screen keeps its old behaviour for every other entry.
+    var selectedPeriod by remember {
+        mutableStateOf(if (initialPeriod.equals("monthly", ignoreCase = true)) "Monthly" else "Weekly")
+    }
+    var selectedMetric by remember {
+        mutableStateOf(
+            Metric.entries.firstOrNull { it.name.equals(initialMetric, ignoreCase = true) }
+                ?: Metric.HEART_RATE
+        )
+    }
     var chartSource by remember { mutableStateOf(ChartSource.GLOBAL) }
     val dayIds = remember(selectedPeriod) { periodDayIds(selectedPeriod) }
     val localReadings = remember(Session.dataVersion) { healthData.history() }
@@ -128,8 +140,6 @@ fun HealthTrendsScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-
-            LatestAnalysisCard(analysis)
 
             PeriodSelector(selectedPeriod) { selectedPeriod = it }
 
@@ -256,6 +266,8 @@ fun HealthTrendsScreen(
                     color = LabelGray,
                 )
             }
+
+            LatestAnalysisCard(analysis)
         }
     }
 }

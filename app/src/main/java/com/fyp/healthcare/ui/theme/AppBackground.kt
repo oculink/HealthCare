@@ -24,19 +24,19 @@ import kotlin.math.roundToInt
  * a base colour, a soft top-lit vertical gradient, and a faint linen cross-hatch
  * texture (like a subtle fabric weave). Works in light and dark.
  *
- * On the Normal icon style ([IconStyle.NORMAL]) it also scatters a dense,
- * randomised health-motif texture on top - many small hearts, plus-crosses,
+ * When the background pattern is on ([AppTheme.backgroundPattern]) it also scatters a
+ * dense, randomised health-motif texture on top - many small hearts, plus-crosses,
  * pulse lines, pills, droplets, rings, cells and helices, each jittered, rotated
  * and scaled by a deterministic per-cell hash (so it looks hand-strewn but stays
  * stable and cached). Same spirit as a WhatsApp chat wallpaper, but our own.
- * The Minimal style keeps just the plain weave.
+ * With the pattern off the screen keeps just the plain weave.
  *
  * Replaces the old `.background(ScreenBackground)` on each screen's root.
  */
 @Composable
 fun Modifier.appBackground(): Modifier {
     val dark = AppTheme.isDark
-    val patterned = AppTheme.iconStyle == IconStyle.NORMAL
+    val patterned = AppTheme.backgroundPattern
     val base = if (dark) Color(0xFF121316) else Color(0xFFEFF1F6)
     val sheenTop = if (dark) Color(0xFF1B1D22) else Color(0xFFF7F8FB)
     val sheenBottom = if (dark) Color(0xFF0E0F12) else Color(0xFFE7E9EF)

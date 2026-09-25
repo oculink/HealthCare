@@ -1,10 +1,19 @@
 package com.fyp.healthcare
 
+import androidx.compose.animation.core.FastOutLinearInEasing
+import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.keyframes
+import androidx.compose.animation.core.rememberInfiniteTransition
 import com.fyp.healthcare.ui.theme.appBackground
 import com.fyp.healthcare.ui.theme.glossySurface
+import com.fyp.healthcare.ui.theme.glossySurfaceFloor
 import com.fyp.healthcare.ui.theme.glossyChip
 import com.fyp.healthcare.ui.theme.glossyBadge
+import com.fyp.healthcare.ui.theme.readableOn
 import com.fyp.healthcare.ui.theme.themed
+import com.fyp.healthcare.ui.theme.vitalStatusColor
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.background
@@ -39,6 +48,7 @@ import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.MonitorHeart
+import androidx.compose.material.icons.filled.Pets
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.WbCloudy
 import androidx.compose.material.icons.filled.WbSunny
@@ -66,6 +76,22 @@ import java.util.Locale
 private val BrandBlue = Color(0xFF2A6DE1)
 private val BrandBlueDark = Color(0xFF1E50C8)
 private val MonitoringGreen = Color(0xFF5DE0A6)
+
+// The Quick Actions share the vital cards' treatment - white surface, coloured edge glow, glyph
+// and label in that same colour - so these are chosen as one set rather than picked one at a time.
+// All six sit at BrandBlue's CIELAB lightness (L* 48, 0.6 apart) at the most chroma sRGB allows
+// there: that keeps every label above 4.7:1 on the white card and stops one tile reading heavier
+// than its neighbour. Hues are spaced wide because telling blue from teal from green is the
+// discrimination the eye loses first with age, so those three never sit side by side.
+// QuickSupport's rose is the exception the wheel leaves no room for - 0.088 (OKLab) from the
+// Emergency brick beside it and the same from the Health Report plum one slot beyond, where every
+// other pairing clears 0.104.
+private val QuickAppointments = Color(0xFFA16419)
+private val QuickClinics = Color(0xFF1E8447)
+private val QuickReport = Color(0xFF9D56AE)
+private val QuickEmergency = Color(0xFFC7473F)
+private val QuickSupport = Color(0xFFB1537B)
+
 private val CardWhite: Color @Composable get() = themed(Color(0xFFFFFFFF), Color(0xFF1C1D22))
 private val ScreenBackground: Color @Composable get() = themed(Color(0xFFEFF1F6), Color(0xFF121316))
 private val TextDark: Color @Composable get() = themed(Color(0xFF1B1D23), Color(0xFFE8E9EC))
@@ -280,9 +306,18 @@ fun HomeScreen(
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                VitalCard(Icons.Filled.MonitorHeart, heartRate, "BPM", heartStatus, Color(0xFF2E9E6B), Modifier.weight(1f))
-                VitalCard(Icons.Filled.Bloodtype, bloodPressure, "mmHg", bpStatus, Color(0xFFD32F2F), Modifier.weight(1f))
-                VitalCard(Icons.Filled.Air, oxygen, "%", oxygenStatus, Color(0xFF2A6DE1), Modifier.weight(1f))
+                VitalCard(
+                    Icons.Filled.MonitorHeart, heartRate, "BPM", heartStatus, Color(0xFF2E9E6B),
+                    Modifier.weight(1f),
+                ) { onNavigate("health?metric=heart_rate&period=monthly") }
+                VitalCard(
+                    Icons.Filled.Bloodtype, bloodPressure, "mmHg", bpStatus, Color(0xFFD32F2F),
+                    Modifier.weight(1f),
+                ) { onNavigate("health?metric=blood_pressure&period=monthly") }
+                VitalCard(
+                    Icons.Filled.Air, oxygen, "%", oxygenStatus, Color(0xFF2A6DE1),
+                    Modifier.weight(1f),
+                ) { onNavigate("health?metric=oxygen&period=monthly") }
             }
 
             Text("Quick Actions", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextDark)
@@ -290,17 +325,17 @@ fun HomeScreen(
                 modifier = Modifier.height(IntrinsicSize.Max),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                QuickActionCard(Icons.Filled.EditNote, "Record Data", Color(0xFF2A6DE1), Modifier.weight(1f)) { onNavigate("record_data") }
-                QuickActionCard(Icons.Filled.CalendarMonth, "Appointments", Color(0xFF0F9E99), Modifier.weight(1f)) { onNavigate("appointments") }
-                QuickActionCard(Icons.Filled.LocalHospital, "Nearby Clinics", Color(0xFF2E9E6B), Modifier.weight(1f)) { onNavigate("clinics") }
+                QuickActionCard(Icons.Filled.EditNote, "Record Data", BrandBlue, Modifier.weight(1f)) { onNavigate("record_data") }
+                QuickActionCard(Icons.Filled.CalendarMonth, "Appointments", QuickAppointments, Modifier.weight(1f)) { onNavigate("appointments") }
+                QuickActionCard(Icons.Filled.LocalHospital, "Nearby Clinics", QuickClinics, Modifier.weight(1f)) { onNavigate("clinics") }
             }
             Row(
                 modifier = Modifier.height(IntrinsicSize.Max),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                QuickActionCard(Icons.Filled.Description, "Health Report", Color(0xFF6C5CE7), Modifier.weight(1f)) { onNavigate("health_report") }
-                QuickActionCard(Icons.Filled.Emergency, "Emergency", Color(0xFFD32F2F), Modifier.weight(1f)) { onNavigate("emergency") }
-                Spacer(Modifier.weight(1f))
+                QuickActionCard(Icons.Filled.Description, "Health Report", QuickReport, Modifier.weight(1f)) { onNavigate("health_report") }
+                QuickActionCard(Icons.Filled.Emergency, "Emergency", QuickEmergency, Modifier.weight(1f)) { onNavigate("emergency") }
+                QuickActionCard(Icons.Filled.Pets, "Emotional Support", QuickSupport, Modifier.weight(1f)) { onNavigate("emotional_support") }
             }
 
             Text("Today's Summary", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextDark)
@@ -371,31 +406,72 @@ private fun VitalCard(
     unit: String,
     status: String?,
     tint: Color,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
 ) {
+    val statusTint = status?.let { vitalStatusColor(it) }
+    // One phase drives the edge glow and the icon together, so the glyph dims with the outline
+    // instead of sitting fully lit on a card whose glow has just faded. It bottoms out at 0.2
+    // rather than 0 to stay findable; with no status there is nothing to follow, so phase is 1
+    // and the icon stays as it was.
+    val phase = if (statusTint == null) 1f else statusGlowPulse()
+    val glow = statusTint?.let { it.copy(alpha = phase) }
     Column(
         modifier = modifier
-            .glossySurface(RoundedCornerShape(20.dp), CardWhite)
+            .glossySurface(RoundedCornerShape(20.dp), CardWhite, glow = glow)
+            .clickable { onClick() }
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        com.fyp.healthcare.ui.theme.AppIconBadge(icon, tint, size = 40.dp, iconSize = 20.dp)
+        Icon(
+            icon,
+            contentDescription = null,
+            tint = tint.copy(alpha = 0.2f + 0.8f * phase),
+            modifier = Modifier.size(30.dp),
+        )
         Text(value ?: "--", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextDark)
         Text(unit, fontSize = 11.sp, color = LabelGray)
         Box(
             modifier = Modifier
-                .glossyBadge(statusColor(status), RoundedCornerShape(50.dp))
+                .glossyBadge(vitalStatusColor(status), RoundedCornerShape(50.dp))
                 .padding(horizontal = 12.dp, vertical = 4.dp)
         ) {
             Text(
                 status ?: "No data",
                 fontSize = 10.sp,
-                color = statusColor(status),
+                color = vitalStatusColor(status),
                 fontWeight = FontWeight.Medium
             )
         }
     }
+}
+
+/**
+ * The breathing alpha behind a vital card's status glow and its icon, bouncing on a 2s cycle: a
+ * 1.5s decay from fully lit to nothing, then a 0.5s snap back up, with no hold at either end.
+ * [targetValue] is the lit end on purpose: when the system's animator duration scale is 0 the
+ * infinite transition skips straight to it, so a card on such a device reads as fully glowing
+ * rather than dark with a 0.2 icon. Only ever called for a card that actually has a status, so a
+ * screen of "No data" cards starts no animation.
+ */
+@Composable
+private fun statusGlowPulse(): Float {
+    val pulse = rememberInfiniteTransition(label = "statusGlow")
+    val phase by pulse.animateFloat(
+        initialValue = 1f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = keyframes {
+                durationMillis = 2000
+                1f at 0 using LinearOutSlowInEasing
+                0f at 1500 using FastOutLinearInEasing
+                1f at 2000
+            },
+        ),
+        label = "statusGlowPhase",
+    )
+    return phase
 }
 
 @Composable
@@ -406,21 +482,22 @@ private fun QuickActionCard(
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
+    val ink = readableOn(tint, glossySurfaceFloor(CardWhite))
     Column(
         modifier = modifier
             .fillMaxHeight()
-            .glossySurface(RoundedCornerShape(18.dp), CardWhite)
+            .glossySurface(RoundedCornerShape(18.dp), CardWhite, glow = tint)
             .clickable { onClick() }
             .padding(vertical = 16.dp, horizontal = 6.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterVertically)
     ) {
-        com.fyp.healthcare.ui.theme.AppIconBadge(icon, tint, size = 46.dp, iconSize = 23.dp)
+        Icon(icon, contentDescription = null, tint = ink, modifier = Modifier.size(28.dp))
         Text(
             label,
             fontSize = 11.sp,
             fontWeight = FontWeight.SemiBold,
-            color = TextDark,
+            color = ink,
             textAlign = TextAlign.Center,
             lineHeight = 13.sp
         )
@@ -486,15 +563,5 @@ private fun initials(name: String): String {
         parts.size == 1 -> parts[0].take(1).uppercase()
         else -> (parts.first().take(1) + parts.last().take(1)).uppercase()
     }
-}
-
-@Composable
-private fun statusColor(status: String?): Color = when (status) {
-    "Good" -> Color(0xFF2E9E6B)
-    "Normal" -> Color(0xFF2A6DE1)
-    "Low" -> Color(0xFFFF9800)
-    "High" -> Color(0xFFE64A19)
-    "Critical" -> Color(0xFFD32F2F)
-    else -> LabelGray
 }
 

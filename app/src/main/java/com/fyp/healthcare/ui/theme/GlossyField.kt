@@ -20,7 +20,7 @@ import androidx.compose.ui.unit.dp
  * A "recessed well" for text inputs - the visual opposite of [glossySurface]: the
  * field looks pressed *into* the card, with an inner top shadow, a dark upper rim
  * and a lit lower rim. Gives older users a clear, tactile "type here" target that
- * stands apart from the surrounding surface. On [IconStyle.MINIMAL] it's a plain
+ * stands apart from the surrounding surface. On [Decoration.CALM] it's a plain
  * soft-filled box.
  *
  * Use together with [glossyFieldColors] (which makes the text field's own
@@ -39,7 +39,7 @@ fun Modifier.glossyFieldWell(shape: Shape = RoundedCornerShape(14.dp)): Modifier
     val dark = AppTheme.isDark
     val base = if (dark) Color(0xFF191B21) else Color(0xFFE7EAF1)
 
-    if (AppTheme.iconStyle == IconStyle.MINIMAL) {
+    if (AppTheme.calm) {
         return this
             .clip(shape)
             .background(base, shape)

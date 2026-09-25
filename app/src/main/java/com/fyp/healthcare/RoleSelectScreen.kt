@@ -38,7 +38,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fyp.healthcare.ui.theme.AppTheme
-import com.fyp.healthcare.ui.theme.IconStyle
+import com.fyp.healthcare.ui.theme.Decoration
 import com.fyp.healthcare.ui.theme.ThemeMode
 import com.fyp.healthcare.ui.theme.themed
 
@@ -120,11 +120,18 @@ fun RoleSelectScreen(
                 .glossySurface(RoundedCornerShape(14.dp), CardWhite)
                 .padding(4.dp),
         ) {
-            StyleOption("Normal", AppTheme.iconStyle == IconStyle.NORMAL, Modifier.weight(1f)) {
-                AppTheme.setIconStyle(context, IconStyle.NORMAL)
-            }
-            StyleOption("Minimal", AppTheme.iconStyle == IconStyle.MINIMAL, Modifier.weight(1f)) {
-                AppTheme.setIconStyle(context, IconStyle.MINIMAL)
+            Decoration.entries.forEach { value ->
+                StyleOption(
+                    when (value) {
+                        Decoration.CALM -> "Calm"
+                        Decoration.STANDARD -> "Standard"
+                        Decoration.RICH -> "Rich"
+                    },
+                    AppTheme.decoration == value,
+                    Modifier.weight(1f),
+                ) {
+                    AppTheme.setDecoration(context, value)
+                }
             }
         }
         Spacer(Modifier.height(12.dp))
