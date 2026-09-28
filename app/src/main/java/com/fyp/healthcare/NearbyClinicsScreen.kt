@@ -55,6 +55,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Directions
+import androidx.compose.material.icons.filled.Event
 import androidx.compose.material.icons.filled.HealthAndSafety
 import androidx.compose.material.icons.filled.LocalHospital
 import androidx.compose.material.icons.filled.LocalPharmacy
@@ -138,7 +139,10 @@ private fun kindIcon(kind: String): androidx.compose.ui.graphics.vector.ImageVec
 
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
-fun NearbyClinicsScreen(onBackClick: () -> Unit) {
+fun NearbyClinicsScreen(
+    onBackClick: () -> Unit,
+    onAddAppointment: (NearbyClinics.Place) -> Unit,
+) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
@@ -709,6 +713,7 @@ fun NearbyClinicsScreen(onBackClick: () -> Unit) {
                             }
                         }
                     },
+                    onAddAppointment = { onAddAppointment(place) },
                 )
             }
         }
@@ -724,6 +729,7 @@ private fun ClinicRow(
     onClick: () -> Unit,
     onDirections: () -> Unit,
     onCall: (String) -> Unit,
+    onAddAppointment: () -> Unit,
 ) {
     val accent = kindColor(place.kind)
     val open = remember(place.hours) { NearbyClinics.openNow(place.hours) }
@@ -793,6 +799,7 @@ private fun ClinicRow(
             }
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 PillButton(Icons.Filled.Directions, "Directions", BrandBlue, onDirections)
+                PillButton(Icons.Filled.Event, "Appointment", Color(0xFF0F9E99), onAddAppointment)
                 place.phone?.let { num ->
                     PillButton(Icons.Filled.Call, "Call", Color(0xFF1FA971)) { onCall(num) }
                 }

@@ -2,6 +2,7 @@ package com.fyp.healthcare
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.net.Uri
 import androidx.activity.result.contract.ActivityResultContracts
 import android.os.Build
 import android.os.Bundle
@@ -451,9 +452,11 @@ class MainActivity : ComponentActivity() {
                                 profileManager = profileManager,
                                 activity = activityData,
                                 healthData = healthData,
+                                medManager = medManager,
                                 onEditProfile = { navController.navigate("edit_profile") },
                                 onOpenFamilyCaregiver = { navController.navigate("family_caregiver") },
                                 onOpenHistory = { navController.navigate("history") },
+                                onOpenMedicationHistory = { navController.navigate("medication_history") },
                                 onSignOut = {
                                     userManager.signOut(applicationContext)
                                     Session.clear(applicationContext)
@@ -466,6 +469,12 @@ class MainActivity : ComponentActivity() {
                     composable("history") {
                         ReadingHistoryScreen(
                             healthData = healthData,
+                            onBackClick = { navController.popBackStack() },
+                        )
+                    }
+                    composable("medication_history") {
+                        MedicationHistoryScreen(
+                            medManager = medManager,
                             onBackClick = { navController.popBackStack() },
                         )
                     }
@@ -498,7 +507,16 @@ class MainActivity : ComponentActivity() {
                     }
 
                     composable("clinics") {
-                        NearbyClinicsScreen(onBackClick = { navController.popBackStack() })
+                        NearbyClinicsScreen(
+                            onBackClick = { navController.popBackStack() },
+                            onAddAppointment = { place ->
+                                navController.navigate(
+                                    "clinic_appointment/" +
+                                        Uri.encode(place.name) + "/" +
+                                        Uri.encode(place.address ?: "")
+                                )
+                            },
+                        )
                     }
                     composable("health_report") {
                         HealthReportScreen(
@@ -538,6 +556,22 @@ class MainActivity : ComponentActivity() {
                         AddAppointmentScreen(
                             apptManager = apptManager,
                             editId = null,
+                            onBackClick = { navController.popBackStack() },
+                            onSaved = { navController.popBackStack() },
+                        )
+                    }
+                    composable(
+                        "clinic_appointment/{clinicName}/{address}",
+                        arguments = listOf(
+                            navArgument("clinicName") { type = NavType.StringType },
+                            navArgument("address") { type = NavType.StringType },
+                        )
+                    ) { entry ->
+                        AddAppointmentScreen(
+                            apptManager = apptManager,
+                            editId = null,
+                            initialClinic = entry.arguments?.getString("clinicName") ?: "",
+                            initialAddress = entry.arguments?.getString("address") ?: "",
                             onBackClick = { navController.popBackStack() },
                             onSaved = { navController.popBackStack() },
                         )

@@ -92,6 +92,8 @@ fun AddAppointmentScreen(
     editId: Long?,
     onBackClick: () -> Unit,
     onSaved: () -> Unit,
+    initialClinic: String = "",
+    initialAddress: String = "",
 ) {
     val context = LocalContext.current
     val focusManager = LocalFocusManager.current
@@ -100,8 +102,8 @@ fun AddAppointmentScreen(
 
     var doctor by remember { mutableStateOf(editing?.doctorName ?: "") }
     var specialty by remember { mutableStateOf(editing?.specialty ?: "") }
-    var clinic by remember { mutableStateOf(editing?.clinicName ?: "") }
-    var address by remember { mutableStateOf(editing?.address ?: "") }
+    var clinic by remember { mutableStateOf(editing?.clinicName ?: initialClinic) }
+    var address by remember { mutableStateOf(editing?.address ?: initialAddress) }
     var addrLat by remember { mutableStateOf(editing?.lat) }
     var addrLng by remember { mutableStateOf(editing?.lng) }
     var addrEditing by remember { mutableStateOf(false) }
@@ -207,10 +209,6 @@ fun AddAppointmentScreen(
                 Text("Record an appointment you've booked — we'll remind you.", fontSize = 12.sp, color = LabelGray)
                 Spacer(Modifier.height(20.dp))
 
-                ApptField(doctor, { doctor = it }, "Doctor / clinician", "e.g. Dr. Sarah Lim", Icons.Filled.Person)
-                ApptField(specialty, { specialty = it }, "Specialty (optional)", "e.g. Cardiologist", Icons.Filled.MedicalServices)
-                ApptField(clinic, { clinic = it }, "Clinic / hospital (optional)", "e.g. Pantai Hospital KL", Icons.Filled.LocalHospital)
-
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         "Address (optional)",
@@ -275,6 +273,10 @@ fun AddAppointmentScreen(
                     }
                 }
                 Spacer(Modifier.height(14.dp))
+
+                ApptField(clinic, { clinic = it }, "Clinic / hospital (optional)", "e.g. Pantai Hospital KL", Icons.Filled.LocalHospital)
+                ApptField(specialty, { specialty = it }, "Specialty (optional)", "e.g. Cardiologist", Icons.Filled.MedicalServices)
+                ApptField(doctor, { doctor = it }, "Doctor / clinician", "e.g. Dr. Sarah Lim", Icons.Filled.Person)
 
                 Text("Date", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = LabelGray)
                 Spacer(Modifier.height(6.dp))

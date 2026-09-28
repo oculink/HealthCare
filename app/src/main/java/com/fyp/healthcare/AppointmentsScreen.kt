@@ -1,5 +1,8 @@
 package com.fyp.healthcare
 
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -24,6 +27,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Directions
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.EventBusy
 import androidx.compose.material.icons.filled.MoreVert
@@ -257,6 +261,11 @@ private fun ApptCard(
     var menuOpen by remember { mutableStateOf(false) }
     var confirmDelete by remember { mutableStateOf(false) }
 
+    val context = LocalContext.current
+    val hasLocation = appt.lat != null && appt.lng != null || appt.address.isNotBlank()
+    val directionsQuery = listOf(appt.doctorName, appt.clinicName, appt.address)
+        .filter { it.isNotBlank() }.joinToString(", ")
+
     val (pillColor, pillLabel) = when (state) {
         Appointment.STATE_UPCOMING -> BrandBlue to relativeDayLabel(appt.startMillis, now)
         Appointment.STATE_PAST -> WarnAmber to "Needs update"
@@ -357,6 +366,20 @@ private fun ApptCard(
             ) {
                 Text(pillLabel, fontSize = 10.sp, color = pillColor, fontWeight = FontWeight.Medium)
             }
+            if (state == Appointment.STATE_UPCOMING && hasLocation) {
+                Spacer(Modifier.weight(1f))
+                Row(
+                    modifier = Modifier
+                        .glossyBadge(BrandBlue, RoundedCornerShape(18.dp))
+                        .clickable { openDirections(context, appt.lat, appt.lng, directionsQuery) }
+                        .padding(horizontal = 14.dp, vertical = 7.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(Icons.Filled.Directions, contentDescription = null, tint = BrandBlue, modifier = Modifier.size(15.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text("Directions", color = BrandBlue, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                }
+            }
         }
     }
 
@@ -375,4 +398,13 @@ private fun ApptCard(
             },
         )
     }
+}
+
+private fun openDirections(context: Context, lat: Double?, lng: Double?, query: String) {
+    val uri = if (lat != null && lng != null) {
+        Uri.parse("geo:$lat,$lng?q=$lat,$lng(${Uri.encode(query)})")
+    } else {
+        Uri.parse("geo:0,0?q=${Uri.encode(query)}")
+    }
+    runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, uri)) }
 }

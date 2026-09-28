@@ -39,6 +39,7 @@ import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.MedicalInformation
+import androidx.compose.material.icons.filled.MedicalServices
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Radar
 import androidx.compose.material.icons.filled.Straighten
@@ -86,9 +87,11 @@ fun ProfileScreen(
     profileManager: ProfileManager,
     activity: ActivityDataManager,
     healthData: HealthDataManager,
+    medManager: MedicationManager,
     onEditProfile: () -> Unit,
     onOpenFamilyCaregiver: () -> Unit,
     onOpenHistory: () -> Unit,
+    onOpenMedicationHistory: () -> Unit,
     onSignOut: () -> Unit,
     onBackClick: () -> Unit,
 ) {
@@ -282,6 +285,47 @@ fun ProfileScreen(
                                 fontSize = 12.sp, color = LabelGray, modifier = Modifier.weight(1f),
                             )
                             Text(readingSummary(r), fontSize = 13.sp, fontWeight = FontWeight.Bold, color = TextDark)
+                        }
+                    }
+                }
+            }
+
+            val medDoses = remember(Session.dataVersion) { medicationDoseLog(medManager) }
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .glossySurface(RoundedCornerShape(20.dp), CardWhite)
+                    .padding(16.dp),
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconCircle(Icons.Filled.MedicalServices, BrandBlue)
+                    Spacer(Modifier.width(12.dp))
+                    Text("Medication history", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = TextDark, modifier = Modifier.weight(1f))
+                    TextButton(onClick = onOpenMedicationHistory) {
+                        Text(
+                            if (medDoses.isEmpty()) "Open" else "See all",
+                            fontSize = 13.sp, color = BrandBlue, fontWeight = FontWeight.Bold,
+                        )
+                    }
+                }
+                if (medDoses.isEmpty()) {
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        "Nothing logged yet. Doses you mark Taken or Missed will be listed here.",
+                        fontSize = 12.sp, color = LabelGray,
+                    )
+                } else {
+                    Spacer(Modifier.height(8.dp))
+                    medDoses.take(3).forEach { d ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                formatHistoryStamp(d.timeMillis),
+                                fontSize = 12.sp, color = LabelGray, modifier = Modifier.weight(1f),
+                            )
+                            Text(medDoseSummary(d), fontSize = 13.sp, fontWeight = FontWeight.Bold, color = TextDark)
                         }
                     }
                 }
@@ -630,3 +674,7 @@ private fun readingSummary(r: HealthDataManager.Reading): String =
         r.bloodPressure.trim().takeIf { it.isNotEmpty() },
         r.oxygen.trim().takeIf { it.isNotEmpty() }?.let { "$it%" },
     ).joinToString("  ·  ").ifBlank { "—" }
+
+/** The one-line version of a logged dose, for the compact row on this page. */
+private fun medDoseSummary(d: MedicationDose): String =
+    "${d.medication.name} · ${if (d.taken) "Taken" else "Missed"}"
