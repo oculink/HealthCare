@@ -83,7 +83,7 @@ class AppointmentReminderWorker(
             title = "Appointment ${relativeDayLabel(appt.startMillis).lowercase(Locale.getDefault())}",
             text = buildString {
                 append(appt.doctorLine)
-                append(" — ")
+                append(" · ")
                 append(timeFmt.format(Date(appt.startMillis)))
                 if (place.isNotBlank()) append(" · $place")
             },

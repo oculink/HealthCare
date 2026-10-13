@@ -46,7 +46,7 @@ enum class MetricKind(val display: String, @get:DrawableRes val icon: Int, val a
     OXYGEN("Oxygen Level", R.drawable.ic_rpt_air, 0xFF2A6DE1.toInt()),
     TEMPERATURE("Temperature", R.drawable.ic_rpt_thermostat, 0xFF2E9E6B.toInt()),
     WEIGHT("Weight", R.drawable.ic_rpt_weight, 0xFF7048E8.toInt()),
-    RELIABILITY("Data Reliability", R.drawable.ic_rpt_clipboard, 0xFF2A6DE1.toInt()),
+    RELIABILITY("Your Records", R.drawable.ic_rpt_clipboard, 0xFF2A6DE1.toInt()),
     ADHERENCE("Medication", R.drawable.ic_rpt_check, 0xFF2E9E6B.toInt());
 }
 
@@ -121,8 +121,8 @@ data class HealthReport(
 ) {
     val hasData: Boolean get() = metrics.any { it.value != null }
 
-    val allergiesLabel: String get() = allergies.joinToString(", ").ifBlank { "None recorded" }
-    val conditionsLabel: String get() = conditions.joinToString(", ").ifBlank { "None recorded" }
+    val allergiesLabel: String get() = allergies.joinToString(", ").ifBlank { "None on file" }
+    val conditionsLabel: String get() = conditions.joinToString(", ").ifBlank { "None on file" }
 
     val patientLine: String
         get() = buildList {
@@ -258,17 +258,17 @@ data class HealthReport(
             val overall = if (flagged.isEmpty()) OverallStatus.GOOD else OverallStatus.ATTENTION
             val overallDetail = when {
                 !metrics.any { it.value != null } ->
-                    "No vitals were recorded in the last two days."
+                    "There are no vitals logged in the last two days."
                 flagged.isEmpty() ->
-                    "Every reading recorded over the last two days is within its recommended range."
+                    "Every reading you logged over the last two days is within its recommended range."
                 flagged.size == 1 ->
-                    "${flagged.first().kind.display} is outside the recommended range."
+                    "${flagged.first().kind.display} sits outside the recommended range."
                 else ->
-                    "Some readings are outside the recommended range."
+                    "A few readings sit outside the recommended range."
             }
 
             val windowLabel =
-                "${dateFmt.format(yesterdayCal.time)} – ${dateFmt.format(now.time)}"
+                "${dateFmt.format(yesterdayCal.time)} - ${dateFmt.format(now.time)}"
 
             return HealthReport(
                 periodLabel = SimpleDateFormat("MMMM yyyy", Locale.getDefault()).format(now.time),
@@ -300,8 +300,8 @@ data class HealthReport(
                 return listOf(
                     ReportInsight(
                         MetricKind.RELIABILITY,
-                        "No vitals were recorded yesterday or today. Record readings from the home " +
-                            "screen so the next report can show a full picture.",
+                        "There are no vitals logged for yesterday or today. You can record them from " +
+                            "the home screen, so the next report has a full picture.",
                     )
                 )
             }
@@ -314,7 +314,7 @@ data class HealthReport(
                 insights.add(
                     ReportInsight(
                         MetricKind.RELIABILITY,
-                        "A steady couple of days — every vital recorded over the last two days " +
+                        "A steady couple of days · every vital logged over the last two days " +
                             "stayed within a healthy range.",
                     )
                 )
@@ -329,7 +329,7 @@ data class HealthReport(
                     ReportInsight(
                         MetricKind.RELIABILITY,
                         "Only $readingCount ${if (readingCount == 1) "reading was" else "readings were"} " +
-                            "logged over the last two days — more frequent recordings make the averages " +
+                            "logged over the last two days · more readings make these averages " +
                             "more reliable.",
                     )
                 )
@@ -357,7 +357,7 @@ data class HealthReport(
             val total = taken + missed
             if (total == 0) return null
             val pct = (taken * 100.0 / total).roundToInt()
-            return "Medication adherence over the last two days: $taken of $total logged doses taken ($pct%)."
+            return "Medication over the last two days: you took $taken of $total logged doses ($pct%)."
         }
 
         private val SEVERITY_ORDER = mapOf(
@@ -376,69 +376,69 @@ data class HealthReport(
 
                 MetricKind.HEART_RATE -> when (metric.status) {
                     ReportStatus.GOOD ->
-                        "Your average resting heart rate of $v is right in the healthy zone — a sign of a well-rested heart."
+                        "Your average resting heart rate of $v sits right in the healthy zone · that's a well-rested heart."
                     ReportStatus.NORMAL ->
-                        "Your average heart rate of $v is within the normal adult range, sitting near its upper end."
+                        "Your average heart rate of $v is inside the normal adult range, close to the upper end."
                     ReportStatus.LOW ->
-                        "Your average heart rate of $v is below 60 BPM. That can be normal if you're very active, but tell your doctor if it comes with dizziness or fatigue."
+                        "Your average heart rate of $v is below 60 BPM. That can be normal if you're very active · tell your doctor if it comes with dizziness or fatigue."
                     ReportStatus.HIGH ->
-                        "Your average heart rate of $v runs above a typical resting rate. Caffeine, stress and broken sleep all push it up — worth a mention if it stays there."
+                        "Your average heart rate of $v runs above a typical resting rate. Caffeine, stress and poor sleep all push it up · worth a mention if it stays there."
                     ReportStatus.CRITICAL ->
-                        "Your average heart rate of $v is well outside the safe resting range. Please have this checked by a doctor soon."
+                        "Your average heart rate of $v is well outside the safe resting range · please have a doctor check it soon."
                     else -> null
                 }
 
                 MetricKind.BLOOD_PRESSURE -> when (metric.status) {
                     ReportStatus.GOOD ->
-                        "Your average blood pressure of $v is in the ideal range — keep doing what you're doing."
+                        "Your average blood pressure of $v sits in the ideal range · keep it up"
                     ReportStatus.NORMAL ->
-                        "Your average blood pressure of $v is acceptable but a little above optimal. Less salt and a daily walk help keep it down."
+                        "Your average blood pressure of $v is okay, just a little above optimal. Less salt and a daily walk both help keep it down."
                     ReportStatus.LOW ->
-                        "Your average blood pressure of $v is on the low side. Mention it to your doctor if you feel light-headed when standing up."
+                        "Your average blood pressure of $v is on the low side · mention it to your doctor if you feel light-headed on standing."
                     ReportStatus.HIGH ->
-                        "Your average blood pressure of $v is above the recommended level. If it keeps reading this high, review it with your doctor."
+                        "Your average blood pressure of $v is above the recommended level · if it keeps reading this high, talk it over with your doctor."
                     ReportStatus.CRITICAL ->
-                        "Your average blood pressure of $v is in a dangerous range — please get medical advice promptly."
+                        "Your average blood pressure of $v is in a dangerous range · please get medical advice promptly"
                     else -> null
                 }
 
                 MetricKind.BLOOD_SUGAR -> when (metric.status) {
                     ReportStatus.GOOD, ReportStatus.NORMAL ->
-                        "Your average blood sugar of $v sits comfortably within a normal range."
+                        "Your average blood sugar of $v sits comfortably in a normal range."
                     ReportStatus.LOW ->
-                        "Your average blood sugar of $v is below normal. Frequent lows matter, especially if you take diabetes medication — bring this up with your doctor."
+                        "Your average blood sugar of $v is below normal. Frequent lows matter, especially if you take diabetes medication · bring this up with your doctor."
                     ReportStatus.HIGH ->
-                        "Your average blood sugar of $v is above the normal range. If it stays there, ask your doctor about an HbA1c test."
+                        "Your average blood sugar of $v is above the normal range · if it stays there, ask your doctor about an HbA1c test."
                     ReportStatus.CRITICAL ->
-                        "Your average blood sugar of $v is far outside the safe range. Please contact a doctor."
+                        "Your average blood sugar of $v is far outside the safe range · please contact a doctor."
                     else -> null
                 }
 
                 MetricKind.OXYGEN -> when (metric.status) {
                     ReportStatus.GOOD, ReportStatus.NORMAL ->
-                        "Your average blood oxygen of $v is healthy — 95% or above is exactly where you want it."
+                        "Your average blood oxygen of $v is healthy · 95% or above is where you want it."
                     ReportStatus.LOW ->
-                        "Your average blood oxygen of $v is a little under the usual 95–100%. A single low reading is often just poor sensor contact, but a sustained dip is worth mentioning."
+                        "Your average blood oxygen of $v is a little under the usual 95-100%. One low reading is often just poor sensor contact · a sustained dip is worth mentioning."
                     ReportStatus.CRITICAL ->
-                        "Your average blood oxygen of $v is low enough to need medical attention — please follow up with a doctor."
+                        "Your average blood oxygen of $v is low enough to need medical attention · please follow up with a doctor"
                     else -> null
                 }
 
                 MetricKind.TEMPERATURE -> when (metric.status) {
                     ReportStatus.GOOD, ReportStatus.NORMAL ->
-                        "Your average body temperature of $v is normal, with no sign of a fever."
+                        "Your average body temperature of $v is normal, with no sign of fever."
                     ReportStatus.LOW ->
-                        "Your average body temperature of $v reads below normal. Check how you're taking the measurement, and mention it if readings stay low."
+                        "Your average body temperature of $v reads below normal. Check how you're taking the reading, and mention it if it stays low."
                     ReportStatus.HIGH ->
-                        "Your average body temperature of $v is slightly raised — that points to a mild fever if it continues."
+                        "Your average body temperature of $v is slightly raised · that points to a mild fever if it carries on."
                     ReportStatus.CRITICAL ->
-                        "Your average body temperature of $v suggests a significant fever — or, if the readings are low, hypothermia. Seek medical advice."
+                        "Your average body temperature of $v suggests a significant fever · or, if the readings are low, hypothermia. Seek medical advice."
                     else -> null
                 }
 
                 MetricKind.WEIGHT -> when (metric.status) {
                     ReportStatus.STABLE ->
-                        "Weight on file is $v, taken from your profile rather than a fresh reading. Keep it current in Edit Profile so future reports can show the trend."
+                        "Weight on file is $v, from your profile rather than a fresh reading. Keep it up to date in Edit Profile so later reports can show the trend."
                     else -> null
                 }
 
@@ -479,9 +479,9 @@ object HealthReportExport {
         appendLine("${report.periodLabel}  (${report.windowLabel})")
         appendLine("Patient: ${report.patientName}")
         if (report.patientLine.isNotBlank()) appendLine(report.patientLine.replace("  ·  ", " · "))
-        appendLine("Generated ${report.generatedAtLabel} · ${report.readingCount} readings over the last two days")
+        appendLine("Generated ${report.generatedAtLabel} · ${report.readingCount} readings logged over the last two days")
         appendLine()
-        appendLine("OVERALL: ${report.overall.label} — ${report.overallDetail}")
+        appendLine("OVERALL: ${report.overall.label} · ${report.overallDetail}")
         appendLine()
         appendLine("MEDICAL BACKGROUND")
         appendLine("- Allergies: ${report.allergiesLabel}")
@@ -497,7 +497,7 @@ object HealthReportExport {
             report.insights.forEach { appendLine("- ${it.title}: ${it.body}") }
         }
         appendLine()
-        appendLine("Generated by CareApp. This summary is not a substitute for professional medical advice.")
+        appendLine("Generated by CareApp. This report isn't a substitute for professional medical advice.")
     }
 
 
@@ -686,11 +686,11 @@ object HealthReportExport {
         }
         if (report.patientAge.isNotBlank()) chip(R.drawable.ic_rpt_calendar, "Age:", report.patientAge)
         if (report.patientSex.isNotBlank()) chip(R.drawable.ic_rpt_person, "Gender:", report.patientSex)
-        chip(R.drawable.ic_rpt_droplet, "Blood Type:", report.patientBloodType.ifBlank { "—" })
+        chip(R.drawable.ic_rpt_droplet, "Blood Type:", report.patientBloodType.ifBlank { "-" })
 
         val genDate = SimpleDateFormat("d MMM yyyy", Locale.getDefault()).format(Date(report.generatedAt))
         c.drawText(
-            "Generated $genDate   ·   ${report.readingCount} readings, last 2 days",
+            "Generated $genDate   ·   ${report.readingCount} readings logged, last 2 days",
             infoLeft, maxOf(infoY + 22f, cardsTop + 98f), paints.t(8.5f, MUTED, sans("sans-serif")),
         )
 
@@ -753,7 +753,7 @@ object HealthReportExport {
         }
 
         val trendsTitleY = gridTop + 2 * cardH + rowGap + 34f
-        drawSectionTitle(c, context, MARGIN, trendsTitleY, R.drawable.ic_rpt_chart, "Health Trends — ${report.periodLabel}", paints)
+        drawSectionTitle(c, context, MARGIN, trendsTitleY, R.drawable.ic_rpt_chart, "Health Trends · ${report.periodLabel}", paints)
 
         val tTop = trendsTitleY + 14f
         val tGap = 12f
@@ -903,7 +903,7 @@ object HealthReportExport {
         val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
             type = "application/pdf"
             putExtra(android.content.Intent.EXTRA_STREAM, uri)
-            putExtra(android.content.Intent.EXTRA_SUBJECT, "CareApp Health Report — ${report.periodLabel}")
+            putExtra(android.content.Intent.EXTRA_SUBJECT, "CareApp Health Report · ${report.periodLabel}")
             putExtra(android.content.Intent.EXTRA_TEXT, plainText(report))
             clipData = ClipData.newUri(context.contentResolver, "Health report", uri)
             addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)

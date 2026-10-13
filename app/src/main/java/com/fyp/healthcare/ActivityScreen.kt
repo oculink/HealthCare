@@ -346,7 +346,7 @@ private fun HourlyActivityChart(data: List<Int>?) {
         EmptyBlock(
             Icons.Filled.BarChart,
             "No activity data yet",
-            "Hourly movement picked up by the radar will be charted here",
+            "Hourly movement picked up by the radar will show up here",
         )
         return
     }
@@ -429,7 +429,7 @@ private fun SleepCard(sleep: SleepSummary?) {
             Column {
                 Text("--", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextDark)
                 Text(
-                    "No sleep recorded last night — keep the phone near the bed overnight",
+                    "No sleep captured last night · keep the phone near your bed",
                     fontSize = 12.sp,
                     color = LabelGray,
                 )
@@ -439,7 +439,7 @@ private fun SleepCard(sleep: SleepSummary?) {
                 Text(formatDuration(sleep.totalMinutes), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextDark)
                 Spacer(Modifier.height(2.dp))
                 Text(
-                    "${formatTime12(sleep.bedTime)} – ${formatTime12(sleep.wakeTime)}",
+                    "${formatTime12(sleep.bedTime)} - ${formatTime12(sleep.wakeTime)}",
                     fontSize = 12.sp,
                     color = LabelGray,
                 )

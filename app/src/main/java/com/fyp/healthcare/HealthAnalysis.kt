@@ -70,7 +70,7 @@ object HealthAnalysis {
                 level = j.level, statusText = j.status,
                 note = rangeNote(j, "systolic $sys, diastolic $dia"),
                 trend = trendOf(sys.toFloat(), priorSys),
-                recentAvg = recentAvg(sys.toFloat(), priorSys)?.let { "recent avg ${it.roundToInt()} systolic" },
+                recentAvg = recentAvg(sys.toFloat(), priorSys)?.let { "recent average ${it.roundToInt()} systolic" },
             )
         }
 
@@ -111,7 +111,7 @@ object HealthAnalysis {
         val summary = when {
             metrics.isEmpty() -> "No readings to analyse yet."
             abnormal.isEmpty() ->
-                "All ${metrics.size} recorded ${plural(metrics.size, "reading")} are within the normal range."
+                "All ${metrics.size} recorded ${plural(metrics.size, "reading")} are in the normal range."
             else -> {
                 val names = abnormal.joinToString(", ") {
                     "${it.label.substringBefore(" (").lowercase()} (${it.statusText})"
@@ -140,7 +140,7 @@ object HealthAnalysis {
             level = j.level, statusText = j.status,
             note = rangeNote(j, "$display $unit"),
             trend = trendOf(value, priorValues),
-            recentAvg = recentAvg(value, priorValues)?.let { "recent avg ${trimNum(it)}" },
+            recentAvg = recentAvg(value, priorValues)?.let { "recent average ${trimNum(it)}" },
         )
     }
 
@@ -163,9 +163,9 @@ object HealthAnalysis {
     }
 
     private fun rangeNote(j: VitalRules.Judgement, measured: String): String = when (j.level) {
-        VitalLevel.NORMAL -> "Within the normal range (${j.normalRange})."
-        VitalLevel.WARNING, VitalLevel.CRITICAL -> "${j.status} — normal is ${j.normalRange}."
-        VitalLevel.UNKNOWN -> "Not enough information."
+        VitalLevel.NORMAL -> "In the normal range (${j.normalRange})"
+        VitalLevel.WARNING, VitalLevel.CRITICAL -> "${j.status} · normal is ${j.normalRange}"
+        VitalLevel.UNKNOWN -> "Not enough to judge yet"
     }
 
     private fun plural(n: Int, word: String) = if (n == 1) word else "${word}s"
@@ -188,7 +188,7 @@ object VitalRules {
     data class Judgement(val level: VitalLevel, val status: String, val normalRange: String)
 
     fun heartRate(bpm: Int): Judgement {
-        val range = "60–100 BPM"
+        val range = "60-100 BPM"
         return when {
             bpm < 40 || bpm > 130 -> Judgement(VitalLevel.CRITICAL, "Critical", range)
             bpm < 60 -> Judgement(VitalLevel.WARNING, "Low", range)
@@ -212,7 +212,7 @@ object VitalRules {
     }
 
     fun glucoseMgDl(v: Float): Judgement {
-        val range = "70–140 mg/dL"
+        val range = "70-140 mg/dL"
         return when {
             v < 54f || v > 300f -> Judgement(VitalLevel.CRITICAL, "Critical", range)
             v < 70f -> Judgement(VitalLevel.WARNING, "Low", range)
@@ -223,7 +223,7 @@ object VitalRules {
     }
 
     fun spo2(v: Float): Judgement {
-        val range = "95–100%"
+        val range = "95-100%"
         return when {
             v < 90f -> Judgement(VitalLevel.CRITICAL, "Critical", range)
             v < 95f -> Judgement(VitalLevel.WARNING, "Low", range)
@@ -232,7 +232,7 @@ object VitalRules {
     }
 
     fun tempC(v: Float): Judgement {
-        val range = "36.1–37.5 °C"
+        val range = "36.1-37.5 °C"
         return when {
             v < 35f || v >= 39f -> Judgement(VitalLevel.CRITICAL, "Critical", range)
             v >= 37.6f -> Judgement(VitalLevel.WARNING, "Fever", range)

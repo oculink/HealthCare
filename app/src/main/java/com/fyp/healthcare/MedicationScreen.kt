@@ -56,6 +56,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -168,7 +169,7 @@ fun MedicationScreen(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    "Today — ${SimpleDateFormat("EEE, d MMM", Locale.getDefault()).format(Date())}",
+                    "Today · ${SimpleDateFormat("EEE, d MMM", Locale.getDefault()).format(Date())}",
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
                     color = TextDark,
@@ -207,7 +208,7 @@ fun MedicationScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .glossySurface(RoundedCornerShape(20.dp), CardWhite)
-                    .clickable { onAddClick() }
+                    .clickable(role = Role.Button) { onAddClick() }
                     .padding(16.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -239,7 +240,7 @@ private fun EmptyState(onAddClick: () -> Unit) {
         Text("No medications yet", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextDark)
         Spacer(Modifier.height(4.dp))
         Text(
-            "Add your first reminder and we'll notify you at the scheduled time.",
+            "Add your first reminder and we'll notify you when it's due.",
             fontSize = 13.sp,
             color = LabelGray,
             textAlign = TextAlign.Center,
@@ -361,7 +362,7 @@ private fun DoseCard(
                         Box(
                             modifier = Modifier
                                 .glossyChip(selected = true, accent = color, shape = RoundedCornerShape(10.dp))
-                                .clickable { pendingAction = label to action }
+                                .clickable(role = Role.Button) { pendingAction = label to action }
                                 .padding(horizontal = 16.dp, vertical = 8.dp),
                         ) {
                             Text(label, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
@@ -410,7 +411,7 @@ private fun DoseCard(
             )
             else -> Triple(
                 "Undo?",
-                "Clear the log for $doseLabel — it'll show as due again.",
+                "Clears the log for $doseLabel · it shows as due again",
                 BrandBlue,
             )
         }

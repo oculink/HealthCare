@@ -49,6 +49,7 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.MonitorHeart
 import androidx.compose.material.icons.filled.Pets
+import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.WbCloudy
 import androidx.compose.material.icons.filled.WbSunny
@@ -64,6 +65,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -124,6 +126,11 @@ fun HomeScreen(
     val headerName = if (caretakerMode) userManager.currentAccount()?.name ?: "Caregiver" else fullName
     val headerPhoto = userManager.currentAccount()?.photoUrl
 
+    // A username account with no Google attached has no way back in if the password is
+    // forgotten - there's no mailbox to send a reset to. Re-read on every recomposition so
+    // the warning clears itself as soon as the person links it from Profile.
+    val needsGoogleLink = userManager.needsGoogleLink()
+
     val caretakers by produceState(
         initialValue = emptyList<FamilyLink.CaretakerInfo>(),
         key1 = dataVersion,
@@ -174,7 +181,7 @@ fun HomeScreen(
     val sleepNote: String = when (sleepSummary?.source) {
         "radar" -> "Measured by the mmWave sensor"
         "wearable" -> "From a connected wearable"
-        else -> "Estimated from $whose phone's motion & light, not the mmWave sensor"
+        else -> "Guessed from $whose phone's movement and light, not the mmWave sensor"
     }
     val hasData = heartRate != null || bloodPressure != null || oxygen != null
 
@@ -205,7 +212,7 @@ fun HomeScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .glossySurface(RoundedCornerShape(20.dp), BrandBlue)
-                    .clickable { onNavigate("profile") }
+                    .clickable(role = Role.Button) { onNavigate("profile") }
                     .padding(20.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -256,6 +263,32 @@ fun HomeScreen(
                         color = Color.White.copy(alpha = 0.7f),
                         fontSize = 12.sp
                     )
+                    if (needsGoogleLink) {
+                        Spacer(Modifier.height(10.dp))
+                        Row(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(Color.White.copy(alpha = 0.18f))
+                                .clickable(role = Role.Button) { onNavigate("profile") }
+                                .padding(horizontal = 10.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(
+                                Icons.Filled.Shield,
+                                contentDescription = null,
+                                tint = Color(0xFFFFD376),
+                                modifier = Modifier.size(15.dp),
+                            )
+                            Spacer(Modifier.width(7.dp))
+                            Text(
+                                "Your account isn't protected yet · tap to link Google so you can't get locked out",
+                                color = Color.White,
+                                fontSize = 12.sp,
+                                lineHeight = 15.sp,
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                    }
                 }
                 AccountAvatar(
                     photoUrl = headerPhoto,
@@ -296,7 +329,7 @@ fun HomeScreen(
                     )
                     Spacer(Modifier.width(6.dp))
                     Text(
-                        "No health data yet — record your first readings",
+                        "Nothing recorded yet · take your first reading",
                         color = LabelGray,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Medium,
@@ -383,7 +416,7 @@ private fun HealthAlertBanner(
             .clip(RoundedCornerShape(14.dp))
             .background(c.copy(alpha = 0.12f))
             .border(1.dp, c.copy(alpha = 0.35f), RoundedCornerShape(14.dp))
-            .clickable { onClick() }
+            .clickable(role = Role.Button) { onClick() }
             .padding(14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -419,7 +452,7 @@ private fun VitalCard(
     Column(
         modifier = modifier
             .glossySurface(RoundedCornerShape(20.dp), CardWhite, glow = glow)
-            .clickable { onClick() }
+            .clickable(role = Role.Button) { onClick() }
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -487,7 +520,7 @@ private fun QuickActionCard(
         modifier = modifier
             .fillMaxHeight()
             .glossySurface(RoundedCornerShape(18.dp), CardWhite, glow = tint)
-            .clickable { onClick() }
+            .clickable(role = Role.Button) { onClick() }
             .padding(vertical = 16.dp, horizontal = 6.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterVertically)

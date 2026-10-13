@@ -92,7 +92,7 @@ class ReminderWorker(
                 context = applicationContext,
                 notificationId = (medId.toInt() * 31) + hhmmMinutes(time),
                 title = "Time for ${med.name}",
-                text = "${med.dosageText} • ${formatTime12(time)}",
+                text = "${med.dosageText} · ${formatTime12(time)}",
             )
         }
 

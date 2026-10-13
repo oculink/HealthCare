@@ -114,7 +114,7 @@ fun RecordDataScreen(
         ) {
             Text("Enter Today's Readings", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = TextDark)
             Spacer(Modifier.height(4.dp))
-            Text("All data is securely saved & analyzed", fontSize = 12.sp, color = LabelGray)
+            Text("Saved securely and analyzed for you", fontSize = 12.sp, color = LabelGray)
             Spacer(Modifier.height(20.dp))
 
             ReadingField(bloodPressure, { bloodPressure = it }, "Blood Pressure", "e.g. 120/80 mmHg", Icons.Filled.Bloodtype, KeyboardType.Text)

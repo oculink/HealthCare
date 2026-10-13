@@ -19,9 +19,9 @@ fun AllergyPickerScreen(
     val context = LocalContext.current
     CatalogPickerScreen(
         title = "Choose Allergen",
-        searchHint = "Search foods, pollens, drugs…",
+        searchHint = "Search foods, pollens, medicines…",
         addNotListedTitle = "Add an allergy not listed",
-        addNotListedSubtitle = "Type your own — works offline, saved for next time",
+        addNotListedSubtitle = "Type your own · works offline and saves for next time",
         addFieldHint = "e.g. Kiwi, Amoxicillin, Cat dander",
         addButtonLabel = "Add this allergy",
         rowIcon = Icons.Filled.Warning,

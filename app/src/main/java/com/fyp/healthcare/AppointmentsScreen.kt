@@ -55,6 +55,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -181,7 +182,7 @@ fun AppointmentsScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .glossySurface(RoundedCornerShape(20.dp), CardWhite)
-                    .clickable { onAddClick() }
+                    .clickable(role = Role.Button) { onAddClick() }
                     .padding(16.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -190,7 +191,7 @@ fun AppointmentsScreen(
                 Column {
                     Text("Add Appointment", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = BrandBlue)
                     Spacer(Modifier.height(2.dp))
-                    Text("Doctor, clinic, date & a reminder", fontSize = 12.sp, color = LabelGray)
+                    Text("Doctor, clinic, date and a reminder", fontSize = 12.sp, color = LabelGray)
                 }
             }
 
@@ -233,7 +234,7 @@ private fun EmptyState(onAddClick: () -> Unit) {
         Text("No appointments yet", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextDark)
         Spacer(Modifier.height(4.dp))
         Text(
-            "Add an appointment you've booked and we'll remind you before it.",
+            "Add an appointment you've booked · we'll remind you",
             fontSize = 13.sp,
             color = LabelGray,
             textAlign = TextAlign.Center,
@@ -311,7 +312,7 @@ private fun ApptCard(
                 if (appt.remindMinutesBefore > 0 && state == Appointment.STATE_UPCOMING) {
                     Spacer(Modifier.height(2.dp))
                     Text(
-                        "Reminder ${Appointment.reminderLabel(appt.remindMinutesBefore).lowercase()} before",
+                        "Reminds you ${Appointment.reminderLabel(appt.remindMinutesBefore).lowercase()} before",
                         fontSize = 10.sp,
                         color = LabelGray,
                     )
@@ -371,7 +372,7 @@ private fun ApptCard(
                 Row(
                     modifier = Modifier
                         .glossyBadge(BrandBlue, RoundedCornerShape(18.dp))
-                        .clickable { openDirections(context, appt.lat, appt.lng, directionsQuery) }
+                        .clickable(role = Role.Button) { openDirections(context, appt.lat, appt.lng, directionsQuery) }
                         .padding(horizontal = 14.dp, vertical = 7.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -387,7 +388,7 @@ private fun ApptCard(
         AlertDialog(
             onDismissRequest = { confirmDelete = false },
             title = { Text("Delete this appointment?") },
-            text = { Text("Removes the ${appt.doctorLine} appointment and its reminder.") },
+            text = { Text("Removes ${appt.doctorLine} and its reminder.") },
             confirmButton = {
                 TextButton(onClick = { confirmDelete = false; onDelete() }) {
                     Text("Delete", color = BadRed, fontWeight = FontWeight.Bold)

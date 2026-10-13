@@ -33,6 +33,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -146,7 +147,7 @@ fun RoleSelectScreen(
             Text("Sign out", fontSize = 16.sp, color = Color.White)
         }
         Text(
-            "Signed in with Google — sign out to switch account.",
+            "You're signed in with Google · sign out to switch account",
             fontSize = 12.sp,
             color = LabelGray,
             textAlign = TextAlign.Center,
@@ -177,7 +178,7 @@ private fun StyleOption(
     Box(
         modifier = modifier
             .glossyChip(selected, BrandBlue, RoundedCornerShape(11.dp))
-            .clickable(onClick = onClick)
+            .clickable(role = Role.Checkbox, onClick = onClick)
             .padding(vertical = 12.dp),
         contentAlignment = Alignment.Center,
     ) {
@@ -201,7 +202,7 @@ private fun RoleCard(
         modifier = Modifier
             .fillMaxWidth()
             .glossySurface(RoundedCornerShape(20.dp), CardWhite)
-            .clickable(onClick = onClick)
+            .clickable(role = Role.Button, onClick = onClick)
             .padding(20.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

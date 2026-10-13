@@ -52,6 +52,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -206,7 +207,7 @@ fun AddAppointmentScreen(
             ) {
                 Text("Appointment Details", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = TextDark)
                 Spacer(Modifier.height(4.dp))
-                Text("Record an appointment you've booked — we'll remind you.", fontSize = 12.sp, color = LabelGray)
+                Text("Add an appointment you've booked · we'll remind you", fontSize = 12.sp, color = LabelGray)
                 Spacer(Modifier.height(20.dp))
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -219,7 +220,7 @@ fun AddAppointmentScreen(
                     )
                     Row(
                         modifier = Modifier
-                            .clickable {
+                            .clickable(role = Role.Button) {
                                 focusManager.clearFocus()
                                 addrEditing = false
                                 addrSuggestions = emptyList()
@@ -250,7 +251,7 @@ fun AddAppointmentScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable {
+                            .clickable(role = Role.Button) {
                                 address = s.label
                                 addrLat = s.lat
                                 addrLng = s.lon
@@ -303,7 +304,7 @@ fun AddAppointmentScreen(
                         Box(
                             modifier = Modifier
                                 .glossyChip(selected, Teal, RoundedCornerShape(10.dp))
-                                .clickable { remindMinutes = minutes }
+                                .clickable(role = Role.Checkbox) { remindMinutes = minutes }
                                 .padding(horizontal = 14.dp, vertical = 8.dp),
                         ) {
                             Text(
@@ -317,14 +318,14 @@ fun AddAppointmentScreen(
                 }
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    if (remindMinutes <= 0) "No reminder will be set."
-                    else "Notifies you ${Appointment.reminderLabel(remindMinutes).lowercase(Locale.getDefault())} before.",
+                    if (remindMinutes <= 0) "You won't get a reminder."
+                    else "We'll remind you ${Appointment.reminderLabel(remindMinutes).lowercase(Locale.getDefault())} before.",
                     fontSize = 11.sp,
                     color = LabelGray,
                 )
                 Spacer(Modifier.height(14.dp))
 
-                ApptField(notes, { notes = it }, "Notes (optional)", "Bring referral letter, fasting required…", Icons.AutoMirrored.Filled.Notes, singleLine = false)
+                ApptField(notes, { notes = it }, "Notes (optional)", "Bring a referral letter, fasting required…", Icons.AutoMirrored.Filled.Notes, singleLine = false)
 
                 errorMessage?.let {
                     Text(
@@ -440,7 +441,7 @@ private fun SelectorRow(icon: ImageVector, value: String, onClick: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .glossyFieldWell(RoundedCornerShape(12.dp))
-            .clickable { onClick() }
+            .clickable(role = Role.Button) { onClick() }
             .padding(horizontal = 12.dp, vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

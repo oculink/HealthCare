@@ -151,7 +151,7 @@ fun MedicationHistoryScreen(
                 Text("Nothing logged yet", fontSize = 17.sp, fontWeight = FontWeight.Bold, color = TextDark)
                 Spacer(Modifier.height(6.dp))
                 Text(
-                    "Mark a dose Taken or Missed on the Medications page and it will appear here, " +
+                    "Mark a dose Taken or Missed on the Medications page and it shows here, " +
                         "newest first.",
                     fontSize = 13.sp,
                     color = LabelGray,

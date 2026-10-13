@@ -49,6 +49,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -169,7 +170,7 @@ fun MedicationScheduleScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .glossySurface(RoundedCornerShape(16.dp), CardWhite)
-                    .clickable {
+                    .clickable(role = Role.Button) {
                         openPicker("08:00") { t -> schedule = (0..6).associateWith { listOf(t) } }
                     }
                     .padding(16.dp),
@@ -277,7 +278,7 @@ private fun DayCard(
                             .height(40.dp)
                             .clip(RoundedCornerShape(20.dp))
                             .background(ChipBlueBg)
-                            .clickable { onEditTime(t) }
+                            .clickable(role = Role.Button) { onEditTime(t) }
                             .padding(start = 14.dp, end = 6.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
@@ -297,7 +298,7 @@ private fun DayCard(
                         .height(40.dp)
                         .clip(RoundedCornerShape(20.dp))
                         .background(FieldBackground)
-                        .clickable { onAddTime() }
+                        .clickable(role = Role.Button) { onAddTime() }
                         .padding(horizontal = 14.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {

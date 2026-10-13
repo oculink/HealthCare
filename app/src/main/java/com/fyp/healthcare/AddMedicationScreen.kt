@@ -55,6 +55,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -163,7 +164,7 @@ fun AddMedicationScreen(
             ) {
                 Text("Medication Details", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = TextDark)
                 Spacer(Modifier.height(4.dp))
-                Text("Fill in the details for your reminder", fontSize = 12.sp, color = LabelGray)
+                Text("Tell us about this medication", fontSize = 12.sp, color = LabelGray)
                 Spacer(Modifier.height(20.dp))
 
                 Text("Medication Name", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = LabelGray)
@@ -186,14 +187,14 @@ fun AddMedicationScreen(
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
                         color = BrandBlue,
-                        modifier = Modifier.clickable { onChooseMedication() },
+                        modifier = Modifier.clickable(role = Role.Button) { onChooseMedication() },
                     )
                 } else {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .glossyFieldWell(RoundedCornerShape(12.dp))
-                            .clickable { onChooseMedication() }
+                            .clickable(role = Role.Button) { onChooseMedication() }
                             .padding(horizontal = 12.dp, vertical = 16.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
@@ -217,7 +218,7 @@ fun AddMedicationScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .glossyFieldWell(RoundedCornerShape(12.dp))
-                            .clickable { routeMenuOpen = true }
+                            .clickable(role = Role.Button) { routeMenuOpen = true }
                             .padding(horizontal = 12.dp, vertical = 16.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {

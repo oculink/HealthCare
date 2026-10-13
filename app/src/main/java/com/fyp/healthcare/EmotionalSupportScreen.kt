@@ -45,6 +45,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -211,7 +212,7 @@ fun EmotionalSupportScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(10.dp))
-                    .clickable { showCredits = true }
+                    .clickable(role = Role.Button) { showCredits = true }
                     .padding(vertical = 8.dp),
                 textAlign = TextAlign.Center,
             )
@@ -225,7 +226,7 @@ fun EmotionalSupportScreen(
             ) {
                 Text(
                     "This page is a small lift, not counselling. If things ever feel unsafe or too " +
-                        "heavy, the Emergency page keeps the numbers and details that help.",
+                        "heavy, the Emergency page has the numbers that help.",
                     fontSize = 12.sp,
                     color = LabelGray,
                     lineHeight = 17.sp,
@@ -238,7 +239,7 @@ fun EmotionalSupportScreen(
                     color = BrandBlue,
                     modifier = Modifier
                         .clip(RoundedCornerShape(8.dp))
-                        .clickable { onEmergencyClick() }
+                        .clickable(role = Role.Button) { onEmergencyClick() }
                         .padding(vertical = 6.dp),
                 )
             }
@@ -258,7 +259,7 @@ fun EmotionalSupportScreen(
                     .padding(bottom = 28.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                Text("Pictures you would like to see", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextDark)
+                Text("Pictures you'd like to see", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextDark)
                 Text(
                     "Tick the kinds you like seeing. Leave them all empty to see every kind.",
                     fontSize = 12.sp,

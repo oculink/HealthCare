@@ -35,6 +35,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -46,7 +47,7 @@ fun BlankScreen(title: String) {
         modifier = Modifier.fillMaxSize().appBackground(),
         contentAlignment = Alignment.Center
     ) {
-        Text("$title — coming soon", color = themed(Color(0xFF8A8F98), Color(0xFF8A8F98)), fontSize = 16.sp)
+        Text("$title · coming soon", color = themed(Color(0xFF8A8F98), Color(0xFF8A8F98)), fontSize = 16.sp)
     }
 }
 
@@ -96,6 +97,7 @@ fun BottomNavBar(currentRoute: String, onNavigate: (String) -> Unit) {
                     .clickable(
                         interactionSource = interaction,
                         indication = null,
+                        role = Role.Button,
                         onClick = { if (!selected) onNavigate(route) },
                     )
                     .padding(horizontal = 4.dp),

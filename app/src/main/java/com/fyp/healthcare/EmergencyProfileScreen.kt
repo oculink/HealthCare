@@ -45,6 +45,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -88,7 +89,7 @@ fun EmergencyProfileScreen(
     val account = remember { userManager.currentAccount() }
     val profile = remember(Session.dataVersion) { profileManager.get() }
     val meds = remember(Session.dataVersion) { medManager.getAll() }
-    val name = profile.name.ifBlank { account?.name ?: "—" }
+    val name = profile.name.ifBlank { account?.name ?: "-" }
 
     fun dial(number: String) {
         val digits = number.filter { it.isDigit() || it == '+' }
@@ -162,8 +163,8 @@ fun EmergencyProfileScreen(
                     .padding(vertical = 16.dp, horizontal = 8.dp),
             ) {
                 VitalCell(Icons.Filled.Bloodtype, CriticalRed, value(profile.bloodType), "Blood Type", Modifier.weight(1f))
-                VitalCell(Icons.Filled.MonitorWeight, BrandBlue, profile.weightKg.ifBlank { "—" }.let { if (it == "—") it else "$it kg" }, "Weight", Modifier.weight(1f))
-                VitalCell(Icons.Filled.Height, BrandBlue, profile.heightCm.ifBlank { "—" }.let { if (it == "—") it else "$it cm" }, "Height", Modifier.weight(1f))
+                VitalCell(Icons.Filled.MonitorWeight, BrandBlue, profile.weightKg.ifBlank { "-" }.let { if (it == "-") it else "$it kg" }, "Weight", Modifier.weight(1f))
+                VitalCell(Icons.Filled.Height, BrandBlue, profile.heightCm.ifBlank { "-" }.let { if (it == "-") it else "$it cm" }, "Height", Modifier.weight(1f))
             }
 
             Section("Allergies") {
@@ -216,7 +217,7 @@ fun EmergencyProfileScreen(
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold,
                         color = BrandBlue,
-                        modifier = Modifier.clickable { onEditProfile() },
+                        modifier = Modifier.clickable(role = Role.Button) { onEditProfile() },
                     )
                 } else {
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -232,7 +233,7 @@ fun EmergencyProfileScreen(
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(18.dp))
                     .background(CriticalRed)
-                    .clickable { dial("999") }
+                    .clickable(role = Role.Button) { dial("999") }
                     .padding(vertical = 16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
@@ -318,7 +319,7 @@ private fun ContactRow(contact: EmergencyContact, onCall: () -> Unit) {
                 modifier = Modifier
                     .clip(RoundedCornerShape(50))
                     .background(CallPillBg)
-                    .clickable { onCall() }
+                    .clickable(role = Role.Button) { onCall() }
                     .padding(horizontal = 16.dp, vertical = 7.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -330,7 +331,7 @@ private fun ContactRow(contact: EmergencyContact, onCall: () -> Unit) {
     }
 }
 
-private fun value(s: String): String = s.trim().ifBlank { "—" }
+private fun value(s: String): String = s.trim().ifBlank { "-" }
 
 private fun patientLine(p: HealthProfile): String {
     val bits = buildList {

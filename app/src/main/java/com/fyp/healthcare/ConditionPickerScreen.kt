@@ -20,9 +20,9 @@ fun ConditionPickerScreen(
     val context = LocalContext.current
     CatalogPickerScreen(
         title = "Choose Condition",
-        searchHint = "Search conditions, e.g. asthma, diabetes",
+        searchHint = "Search conditions, like asthma or diabetes",
         addNotListedTitle = "Add a condition not listed",
-        addNotListedSubtitle = "Type your own — works offline, saved for next time",
+        addNotListedSubtitle = "Type your own · works offline and saves for next time",
         addFieldHint = "e.g. Costochondritis, Sarcoidosis",
         addButtonLabel = "Add this condition",
         rowIcon = Icons.Filled.MonitorHeart,

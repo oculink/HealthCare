@@ -143,6 +143,17 @@ class MainActivity : ComponentActivity() {
                         popUpTo(navController.graph.id) { inclusive = true }
                     }
                 }
+                // Post-auth entry point for all three sign-in paths (Google, sign up, sign in).
+                // Popping "signin" inclusively also drops whichever email route we came from.
+                val finishSignIn = {
+                    Thread {
+                        Cloud.pushBacklog(applicationContext)
+                        Cloud.seedCommunityBacklog(applicationContext)
+                    }.start()
+                    navController.navigate(afterAuth()) {
+                        popUpTo("signin") { inclusive = true }
+                    }
+                }
                 val refreshCache = {
                     lifecycleScope.launch(Dispatchers.IO) {
                         runCatching { CloudHydrator.hydrate(applicationContext) }
@@ -172,15 +183,25 @@ class MainActivity : ComponentActivity() {
                     composable("signin") {
                         SignInScreen(
                             userManager = userManager,
-                            onSignedIn = {
-                                Thread {
-                                    Cloud.pushBacklog(applicationContext)
-                                    Cloud.seedCommunityBacklog(applicationContext)
-                                }.start()
-                                navController.navigate(afterAuth()) {
-                                    popUpTo("signin") { inclusive = true }
-                                }
-                            },
+                            onSignUp = { navController.navigate("sign_up") },
+                            onSignIn = { navController.navigate("sign_in") },
+                            onSignedIn = finishSignIn,
+                        )
+                    }
+                    composable("sign_up") {
+                        UsernameAuthScreen(
+                            userManager = userManager,
+                            initialMode = AuthMode.SignUp,
+                            onSignedIn = finishSignIn,
+                            onBack = { navController.popBackStack() },
+                        )
+                    }
+                    composable("sign_in") {
+                        UsernameAuthScreen(
+                            userManager = userManager,
+                            initialMode = AuthMode.SignIn,
+                            onSignedIn = finishSignIn,
+                            onBack = { navController.popBackStack() },
                         )
                     }
                     composable("onboarding") {
@@ -458,6 +479,16 @@ class MainActivity : ComponentActivity() {
                                 onOpenHistory = { navController.navigate("history") },
                                 onOpenMedicationHistory = { navController.navigate("medication_history") },
                                 onSignOut = {
+                                    userManager.signOut(applicationContext)
+                                    Session.clear(applicationContext)
+                                    clearBackStackTo("signin")
+                                },
+                                // The account is already gone by the time this fires (Firebase
+                                // signs out on delete), so this is purely local teardown.
+                                onAccountDeleted = {
+                                    PatientMonitor.stop()
+                                    StepTracker.stop()
+                                    SleepTracker.unregister(applicationContext)
                                     userManager.signOut(applicationContext)
                                     Session.clear(applicationContext)
                                     clearBackStackTo("signin")

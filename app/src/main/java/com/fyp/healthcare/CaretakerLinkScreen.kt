@@ -99,7 +99,7 @@ fun CaretakerLinkScreen(
         Text("Link to a patient", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(6.dp))
         Text(
-            "Ask the patient for their family code — it's in\ntheir Profile → Connections → Family Caregiver.",
+            "Get the family code from the patient.\nIt's in their Profile · Connections · Family Caregiver.",
             color = Color.White.copy(alpha = 0.85f),
             fontSize = 13.sp,
             textAlign = TextAlign.Center,

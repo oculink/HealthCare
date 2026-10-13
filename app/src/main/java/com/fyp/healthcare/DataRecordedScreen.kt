@@ -88,7 +88,7 @@ fun DataRecordedScreen(
         Spacer(Modifier.height(20.dp))
 
         Text(
-            "Data Recorded!",
+            "Readings Saved",
             fontSize = 24.sp,
             fontWeight = FontWeight.Bold,
             color = TextDark,
@@ -96,7 +96,7 @@ fun DataRecordedScreen(
         )
         Spacer(Modifier.height(8.dp))
         Text(
-            "Your readings were saved and checked against the normal ranges.",
+            "Your readings are saved and checked against the normal ranges.",
             fontSize = 13.sp,
             color = LabelGray,
             textAlign = TextAlign.Center
@@ -133,7 +133,7 @@ fun DataRecordedScreen(
                 if (!analysis.hasEnoughHistory) {
                     Spacer(Modifier.height(10.dp))
                     Text(
-                        "Trends need a few more readings — keep recording regularly.",
+                        "Trends need a few more readings · keep recording",
                         fontSize = 11.sp,
                         color = LabelGray,
                     )

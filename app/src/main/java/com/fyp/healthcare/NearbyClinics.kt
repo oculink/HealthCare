@@ -104,7 +104,7 @@ object NearbyClinics {
         ENDPOINTS.forEach { endpoint ->
             raceScope.launch {
                 val r = runCatching { fetch(endpoint, lat, lon, radiusM) }
-                    .onFailure { Log.w("NearbyClinics", "endpoint failed: $endpoint — ${it.message}") }
+                    .onFailure { Log.w("NearbyClinics", "endpoint failed: $endpoint - ${it.message}") }
                     .getOrNull()
                 replies.trySend(Reply(full = true, places = r))
             }
@@ -142,7 +142,7 @@ object NearbyClinics {
                 if (all.isNotEmpty()) cache(context, all)
                 Result(all, fromCache = false, error = null)
             } else {
-                Result(cached(context), fromCache = true, error = "clinics service unavailable")
+                Result(cached(context), fromCache = true, error = "map service unavailable")
             }
         }
     }

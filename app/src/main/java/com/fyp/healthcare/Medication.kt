@@ -149,7 +149,7 @@ fun hhmmMinutes(t: String): Int {
 }
 
 fun daysLabel(days: Set<Int>): String = when {
-    days.isEmpty() -> "—"
+    days.isEmpty() -> "-"
     days.size == 7 -> "Every day"
     days == setOf(1, 2, 3, 4, 5) -> "Weekdays"
     days == setOf(0, 6) -> "Weekends"

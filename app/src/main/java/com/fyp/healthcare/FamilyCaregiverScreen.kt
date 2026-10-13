@@ -50,6 +50,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -193,7 +194,7 @@ fun FamilyCaregiverScreen(
 
                 Text(
                     "Anyone with this code can view and manage your health data, medication and " +
-                        "emergency profile. Reset the code if you no longer want it shared.",
+                        "emergency profile. Reset it if you want to stop sharing.",
                     fontSize = 11.sp,
                     color = LabelGray,
                 )
@@ -205,7 +206,7 @@ fun FamilyCaregiverScreen(
         AlertDialog(
             onDismissRequest = { confirmReset = false },
             title = { Text("Reset your code?") },
-            text = { Text("A new code is generated. Caregivers already linked stay linked, but the old code stops working for new links.") },
+            text = { Text("You'll get a new code. Caregivers already linked stay linked, but the old code stops working for new links.") },
             confirmButton = {
                 TextButton(onClick = {
                     confirmReset = false
@@ -226,7 +227,7 @@ fun FamilyCaregiverScreen(
         AlertDialog(
             onDismissRequest = { confirmRevoke = null },
             title = { Text("Remove ${c.name}?") },
-            text = { Text("They will lose access to your account immediately.") },
+            text = { Text("They'll lose access to your account right away.") },
             confirmButton = {
                 TextButton(onClick = {
                     confirmRevoke = null
@@ -288,7 +289,7 @@ private fun CodeCard(
             contentAlignment = Alignment.Center,
         ) {
             Text(
-                code ?: (error?.let { "—" } ?: "…"),
+                code ?: (error?.let { "-" } ?: "…"),
                 fontSize = 30.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 6.sp,
@@ -322,7 +323,7 @@ private fun ActionButton(
         modifier = modifier
             .clip(RoundedCornerShape(12.dp))
             .background(BrandBlue.copy(alpha = if (enabled) 0.12f else 0.05f))
-            .clickable(enabled = enabled, onClick = onClick)
+            .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
             .padding(vertical = 12.dp),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,
@@ -373,7 +374,7 @@ private fun shareCode(context: Context, code: String) {
         type = "text/plain"
         putExtra(
             Intent.EXTRA_TEXT,
-            "Link to my CareApp health monitoring. Open CareApp → sign in → \"I'm a Caregiver\" " +
+            "Add me on CareApp to help manage my health. Open CareApp → sign in → \"I'm a Caregiver\" " +
                 "→ enter this code:\n\n$code",
         )
     }

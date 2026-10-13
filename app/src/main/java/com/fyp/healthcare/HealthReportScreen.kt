@@ -47,6 +47,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -239,12 +240,12 @@ fun HealthReportScreen(
                         icon = Icons.Filled.Share,
                         tint = BrandBlue,
                         title = "Share with Doctor",
-                        subtitle = "Send the PDF via email or apps",
+                        subtitle = "Send the PDF by email or another app",
                         pillBg = ShareBlueBg,
                         pillColor = BrandBlue,
                     ) {
                         runCatching { HealthReportExport.share(context, r) }
-                            .onFailure { toast(context, "Couldn't prepare the report to share") }
+                            .onFailure { toast(context, "Couldn't share the report") }
                     }
                     ShareRow(
                         icon = Icons.Filled.Download,
@@ -263,7 +264,7 @@ fun HealthReportScreen(
 
                 else -> Text(
                     "Tap Generate to build a two-day summary (yesterday and today) from your " +
-                        "recorded vitals, profile and medication log.",
+                        "readings, profile and medicines.",
                     fontSize = 13.sp,
                     color = LabelGray,
                     lineHeight = 18.sp,
@@ -334,7 +335,7 @@ private fun PreviewCard(report: HealthReport) {
             }
             Spacer(Modifier.height(12.dp))
             Text(
-                if (report.hasData) "— End of Preview —" else "— No readings in the last 2 days —",
+                if (report.hasData) "End of preview" else "No readings in the last 2 days",
                 fontSize = 11.sp,
                 color = LabelGray,
                 textAlign = TextAlign.Center,
@@ -405,7 +406,7 @@ private fun ShareRow(
         modifier = Modifier
             .fillMaxWidth()
             .glossySurface(RoundedCornerShape(18.dp), CardWhite)
-            .clickable { onClick() }
+            .clickable(role = Role.Button) { onClick() }
             .padding(14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

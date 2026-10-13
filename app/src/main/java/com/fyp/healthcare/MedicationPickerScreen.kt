@@ -66,6 +66,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
@@ -230,7 +231,7 @@ fun MedicationPickerScreen(
                             .padding(horizontal = 16.dp, vertical = 6.dp)
                             .clip(RoundedCornerShape(14.dp))
                             .background(BrandBlue.copy(alpha = 0.10f))
-                            .clickable { onEnterManually() }
+                            .clickable(role = Role.Button) { onEnterManually() }
                             .padding(14.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
@@ -246,7 +247,7 @@ fun MedicationPickerScreen(
                 if (rows.isEmpty()) {
                     item(key = "__empty__") {
                         Text(
-                            "No match for \"$query\" — use \"Add a medication not listed\" above.",
+                            "Nothing matches \"$query\" · use \"Add a medication not listed\" above",
                             fontSize = 13.sp,
                             color = LabelGray,
                             modifier = Modifier.fillMaxWidth().padding(24.dp),
@@ -387,7 +388,7 @@ private fun EntryRow(entry: MedicationCatalog.Entry, onClick: () -> Unit) {
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 4.dp)
             .glossySurface(RoundedCornerShape(12.dp), CardWhite)
-            .clickable(onClick = onClick)
+            .clickable(role = Role.Button, onClick = onClick)
             .padding(14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

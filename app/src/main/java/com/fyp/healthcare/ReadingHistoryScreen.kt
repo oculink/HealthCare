@@ -216,7 +216,7 @@ fun ReadingHistoryScreen(
                 Text("Nothing recorded yet", fontSize = 17.sp, fontWeight = FontWeight.Bold, color = TextDark)
                 Spacer(Modifier.height(6.dp))
                 Text(
-                    "Readings you enter on the Record Data page will appear here, newest first.",
+                    "Readings you add on the Record Data page show up here, newest first.",
                     fontSize = 13.sp,
                     color = LabelGray,
                     textAlign = TextAlign.Center,
@@ -232,7 +232,7 @@ fun ReadingHistoryScreen(
                 Text("No readings match this", fontSize = 17.sp, fontWeight = FontWeight.Bold, color = TextDark)
                 Spacer(Modifier.height(6.dp))
                 Text(
-                    "Try a different day or status.",
+                    "Try another day or status.",
                     fontSize = 13.sp,
                     color = LabelGray,
                     textAlign = TextAlign.Center,
@@ -496,7 +496,7 @@ private fun ReadingBlock(reading: HealthDataManager.Reading, onlyVitals: Set<Str
                             .padding(horizontal = 8.dp, vertical = 3.dp),
                     )
                 } else {
-                    Text("—", fontSize = 10.sp, color = LabelGray)
+                    Text("-", fontSize = 10.sp, color = LabelGray)
                 }
             }
         }

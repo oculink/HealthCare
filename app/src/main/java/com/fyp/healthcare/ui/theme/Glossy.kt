@@ -41,6 +41,7 @@ import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
@@ -422,7 +423,7 @@ fun GlossyButton(
                 if (minimal) Modifier
                 else Modifier.satinTexture(AppTheme.isDark, seed, c, motif, AppTheme.leafPatterns, AppTheme.rich),
             )
-            .clickable(enabled = enabled, onClick = onClick)
+            .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
             .heightIn(min = 56.dp)
             .padding(contentPadding),
         horizontalArrangement = Arrangement.Center,

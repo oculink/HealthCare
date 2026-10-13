@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -33,9 +34,11 @@ import androidx.compose.material.icons.automirrored.filled.DirectionsWalk
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.ContactPhone
+import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FamilyRestroom
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.MedicalInformation
@@ -43,6 +46,7 @@ import androidx.compose.material.icons.filled.MedicalServices
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Radar
 import androidx.compose.material.icons.filled.Straighten
+import androidx.compose.material.icons.filled.VerifiedUser
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -58,6 +62,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -65,14 +70,19 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlinx.coroutines.launch
 
 private val BrandBlue = Color(0xFF2A6DE1)
 private val CardWhite: Color @Composable get() = themed(Color(0xFFFFFFFF), Color(0xFF1C1D22))
@@ -93,6 +103,7 @@ fun ProfileScreen(
     onOpenHistory: () -> Unit,
     onOpenMedicationHistory: () -> Unit,
     onSignOut: () -> Unit,
+    onAccountDeleted: () -> Unit,
     onBackClick: () -> Unit,
 ) {
     val account = userManager.currentAccount()
@@ -124,6 +135,117 @@ fun ProfileScreen(
     var showThemeDialog by remember { mutableStateOf(false) }
     var showLookDialog by remember { mutableStateOf(false) }
     var confirmSignOut by remember { mutableStateOf(false) }
+
+    // Which sign-in doors this account has. Firebase doesn't expose providers as observable
+    // state, so `refresh` re-reads them after a successful connect.
+    val googleConnected = remember(refresh) { userManager.isGoogleConnected() }
+    val usernameAccount = remember(refresh) { userManager.isUsernameAccount() }
+    val connectedGoogleEmail = remember(refresh) { userManager.connectedGoogleEmail() }
+
+    val accountScope = rememberCoroutineScope()
+    var showLinkDialog by remember { mutableStateOf(false) }
+    var linkPassword by remember { mutableStateOf("") }
+    var linkBusy by remember { mutableStateOf(false) }
+    var linkError by remember { mutableStateOf<String?>(null) }
+
+    var showPwDialog by remember { mutableStateOf(false) }
+    var pwCurrent by remember { mutableStateOf("") }
+    var pwNew by remember { mutableStateOf("") }
+    var pwConfirm by remember { mutableStateOf("") }
+    var pwBusy by remember { mutableStateOf(false) }
+    var pwError by remember { mutableStateOf<String?>(null) }
+
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    var deleteConfirmText by remember { mutableStateOf("") }
+    var deletePassword by remember { mutableStateOf("") }
+    var deleteBusy by remember { mutableStateOf(false) }
+    var deleteError by remember { mutableStateOf<String?>(null) }
+
+    /**
+     * Tapping the row goes straight to the Google picker. The dialog below only opens when
+     * Firebase demands a fresh password (a session from an earlier app run, which is the
+     * usual case since the session persists) or when something failed, so the common path is
+     * one tap and no reading.
+     */
+    fun runConnectGoogle(password: String? = null) {
+        if (linkBusy) return
+        linkBusy = true
+        linkError = null
+        accountScope.launch {
+            when (val result = userManager.connectGoogle(context, password)) {
+                is LinkResult.Success -> {
+                    showLinkDialog = false
+                    linkPassword = ""
+                    linkError = null
+                    refresh++
+                }
+                is LinkResult.Cancelled -> Unit
+                is LinkResult.NeedsPassword -> {
+                    linkError = "Confirm your password to finish connecting."
+                    showLinkDialog = true
+                }
+                is LinkResult.Failed -> {
+                    linkError = result.message
+                    showLinkDialog = true
+                }
+            }
+            linkBusy = false
+        }
+    }
+
+    fun submitPasswordChange() {
+        if (pwBusy) return
+        pwError = when {
+            pwCurrent.isBlank() -> "Enter your current password."
+            pwNew != pwConfirm -> "The two new passwords don't match."
+            else -> null
+        }
+        if (pwError != null) return
+        pwBusy = true
+        accountScope.launch {
+            when (val result = userManager.changePassword(pwCurrent, pwNew)) {
+                is SignInResult.Success -> {
+                    showPwDialog = false
+                    pwCurrent = ""
+                    pwNew = ""
+                    pwConfirm = ""
+                    pwError = null
+                }
+                is SignInResult.Failed -> pwError = result.message
+                is SignInResult.Cancelled -> Unit
+            }
+            pwBusy = false
+        }
+    }
+
+    /**
+     * Irreversible, so it asks for the username password AND the word DELETE. A Google-only
+     * account has no password to type, and `deleteAccount` knows that.
+     */
+    fun submitDeleteAccount() {
+        if (deleteBusy) return
+        deleteError = when {
+            deleteConfirmText.trim().uppercase() != "DELETE" -> "Type DELETE to confirm."
+            usernameAccount && deletePassword.isBlank() -> "Enter your password."
+            else -> null
+        }
+        if (deleteError != null) return
+        deleteBusy = true
+        accountScope.launch {
+            when (val result = userManager.deleteAccount(deletePassword)) {
+                is SignInResult.Success -> {
+                    // The user is gone; leave no local trace and drop back to the gate.
+                    showDeleteDialog = false
+                    onAccountDeleted()
+                }
+                is SignInResult.Failed -> {
+                    deleteError = result.message
+                    deleteBusy = false
+                }
+                is SignInResult.Cancelled -> deleteBusy = false
+            }
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -176,7 +298,7 @@ fun ProfileScreen(
                     )
                     Spacer(Modifier.width(8.dp))
                     Text(
-                        "Viewing ${Session.controlledPatientName.ifBlank { "the patient" }}'s account — " +
+                        "You're viewing ${Session.controlledPatientName.ifBlank { "the patient" }}'s account · " +
                             "changes save to their profile.",
                         fontSize = 12.sp,
                         color = TextDark,
@@ -203,7 +325,8 @@ fun ProfileScreen(
                     Spacer(Modifier.height(2.dp))
                     Text(
                         if (Session.isCaretakerMode) "Patient account · managed by you"
-                        else email ?: "Not signed in",
+                        else email?.takeIf { it.isNotBlank() }
+                            ?: if (account != null) "CareApp account" else "Not signed in",
                         fontSize = 12.sp,
                         color = LabelGray,
                     )
@@ -238,11 +361,11 @@ fun ProfileScreen(
                     )
                 } else {
                     Spacer(Modifier.height(10.dp))
-                    InfoRow("Date of birth", formatBirthDate(profile.birthDate).ifBlank { "—" })
-                    InfoRow("Age", profile.age?.let { "$it" } ?: "—")
+                    InfoRow("Date of birth", formatBirthDate(profile.birthDate).ifBlank { "-" })
+                    InfoRow("Age", profile.age?.let { "$it" } ?: "-")
                     InfoRow("Gender", dash(profile.sex))
-                    InfoRow("Height", if (profile.heightCm.isNotBlank()) "${profile.heightCm} cm" else "—")
-                    InfoRow("Weight", if (profile.weightKg.isNotBlank()) "${profile.weightKg} kg" else "—")
+                    InfoRow("Height", if (profile.heightCm.isNotBlank()) "${profile.heightCm} cm" else "-")
+                    InfoRow("Weight", if (profile.weightKg.isNotBlank()) "${profile.weightKg} kg" else "-")
                     InfoRow("Blood type", dash(profile.bloodType))
                 }
             }
@@ -269,8 +392,7 @@ fun ProfileScreen(
                 }
                 if (history.isEmpty()) {
                     Spacer(Modifier.height(4.dp))
-                    Text(
-                        "Nothing recorded yet. Readings you enter will be listed here.",
+                    Text("Nothing recorded yet · your readings will show here.",
                         fontSize = 12.sp, color = LabelGray,
                     )
                 } else {
@@ -311,7 +433,7 @@ fun ProfileScreen(
                 if (medDoses.isEmpty()) {
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        "Nothing logged yet. Doses you mark Taken or Missed will be listed here.",
+                        "Nothing logged yet · doses marked Taken or Missed show here.",
                         fontSize = 12.sp, color = LabelGray,
                     )
                 } else {
@@ -384,6 +506,58 @@ fun ProfileScreen(
                 NavRow(Icons.Filled.Radar, "mmWave Radar Sensor", "Not connected", tint = Color(0xFF7B4BD6))
             }
 
+            // Grouped as one section because they are the same thing to the user: the ways
+            // into this account, and the way out of it.
+            SectionLabel("Sign-in and security")
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .glossySurface(RoundedCornerShape(20.dp), CardWhite),
+            ) {
+                if (usernameAccount) {
+                    NavRow(
+                        Icons.Filled.Lock,
+                        "Change password",
+                        "",
+                        tint = Color(0xFF2A6DE1),
+                        onClick = { showPwDialog = true },
+                    )
+                    Divider()
+                    // Only username accounts get this row: a Google sign-in already IS Google.
+                    if (googleConnected) {
+                        NavRow(
+                            Icons.Filled.VerifiedUser,
+                            "Google account",
+                            connectedGoogleEmail ?: "Connected",
+                            tint = Color(0xFF1FA971),
+                        )
+                    } else {
+                        NavRow(
+                            Icons.Filled.VerifiedUser,
+                            "Google account",
+                            if (linkBusy) "Waiting for Google…" else "Not linked · tap to add",
+                            tint = Color(0xFF2A6DE1),
+                            onClick = { runConnectGoogle() },
+                        )
+                    }
+                } else {
+                    NavRow(
+                        Icons.Filled.VerifiedUser,
+                        "Google account",
+                        email?.takeIf { it.isNotBlank() } ?: "Connected",
+                        tint = Color(0xFF1FA971),
+                    )
+                }
+                Divider()
+                NavRow(
+                    Icons.Filled.DeleteForever,
+                    "Delete account",
+                    "Erases this account and its data",
+                    tint = AlertRed,
+                    onClick = { showDeleteDialog = true },
+                )
+            }
+
             SectionLabel("Preferences")
             Column(
                 modifier = Modifier
@@ -416,7 +590,7 @@ fun ProfileScreen(
                 Divider()
                 NavRow(Icons.Filled.Notifications, "Notifications", "On", tint = Color(0xFFE23539))
                 Divider()
-                NavRow(Icons.Filled.Straighten, "Units", "Metric (kg, cm)", tint = Color(0xFF1FA971))
+                NavRow(Icons.Filled.Straighten, "Units", "Metric", tint = Color(0xFF1FA971))
             }
 
             GlossyButton(
@@ -464,7 +638,7 @@ fun ProfileScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(8.dp))
-                                .clickable {
+                                .clickable(role = Role.Button) {
                                     AppTheme.setMode(context, m)
                                     showThemeDialog = false
                                 }
@@ -499,7 +673,7 @@ fun ProfileScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(10.dp))
-                                .clickable { AppTheme.setDecoration(context, value) }
+                                .clickable(role = Role.RadioButton) { AppTheme.setDecoration(context, value) }
                                 .padding(vertical = 8.dp, horizontal = 4.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
@@ -545,6 +719,234 @@ fun ProfileScreen(
             dismissButton = { TextButton(onClick = { confirmSignOut = false }) { Text("Cancel") } },
         )
     }
+
+    // Fallback, not the entry point: this opens only when Firebase wants a fresh password or
+    // a connect attempt failed. Tapping the row goes straight to the Google picker.
+    if (showLinkDialog) {
+        AlertDialog(
+            onDismissRequest = { if (!linkBusy) showLinkDialog = false },
+            title = { Text("Confirm your password") },
+            text = {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState()),
+                ) {
+                    Text(
+                        "CareApp needs your password before it can attach Google to \"${account?.name}\".",
+                        fontSize = 14.sp,
+                        color = TextDark,
+                    )
+                    Spacer(Modifier.height(14.dp))
+                    OutlinedTextField(
+                        value = linkPassword,
+                        onValueChange = {
+                            linkPassword = it
+                            linkError = null
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text("Password") },
+                        singleLine = true,
+                        enabled = !linkBusy,
+                        visualTransformation = PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(
+                            capitalization = KeyboardCapitalization.None,
+                            keyboardType = KeyboardType.Password,
+                            imeAction = ImeAction.Done,
+                        ),
+                        keyboardActions = KeyboardActions(
+                            onDone = { runConnectGoogle(linkPassword.ifBlank { null }) },
+                        ),
+                    )
+                    linkError?.let {
+                        Spacer(Modifier.height(10.dp))
+                        Text(it, color = AlertRed, fontSize = 12.sp)
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = { runConnectGoogle(linkPassword.ifBlank { null }) },
+                    enabled = !linkBusy,
+                ) {
+                    Text(
+                        if (linkBusy) "Connecting…" else "Connect Google",
+                        color = BrandBlue,
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showLinkDialog = false }, enabled = !linkBusy) { Text("Cancel") }
+            },
+        )
+    }
+
+    if (showPwDialog) {
+        AlertDialog(
+            onDismissRequest = { if (!pwBusy) showPwDialog = false },
+            title = { Text("Change password") },
+            text = {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState()),
+                ) {
+                    Text(
+                        "Your username stays the same. You'll need the new password next time you sign in.",
+                        fontSize = 13.sp,
+                        color = LabelGray,
+                    )
+                    Spacer(Modifier.height(14.dp))
+                    PasswordField(
+                        label = "Current password",
+                        value = pwCurrent,
+                        onValueChange = {
+                            pwCurrent = it
+                            pwError = null
+                        },
+                        enabled = !pwBusy,
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    PasswordField(
+                        label = "New password",
+                        value = pwNew,
+                        onValueChange = {
+                            pwNew = it
+                            pwError = null
+                        },
+                        enabled = !pwBusy,
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    PasswordField(
+                        label = "Repeat new password",
+                        value = pwConfirm,
+                        onValueChange = {
+                            pwConfirm = it
+                            pwError = null
+                        },
+                        enabled = !pwBusy,
+                        imeAction = ImeAction.Done,
+                        onSubmit = { submitPasswordChange() },
+                    )
+                    pwError?.let {
+                        Spacer(Modifier.height(10.dp))
+                        Text(it, color = AlertRed, fontSize = 12.sp)
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { submitPasswordChange() }, enabled = !pwBusy) {
+                    Text(
+                        if (pwBusy) "Saving…" else "Change password",
+                        color = BrandBlue,
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showPwDialog = false }, enabled = !pwBusy) { Text("Cancel") }
+            },
+        )
+    }
+
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { if (!deleteBusy) showDeleteDialog = false },
+            title = { Text("Delete this account?") },
+            text = {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState()),
+                ) {
+                    Text(
+                        "This erases the profile, readings, medications and appointments for " +
+                            "\"${account?.name}\". It can't be undone.",
+                        fontSize = 14.sp,
+                        color = TextDark,
+                    )
+                    Spacer(Modifier.height(10.dp))
+                    Text(
+                        "Any caregiver linked to it stops seeing this account. Reports you've already saved or shared stay on the devices holding them.",
+                        fontSize = 12.sp,
+                        color = LabelGray,
+                    )
+                    Spacer(Modifier.height(14.dp))
+                    OutlinedTextField(
+                        value = deleteConfirmText,
+                        onValueChange = {
+                            deleteConfirmText = it
+                            deleteError = null
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text("Type DELETE") },
+                        singleLine = true,
+                        enabled = !deleteBusy,
+                        keyboardOptions = KeyboardOptions(
+                            capitalization = KeyboardCapitalization.Characters,
+                        ),
+                    )
+                    if (usernameAccount) {
+                        Spacer(Modifier.height(12.dp))
+                        PasswordField(
+                            label = "Your password",
+                            value = deletePassword,
+                            onValueChange = {
+                                deletePassword = it
+                                deleteError = null
+                            },
+                            enabled = !deleteBusy,
+                            imeAction = ImeAction.Done,
+                            onSubmit = { submitDeleteAccount() },
+                        )
+                    }
+                    deleteError?.let {
+                        Spacer(Modifier.height(10.dp))
+                        Text(it, color = AlertRed, fontSize = 12.sp)
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { submitDeleteAccount() }, enabled = !deleteBusy) {
+                    Text(
+                        if (deleteBusy) "Deleting…" else "Delete account",
+                        color = AlertRed,
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }, enabled = !deleteBusy) { Text("Cancel") }
+            },
+        )
+    }
+}
+
+@Composable
+private fun PasswordField(
+    label: String,
+    value: String,
+    onValueChange: (String) -> Unit,
+    enabled: Boolean,
+    imeAction: ImeAction = ImeAction.Next,
+    onSubmit: () -> Unit = {},
+) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        modifier = Modifier.fillMaxWidth(),
+        label = { Text(label) },
+        singleLine = true,
+        enabled = enabled,
+        visualTransformation = PasswordVisualTransformation(),
+        keyboardOptions = KeyboardOptions(
+            capitalization = KeyboardCapitalization.None,
+            keyboardType = KeyboardType.Password,
+            imeAction = imeAction,
+        ),
+        keyboardActions = KeyboardActions(onDone = { onSubmit() }),
+    )
 }
 
 @Composable
@@ -559,7 +961,7 @@ private fun StepGoalDialog(current: Int, onDismiss: () -> Unit, onConfirm: (Int)
                 onValueChange = { text = it.filter(Char::isDigit).take(6) },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                supportingText = { Text("Between 1,000 and 50,000") },
+                supportingText = { Text("Between 1,000 and 50,000 steps") },
             )
         },
         confirmButton = {
@@ -605,7 +1007,7 @@ private fun NavRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+            .then(if (onClick != null) Modifier.clickable(role = Role.Button, onClick = onClick) else Modifier)
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -625,7 +1027,7 @@ private fun Divider() {
     Box(Modifier.fillMaxWidth().padding(start = 16.dp).height(1.dp).background(Color(0xFFE5E8EE)))
 }
 
-private fun dash(s: String): String = s.trim().ifBlank { "—" }
+private fun dash(s: String): String = s.trim().ifBlank { "-" }
 
 private fun themeLabel(m: ThemeMode): String = when (m) {
     ThemeMode.SYSTEM -> "System default"
@@ -652,7 +1054,7 @@ private fun SwitchRow(label: String, checked: Boolean, onChange: (Boolean) -> Un
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(10.dp))
-            .clickable { onChange(!checked) }
+            .clickable(role = Role.Switch) { onChange(!checked) }
             .padding(vertical = 8.dp, horizontal = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -673,7 +1075,7 @@ private fun readingSummary(r: HealthDataManager.Reading): String =
         r.heartRate.trim().takeIf { it.isNotEmpty() }?.let { "$it bpm" },
         r.bloodPressure.trim().takeIf { it.isNotEmpty() },
         r.oxygen.trim().takeIf { it.isNotEmpty() }?.let { "$it%" },
-    ).joinToString("  ·  ").ifBlank { "—" }
+    ).joinToString("  ·  ").ifBlank { "-" }
 
 /** The one-line version of a logged dose, for the compact row on this page. */
 private fun medDoseSummary(d: MedicationDose): String =

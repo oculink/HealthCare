@@ -88,6 +88,7 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
@@ -241,9 +242,9 @@ fun NearbyClinicsScreen(
             places = sorted
             loading = false
             status = when {
-                sorted.isEmpty() && res.error != null -> "Couldn't reach the places service. Check your connection and retry."
-                sorted.isEmpty() -> "No clinics or pharmacies mapped within $radiusKm km."
-                res.fromCache -> "Showing last saved results (service unavailable)."
+                sorted.isEmpty() && res.error != null -> "Couldn't load places · check your connection, then retry"
+                sorted.isEmpty() -> "No clinics or pharmacies found within $radiusKm km"
+                res.fromCache -> "Showing your saved results · service unavailable"
                 else -> null
             }
         }
@@ -256,7 +257,7 @@ fun NearbyClinicsScreen(
             val loc = currentLocation(context)
             if (loc == null) {
                 loading = false
-                status = "Couldn't get your location. Turn on Location and try again."
+                status = "Couldn't find you · turn on Location, then try again"
                 return@launch
             }
             manualPin = false
@@ -313,7 +314,7 @@ fun NearbyClinicsScreen(
     ) { result ->
         granted = result.values.any { it }
         if (granted) locateAndSearch()
-        else status = "Location permission is needed to find clinics near you."
+        else status = "Turn on Location access · we'll find clinics near you"
     }
 
     LaunchedEffect(Unit) {
@@ -370,7 +371,7 @@ fun NearbyClinicsScreen(
                 )
             } else {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("Loading map…", color = LabelGray, fontSize = 13.sp)
+                    Text("Getting the map…", color = LabelGray, fontSize = 13.sp)
                 }
             }
             if (loading) {
@@ -476,7 +477,7 @@ fun NearbyClinicsScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { goTo(s.lat, s.lon, s.label) }
+                        .clickable(role = Role.Button) { goTo(s.lat, s.lon, s.label) }
                         .padding(horizontal = 6.dp, vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -493,7 +494,7 @@ fun NearbyClinicsScreen(
             }
             if (!addrEditing) {
                 Text(
-                    "Tap the map, or edit the address above",
+                    "Tap the map, or change the address above",
                     color = LabelGray,
                     fontSize = 10.sp,
                     modifier = Modifier.padding(start = 4.dp, top = 2.dp),
@@ -584,7 +585,7 @@ fun NearbyClinicsScreen(
                             modifier = Modifier
                                 .weight(1f)
                                 .glossyChip(selected, BrandBlue, RoundedCornerShape(8.dp))
-                                .clickable { kindFilter = key }
+                                .clickable(role = Role.Checkbox) { kindFilter = key }
                                 .padding(vertical = 8.dp),
                             contentAlignment = Alignment.Center,
                         ) {
@@ -610,7 +611,7 @@ fun NearbyClinicsScreen(
                                 color = BrandBlue,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
-                                modifier = Modifier.clickable {
+                                modifier = Modifier.clickable(role = Role.Button) {
                                     if (granted) locateAndSearch()
                                     else permLauncher.launch(
                                         arrayOf(
@@ -662,7 +663,7 @@ fun NearbyClinicsScreen(
                         if (slowSearch) {
                             Spacer(Modifier.height(4.dp))
                             Text(
-                                "The map service is slow right now — hang on…",
+                                "The map is taking a while · hang on",
                                 color = LabelGray,
                                 fontSize = 11.sp,
                             )
@@ -673,7 +674,7 @@ fun NearbyClinicsScreen(
             if (!loading && shown.isEmpty() && places.isNotEmpty()) {
                 item {
                     Text(
-                        "No ${kindLabel(kindFilter).lowercase()} within $radiusKm km — try a wider range or category.",
+                        "No ${kindLabel(kindFilter).lowercase()} within $radiusKm km · try a wider range or a different category",
                         color = LabelGray,
                         fontSize = 12.sp,
                     )
@@ -738,7 +739,7 @@ private fun ClinicRow(
         modifier = Modifier
             .fillMaxWidth()
             .glossySurface(RoundedCornerShape(16.dp), CardWhite)
-            .clickable { onClick() }
+            .clickable(role = Role.Button) { onClick() }
             .padding(14.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -818,7 +819,7 @@ private fun PillButton(
     Row(
         modifier = Modifier
             .glossyBadge(color, RoundedCornerShape(18.dp))
-            .clickable { onClick() }
+            .clickable(role = Role.Button) { onClick() }
             .padding(horizontal = 14.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

@@ -1,5 +1,6 @@
 package com.fyp.healthcare
 
+import com.fyp.healthcare.ui.theme.GlossyButton
 import com.fyp.healthcare.ui.theme.glossySurface
 import com.fyp.healthcare.ui.theme.themed
 import androidx.compose.foundation.BorderStroke
@@ -12,6 +13,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -35,6 +37,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
@@ -43,10 +46,13 @@ private val BrandBlue = Color(0xFF2A6DE1)
 private val BrandBlueDark = Color(0xFF1E50C8)
 private val TextDark: Color @Composable get() = themed(Color(0xFF1B1D23), Color(0xFFE8E9EC))
 private val LabelGray: Color @Composable get() = themed(Color(0xFF5F6673), Color(0xFF9BA1AC))
+private val SeparatorGray: Color @Composable get() = themed(Color(0xFFE3E5E9), Color(0xFF33363E))
 
 @Composable
 fun SignInScreen(
     userManager: UserManager,
+    onSignUp: () -> Unit,
+    onSignIn: () -> Unit,
     onSignedIn: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -63,13 +69,9 @@ fun SignInScreen(
             when (val result = userManager.signInWithGoogle(context)) {
                 is SignInResult.Success -> {
                     // Local session + data caches were wiped on the previous sign-out, so
-                    // rebuild this account's state from the cloud before navigating - otherwise
-                    // afterAuth() misroutes (sees no profile) and screens flash empty / stale.
-                    // ensureFreshToken() first so the reads below aren't denied by a stale
-                    // auth token the Firestore SDK hasn't caught up to yet (fresh-device bug).
-                    userManager.ensureFreshToken()
-                    runCatching { FamilyLink.restoreSession(context) }
-                    runCatching { CloudHydrator.hydrate(context) }
+                    // rebuild this account's state from the cloud before navigating - see
+                    // UserManager.finishSignIn().
+                    userManager.finishSignIn(context)
                     onSignedIn()
                 }
                 is SignInResult.Cancelled -> loading = false
@@ -117,7 +119,7 @@ fun SignInScreen(
             Text("Get Started", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = TextDark)
             Spacer(Modifier.height(4.dp))
             Text(
-                "Sign in with your Google account to continue",
+                "Continue with Google, or use a username and password",
                 fontSize = 13.sp,
                 color = LabelGray,
                 textAlign = TextAlign.Center,
@@ -127,7 +129,9 @@ fun SignInScreen(
             OutlinedButton(
                 onClick = { startGoogleSignIn() },
                 enabled = !loading,
-                modifier = Modifier.fillMaxWidth().height(52.dp),
+                // heightIn, not height: at a large system font the label must be able to
+                // grow the button instead of being clipped by it.
+                modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
                 shape = RoundedCornerShape(14.dp),
                 border = BorderStroke(1.dp, Color(0xFFDADCE0)),
             ) {
@@ -136,13 +140,58 @@ fun SignInScreen(
                 } else {
                     GoogleGlyph()
                     Spacer(Modifier.size(12.dp))
-                    Text("Continue with Google", fontSize = 15.sp, fontWeight = FontWeight.Medium, color = TextDark)
+                    // Naming the account this device used last is the guard against picking a
+                    // different Google account by habit and landing in someone else's
+                    // CareApp account. Still just a label - the picker decides.
+                    Text(
+                        GoogleHint.last(context)?.let { "Continue as $it" }
+                            ?: "Continue with Google",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = TextDark,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f),
+                    )
                 }
             }
 
             error?.let {
                 Spacer(Modifier.height(14.dp))
                 Text(it, color = Color(0xFFD32F2F), fontSize = 12.sp, textAlign = TextAlign.Center)
+            }
+
+            Spacer(Modifier.height(18.dp))
+
+            // Line between the Google option and the email/password options.
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(Modifier.weight(1f).height(1.dp).background(SeparatorGray))
+                Text(" or ", fontSize = 12.sp, color = LabelGray)
+                Box(Modifier.weight(1f).height(1.dp).background(SeparatorGray))
+            }
+
+            Spacer(Modifier.height(18.dp))
+
+            GlossyButton(
+                onClick = onSignUp,
+                modifier = Modifier.fillMaxWidth(),
+                color = BrandBlue,
+            ) {
+                Text("Sign up", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color.White)
+            }
+
+            Spacer(Modifier.height(10.dp))
+
+            OutlinedButton(
+                onClick = onSignIn,
+                modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
+                shape = RoundedCornerShape(14.dp),
+                border = BorderStroke(1.dp, Color(0xFFDADCE0)),
+            ) {
+                Text("Sign in", fontSize = 15.sp, fontWeight = FontWeight.Medium, color = TextDark)
             }
 
             Spacer(Modifier.height(16.dp))

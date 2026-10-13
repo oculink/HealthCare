@@ -70,6 +70,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
@@ -263,7 +264,7 @@ fun CatalogPickerScreen(
                             .padding(14.dp),
                     ) {
                         Row(
-                            modifier = Modifier.fillMaxWidth().clickable {
+                            modifier = Modifier.fillMaxWidth().clickable(role = Role.Button) {
                                 addOpen = !addOpen
                                 if (addOpen && custom.isBlank()) custom = query.trim()
                             },
@@ -296,7 +297,7 @@ fun CatalogPickerScreen(
                                         .fillMaxWidth()
                                         .clip(RoundedCornerShape(12.dp))
                                         .background(if (custom.isBlank()) BrandBlue.copy(alpha = 0.25f) else BrandBlue)
-                                        .clickable(enabled = custom.isNotBlank()) { commit() }
+                                        .clickable(enabled = custom.isNotBlank(), role = Role.Button) { commit() }
                                         .padding(vertical = 11.dp),
                                     horizontalArrangement = Arrangement.Center,
                                     verticalAlignment = Alignment.CenterVertically,
@@ -313,7 +314,7 @@ fun CatalogPickerScreen(
                 if (rows.isEmpty()) {
                     item(key = "__empty__") {
                         Text(
-                            "No match for \"$query\" — use \"$addNotListedTitle\" above.",
+                            "No match for \"$query\" · use \"$addNotListedTitle\" above",
                             fontSize = 13.sp,
                             color = LabelGray,
                             modifier = Modifier.fillMaxWidth().padding(24.dp),
@@ -452,7 +453,7 @@ private fun EntryRow(entry: CatalogPickerItem, icon: ImageVector, taken: Boolean
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 4.dp)
             .glossySurface(RoundedCornerShape(12.dp), CardWhite)
-            .clickable(enabled = !taken, onClick = onClick)
+            .clickable(enabled = !taken, role = Role.Button, onClick = onClick)
             .padding(14.dp)
             .then(if (taken) Modifier.alpha(0.55f) else Modifier),
         verticalAlignment = Alignment.CenterVertically,

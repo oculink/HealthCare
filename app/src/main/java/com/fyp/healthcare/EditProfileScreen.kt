@@ -56,6 +56,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -197,7 +198,7 @@ fun EditProfileScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .glossyFieldWell(RoundedCornerShape(12.dp))
-                        .clickable { openDatePicker() }
+                        .clickable(role = Role.Button) { openDatePicker() }
                         .padding(horizontal = 12.dp, vertical = 16.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -222,7 +223,7 @@ fun EditProfileScreen(
                             modifier = Modifier
                                 .weight(1f)
                                 .glossyChip(selected, BrandBlue, RoundedCornerShape(10.dp), unselectedFill = FieldBackground)
-                                .clickable { sex = if (selected) "" else option }
+                                .clickable(role = Role.Checkbox) { sex = if (selected) "" else option }
                                 .padding(vertical = 10.dp),
                             contentAlignment = Alignment.Center,
                         ) {
@@ -277,7 +278,7 @@ fun EditProfileScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(12.dp))
-                            .clickable { contacts.add(EmergencyContact()) }
+                            .clickable(role = Role.Button) { contacts.add(EmergencyContact()) }
                             .padding(vertical = 10.dp),
                         horizontalArrangement = Arrangement.Center,
                         verticalAlignment = Alignment.CenterVertically,
@@ -304,8 +305,8 @@ fun EditProfileScreen(
                             name.isBlank() -> "Enter your name"
                             birthDate.isBlank() -> "Pick your date of birth"
                             sex.isBlank() -> "Pick a gender"
-                            heightVal == null || heightVal !in 50..250 -> "Height must be 50–250 cm"
-                            weightVal == null || weightVal !in 1.0..400.0 -> "Weight must be 1–400 kg"
+                            heightVal == null || heightVal !in 50..250 -> "Height must be 50-250 cm"
+                            weightVal == null || weightVal !in 1.0..400.0 -> "Weight must be 1-400 kg"
                             else -> null
                         } else null
 
@@ -459,7 +460,7 @@ private fun TagChipPicker(
                 Row(
                     modifier = Modifier
                         .glossyChip(selected = true, accent = BrandBlue, shape = RoundedCornerShape(50))
-                        .clickable { onRemove(name) }
+                        .clickable(role = Role.Checkbox) { onRemove(name) }
                         .padding(start = 12.dp, end = 8.dp, top = 7.dp, bottom = 7.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -481,7 +482,7 @@ private fun TagChipPicker(
         modifier = Modifier
             .fillMaxWidth()
             .glossyFieldWell(RoundedCornerShape(12.dp))
-            .clickable { onAdd() }
+            .clickable(role = Role.Button) { onAdd() }
             .padding(horizontal = 12.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

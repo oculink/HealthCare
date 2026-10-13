@@ -49,6 +49,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -235,7 +236,7 @@ fun LocationPickerSheet(
                 )
             } else {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("Loading map…", color = PickLabel, fontSize = 13.sp)
+                    Text("Getting the map…", color = PickLabel, fontSize = 13.sp)
                 }
             }
             if (resolving) {
@@ -312,7 +313,7 @@ fun LocationPickerSheet(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable { setPin(s.lat, s.lon, s.label) }
+                                .clickable(role = Role.Button) { setPin(s.lat, s.lon, s.label) }
                                 .padding(horizontal = 6.dp, vertical = 11.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
@@ -330,7 +331,7 @@ fun LocationPickerSheet(
                 }
             } else if (!editing) {
                 Text(
-                    "Tap the map, search above, or use your current location",
+                    "Tap the map, search above, or use where you are now",
                     color = PickLabel,
                     fontSize = 10.sp,
                     modifier = Modifier.padding(start = 4.dp, top = 3.dp),

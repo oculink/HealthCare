@@ -149,7 +149,7 @@ object FamilyLink {
             return Result.failure(IllegalArgumentException("That code doesn't exist"))
         }
         val patientUid = codeSnap.getString("patientUid")
-            ?: return Result.failure(IllegalStateException("That code is not valid"))
+            ?: return Result.failure(IllegalStateException("That code isn't valid"))
         if (patientUid == self) {
             return Result.failure(IllegalArgumentException("That's your own code"))
         }

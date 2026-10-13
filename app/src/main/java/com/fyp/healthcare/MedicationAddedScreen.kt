@@ -87,7 +87,7 @@ fun MedicationAddedScreen(
         Spacer(Modifier.height(28.dp))
 
         Text(
-            "Medication\nAdded!",
+            "Medication\nAdded",
             fontSize = 26.sp,
             fontWeight = FontWeight.Bold,
             color = TextDark,
@@ -97,7 +97,7 @@ fun MedicationAddedScreen(
         Spacer(Modifier.height(10.dp))
 
         Text(
-            "Your reminder has been set.\nYou'll be notified at the scheduled time.",
+            "Your reminder is set.\nWe'll let you know when it's due.",
             fontSize = 13.sp,
             color = LabelGray,
             textAlign = TextAlign.Center

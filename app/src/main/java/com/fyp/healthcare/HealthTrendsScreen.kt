@@ -43,6 +43,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -172,7 +173,7 @@ fun HealthTrendsScreen(
                 Row(
                     modifier = Modifier
                         .clip(RoundedCornerShape(8.dp))
-                        .clickable { selectedMetric = metric.next() }
+                        .clickable(role = Role.Button) { selectedMetric = metric.next() }
                         .padding(horizontal = 6.dp, vertical = 4.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -210,7 +211,7 @@ fun HealthTrendsScreen(
                     labels = periodLabels(selectedPeriod),
                     emptyPrimary = if (isGlobal) "No community data yet for this period"
                         else "No ${metric.title.lowercase()} recorded for this period",
-                    emptySecondary = if (isGlobal) "Averages appear as users record readings"
+                    emptySecondary = if (isGlobal) "Averages appear as readings come in"
                         else "Record your vitals to build your own trend line",
                 )
             }
@@ -219,7 +220,7 @@ fun HealthTrendsScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(10.dp))
-                    .clickable { chartSource = chartSource.toggle() }
+                    .clickable(role = Role.Button) { chartSource = chartSource.toggle() }
                     .padding(vertical = 6.dp),
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically,
@@ -227,8 +228,8 @@ fun HealthTrendsScreen(
                 Icon(Icons.Filled.SwapHoriz, contentDescription = null, tint = BrandBlue, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.width(6.dp))
                 Text(
-                    if (isGlobal) "Showing the global average — tap for your own readings"
-                    else "Showing your own readings — tap for the global average",
+                    if (isGlobal) "Showing everyone's average · tap to see just yours"
+                    else "Showing just your readings · tap to see everyone's average",
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium,
                     color = BrandBlue,
@@ -368,7 +369,7 @@ private fun MetricChart(
     points: List<Float?>,
     labels: List<String>,
     emptyPrimary: String = "No data yet for this period",
-    emptySecondary: String = "Averages appear as users record readings",
+    emptySecondary: String = "Averages appear as readings come in",
 ) {
     val present = points.filterNotNull()
     if (present.isEmpty()) {
@@ -481,7 +482,7 @@ private fun PeriodSelector(selected: String, onSelect: (String) -> Unit) {
                     .weight(1f)
                     .clip(RoundedCornerShape(10.dp))
                     .background(if (isSelected) BrandBlue else Color.Transparent)
-                    .clickable { onSelect(period) }
+                    .clickable(role = Role.Checkbox) { onSelect(period) }
                     .padding(vertical = 10.dp),
                 contentAlignment = Alignment.Center
             ) {
@@ -537,7 +538,7 @@ private fun LatestAnalysisCard(analysis: ReadingAnalysis?) {
         if (analysis == null || analysis.metrics.isEmpty()) {
             Spacer(Modifier.height(6.dp))
             Text(
-                "Record your vitals to see how your readings compare with the normal ranges.",
+                "Record your vitals to see how your readings line up with the normal ranges.",
                 fontSize = 12.sp,
                 color = LabelGray,
             )
