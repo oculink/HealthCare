@@ -250,7 +250,7 @@ fun HomeScreen(
                             Spacer(Modifier.width(6.dp))
                             Text(
                                 "Monitoring ${Session.controlledPatientName.ifBlank { "patient" }}" +
-                                    if (PatientMonitor.isLive) "  ·  live" else "",
+                                        if (PatientMonitor.isLive) "  ·  live" else "",
                                 color = MonitoringGreen,
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.SemiBold,
@@ -369,6 +369,25 @@ fun HomeScreen(
                 QuickActionCard(Icons.Filled.Description, "Health Report", QuickReport, Modifier.weight(1f)) { onNavigate("health_report") }
                 QuickActionCard(Icons.Filled.Emergency, "Emergency", QuickEmergency, Modifier.weight(1f)) { onNavigate("emergency") }
                 QuickActionCard(Icons.Filled.Pets, "Emotional Support", QuickSupport, Modifier.weight(1f)) { onNavigate("emotional_support") }
+            }
+
+            // Temporary Bluetooth test button
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .glossySurface(RoundedCornerShape(16.dp), CardWhite)
+                    .clickable(role = Role.Button) {
+                        onNavigate("bluetooth_test")
+                    }
+                    .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "Bluetooth Test — Connect ESP32",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = TextDark
+                )
             }
 
             Text("Today's Summary", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextDark)
@@ -597,4 +616,3 @@ private fun initials(name: String): String {
         else -> (parts.first().take(1) + parts.last().take(1)).uppercase()
     }
 }
-

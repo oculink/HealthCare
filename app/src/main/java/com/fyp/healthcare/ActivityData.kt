@@ -130,7 +130,10 @@ class ActivityDataManager(context: Context) {
     fun presenceDetected(): Boolean? = null
 
     /** Times the radar detected a fall from the bed today. */
-    fun fallCount(): Int? = null
+    fun fallCount(): Int? {
+        val n = FallDetector.todayCount(ctx)
+        return if (RadarLiveTracker.listening || n > 0) n else null
+    }
 
     /** Significant movements the radar picked up - excludes breathing / micro-motion. */
     fun movementCount(): Int? = null

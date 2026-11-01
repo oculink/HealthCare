@@ -141,6 +141,7 @@ fun ActivityScreen(
                 presence = activity.presenceDetected(),
                 lastSync = activity.lastSyncLabel(),
             )
+            LiveRadarCard()
 
             Column(
                 modifier = Modifier

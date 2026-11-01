@@ -466,6 +466,9 @@ class MainActivity : ComponentActivity() {
                             )
                         }
                     }
+                    composable("bluetooth_test") {
+                        BluetoothTestScreen()
+                    }
                     composable("profile") {
                         TabScaffold("profile", switchTab) {
                             ProfileScreen(
