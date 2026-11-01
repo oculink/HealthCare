@@ -299,7 +299,7 @@ private fun DoseCard(
                 )
                 Spacer(Modifier.height(1.dp))
                 Text(med.name, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = TextDark)
-                Text(med.dosageText, fontSize = 12.sp, color = LabelGray)
+                Text(med.doseText, fontSize = 12.sp, color = LabelGray)
                 if (med.description.isNotBlank()) {
                     Text(med.description, fontSize = 11.sp, color = LabelGray)
                 }

@@ -45,7 +45,6 @@ import androidx.compose.material.icons.filled.MedicalInformation
 import androidx.compose.material.icons.filled.MedicalServices
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Radar
-import androidx.compose.material.icons.filled.Straighten
 import androidx.compose.material.icons.filled.VerifiedUser
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -134,7 +133,9 @@ fun ProfileScreen(
     var showGoalDialog by remember { mutableStateOf(false) }
     var showThemeDialog by remember { mutableStateOf(false) }
     var showLookDialog by remember { mutableStateOf(false) }
+    var showNotificationsDialog by remember { mutableStateOf(false) }
     var confirmSignOut by remember { mutableStateOf(false) }
+    var notificationsOn by remember { mutableStateOf(NotificationPrefs.isEnabled(context)) }
 
     // Which sign-in doors this account has. Firebase doesn't expose providers as observable
     // state, so `refresh` re-reads them after a successful connect.
@@ -588,9 +589,13 @@ fun ProfileScreen(
                     onClick = { showLookDialog = true },
                 )
                 Divider()
-                NavRow(Icons.Filled.Notifications, "Notifications", "On", tint = Color(0xFFE23539))
-                Divider()
-                NavRow(Icons.Filled.Straighten, "Units", "Metric", tint = Color(0xFF1FA971))
+                NavRow(
+                    Icons.Filled.Notifications,
+                    "Notifications",
+                    if (notificationsOn) "On" else "Off",
+                    tint = if (notificationsOn) Color(0xFFE23539) else LabelGray,
+                    onClick = { showNotificationsDialog = true },
+                )
             }
 
             GlossyButton(
@@ -697,12 +702,35 @@ fun ProfileScreen(
                     )
                     Spacer(Modifier.height(4.dp))
                     SwitchRow("Card shadows", AppTheme.shadows) { AppTheme.setShadows(context, it) }
-                    SwitchRow("Leaf patterns on cards", AppTheme.leafPatterns) { AppTheme.setLeafPatterns(context, it) }
                     SwitchRow("Patterned background", AppTheme.backgroundPattern) { AppTheme.setBackgroundPattern(context, it) }
                 }
             },
             confirmButton = {},
             dismissButton = { TextButton(onClick = { showLookDialog = false }) { Text("Close") } },
+        )
+    }
+
+    if (showNotificationsDialog) {
+        AlertDialog(
+            onDismissRequest = { showNotificationsDialog = false },
+            title = { Text("Notifications") },
+            text = {
+                Column {
+                    Text(
+                        "Medication and appointment reminders. Turning this off silences both " +
+                            "on this device.",
+                        fontSize = 13.sp,
+                        color = LabelGray,
+                    )
+                    Spacer(Modifier.height(10.dp))
+                    SwitchRow("Allow notifications", notificationsOn) { enabled ->
+                        notificationsOn = enabled
+                        NotificationPrefs.setEnabled(context, enabled)
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = { TextButton(onClick = { showNotificationsDialog = false }) { Text("Close") } },
         )
     }
 
@@ -1024,7 +1052,13 @@ private fun NavRow(
 
 @Composable
 private fun Divider() {
-    Box(Modifier.fillMaxWidth().padding(start = 16.dp).height(1.dp).background(Color(0xFFE5E8EE)))
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+            .height(1.dp)
+            .background(themed(Color(0xFFE5E8EE), Color(0xFF2A2C33))),
+    )
 }
 
 private fun dash(s: String): String = s.trim().ifBlank { "-" }
@@ -1038,13 +1072,11 @@ private fun themeLabel(m: ThemeMode): String = when (m) {
 private fun lookLabel(d: Decoration): String = when (d) {
     Decoration.CALM -> "Calm"
     Decoration.STANDARD -> "Standard"
-    Decoration.RICH -> "Rich"
 }
 
 private fun lookHint(d: Decoration): String = when (d) {
     Decoration.CALM -> "Flat colours and thin edges, no texture or depth"
-    Decoration.STANDARD -> "Soft gradients, gentle shadows and a faint leaf pattern"
-    Decoration.RICH -> "The same look, deeper shadows and more visible texture"
+    Decoration.STANDARD -> "Soft gradients, gentle shadows and a subtle satin texture"
 }
 
 /** A switch whose whole row is the tap target, with the label read out beside it. */

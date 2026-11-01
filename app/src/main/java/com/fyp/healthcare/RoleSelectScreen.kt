@@ -126,7 +126,6 @@ fun RoleSelectScreen(
                     when (value) {
                         Decoration.CALM -> "Calm"
                         Decoration.STANDARD -> "Standard"
-                        Decoration.RICH -> "Rich"
                     },
                     AppTheme.decoration == value,
                     Modifier.weight(1f),

@@ -14,16 +14,14 @@ import androidx.compose.ui.graphics.Color
 enum class ThemeMode { SYSTEM, LIGHT, DARK }
 
 /**
- * How much surface treatment the app paints: [CALM] is flat fills with hairline edges,
- * [STANDARD] is the app's glossy look, [RICH] pushes the same recipe further - deeper shadow,
- * brighter top light, more visible texture.
+ * How much surface treatment the app paints: [CALM] is flat fills with hairline edges and
+ * [STANDARD] is the app's glossy look.
  *
  * This used to be a two-value "icon style", which was a misleading name: it never just styled
  * icons, it switched off card gradients, texture, bloom, rims, shadows and the background
- * pattern all at once. The three levels are now the recipe, and the individual layers each have
- * their own switch below.
+ * pattern all at once. The individual layers also have their own switch in Profile.
  */
-enum class Decoration { CALM, STANDARD, RICH }
+enum class Decoration { CALM, STANDARD }
 
 /**
  * App-wide theme choice. The screens use hardcoded palettes rather than MaterialTheme
@@ -41,19 +39,12 @@ object AppTheme {
     var shadows by mutableStateOf(true)
         private set
 
-    /** The faint leaf/fern watermark scattered across glossy surfaces. */
-    var leafPatterns by mutableStateOf(true)
-        private set
-
     /** The dense scattered pattern behind the whole app. */
     var backgroundPattern by mutableStateOf(true)
         private set
 
     /** True when surfaces should be painted flat rather than glossy. */
     val calm: Boolean get() = decoration == Decoration.CALM
-
-    /** True when the glossy recipe should be pushed harder than usual. */
-    val rich: Boolean get() = decoration == Decoration.RICH
 
     /** Load the saved choices - call once from MainActivity.onCreate. */
     fun init(context: Context) {
@@ -66,19 +57,18 @@ object AppTheme {
         // not on a fully decorated screen they never asked for.
         val glossyByDefault = decoration != Decoration.CALM
         shadows = p.getBoolean(KEY_SHADOWS, glossyByDefault)
-        leafPatterns = p.getBoolean(KEY_LEAF, glossyByDefault)
         backgroundPattern = p.getBoolean(KEY_BG, glossyByDefault)
     }
 
     /**
      * Reads the new key, falling back to the old two-value "icon style" so anyone who already
      * chose something keeps roughly what they had: Normal becomes Standard, Minimal becomes
-     * Calm. Rich is new, so nothing maps to it.
+     * Calm. The retired Rich option now lands on Standard.
      */
     private fun readDecoration(p: android.content.SharedPreferences): Decoration {
-        p.getString(KEY_DECORATION, null)?.let { stored ->
-            runCatching { Decoration.valueOf(stored) }.getOrNull()?.let { return it }
-        }
+        val stored = p.getString(KEY_DECORATION, null)
+        if (stored == "RICH") return Decoration.STANDARD
+        stored?.let { runCatching { Decoration.valueOf(it) }.getOrNull()?.let { return it } }
         return when (p.getString(KEY_ICONS, null)) {
             "MINIMAL" -> Decoration.CALM
             "NORMAL" -> Decoration.STANDARD
@@ -101,11 +91,6 @@ object AppTheme {
         prefs(context).edit().putBoolean(KEY_SHADOWS, value).apply()
     }
 
-    fun setLeafPatterns(context: Context, value: Boolean) {
-        leafPatterns = value
-        prefs(context).edit().putBoolean(KEY_LEAF, value).apply()
-    }
-
     fun setBackgroundPattern(context: Context, value: Boolean) {
         backgroundPattern = value
         prefs(context).edit().putBoolean(KEY_BG, value).apply()
@@ -123,7 +108,6 @@ object AppTheme {
     private const val KEY_ICONS = "icon_style"
     private const val KEY_DECORATION = "decoration"
     private const val KEY_SHADOWS = "card_shadows"
-    private const val KEY_LEAF = "leaf_patterns"
     private const val KEY_BG = "background_pattern"
 }
 

@@ -32,7 +32,7 @@ private const val GlowFarAlpha = 0.07f
 private const val GlowNearAlpha = 0.11f
 
 /**
- * The app's standard accent icon: the bare glyph in [tint], no tile. On [Decoration.STANDARD] and above the
+ * The app's standard accent icon: the bare glyph in [tint], no tile. On [Decoration.STANDARD] the
  * glyph glows - a blurred copy of its own silhouette in the same colour, so the light follows
  * the shape rather than sitting on a coloured disc. On [Decoration.CALM] there is no glow,
  * since that mode is the one without dressing. Either way there is no square.

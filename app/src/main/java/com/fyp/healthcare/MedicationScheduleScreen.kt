@@ -67,9 +67,10 @@ private val ChipBlueBg: Color @Composable get() = themed(Color(0xFFE1ECFF), Colo
 /**
  * Step 2 of adding/editing a medication: the weekly reminder schedule.
  *
- * Starts at "once every day" and lets the user add extra times, and set different
- * times per day (e.g. Mon 6am & 5pm, Tue 8am, Fri 6am/2pm/8pm). Large text and
- * controls - it's the screen an older user touches most often.
+ * The starting times come from [defaultTimesPerDay] using the "Consumes per day" value
+ * chosen on the previous screen (1 -> 8am, 4 -> 8am/12pm/4pm/8pm, ...). Every time stays
+ * editable, and a day can be turned off or given its own times. Large text and controls -
+ * it's the screen an older user touches most often.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -81,10 +82,22 @@ fun MedicationScheduleScreen(
 ) {
     val context = LocalContext.current
 
+    val consumes = draft.consumesPerDayOrDefault
+    val autoTimes = remember(consumes) { defaultTimesPerDay(consumes) }
     var schedule by remember {
         mutableStateOf(
-            draft.schedule.takeIf { it.isNotEmpty() } ?: (0..6).associateWith { listOf("08:00") }
+            draft.schedule.takeIf { it.isNotEmpty() } ?: (0..6).associateWith { autoTimes }
         )
+    }
+    // The times shown in the summary: the user's own times when every active day agrees,
+    // otherwise the most common set (the day cards below show each day exactly).
+    val summaryTimes = remember(schedule) {
+        schedule.values.filter { it.isNotEmpty() }
+            .groupingBy { it }
+            .eachCount()
+            .maxByOrNull { it.value }
+            ?.key
+            ?: autoTimes
     }
 
     fun setDay(day: Int, times: List<String>) {
@@ -161,31 +174,66 @@ fun MedicationScheduleScreen(
                 modifier = Modifier.padding(top = 4.dp),
             )
             Text(
-                "It's set to once a day. Add more times, or give a day its own times.",
+                "We've spaced $consumes ${if (consumes == 1) "reminder" else "reminders"} through the day. " +
+                    "Tap a time below to fine-tune it.",
                 fontSize = 13.sp,
                 color = LabelGray,
             )
 
-            Row(
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .glossySurface(RoundedCornerShape(16.dp), CardWhite)
-                    .clickable(role = Role.Button) {
-                        openPicker("08:00") { t -> schedule = (0..6).associateWith { listOf(t) } }
-                    }
                     .padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Icon(Icons.Filled.Schedule, contentDescription = null, tint = BrandBlue, modifier = Modifier.size(22.dp))
-                Spacer(Modifier.width(12.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Filled.Schedule, contentDescription = null, tint = BrandBlue, modifier = Modifier.size(22.dp))
+                    Spacer(Modifier.width(10.dp))
+                    Text(
+                        "$consumes ${if (consumes == 1) "reminder" else "reminders"} a day",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextDark,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Text(
+                        "Change",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = BrandBlue,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(50))
+                            .clickable(role = Role.Button) { onBackClick() }
+                            .padding(horizontal = 8.dp, vertical = 6.dp),
+                    )
+                    Text(
+                        "Reset",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = BrandBlue,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(50))
+                            .clickable(role = Role.Button) {
+                                schedule = (0..6).associateWith { d ->
+                                    if (schedule[d].orEmpty().isEmpty()) emptyList() else autoTimes
+                                }
+                            }
+                            .padding(horizontal = 8.dp, vertical = 6.dp),
+                    )
+                }
+                Spacer(Modifier.height(8.dp))
                 Text(
-                    "Set every day to one time",
-                    fontSize = 15.sp,
+                    summaryTimes.joinToString("  ·  ") { formatTime12(it) },
+                    fontSize = 13.sp,
                     fontWeight = FontWeight.Medium,
-                    color = TextDark,
-                    modifier = Modifier.weight(1f),
+                    color = BrandBlue,
                 )
-                Text("Choose", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = BrandBlue)
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    "Times are spaced automatically, then can be changed per day.",
+                    fontSize = 11.sp,
+                    color = LabelGray,
+                )
             }
 
             (0..6).forEach { day ->
@@ -193,7 +241,7 @@ fun MedicationScheduleScreen(
                 DayCard(
                     dayName = DAY_NAMES_LONG[day],
                     times = times,
-                    onToggle = { on -> if (on) setDay(day, listOf("08:00")) else setDay(day, emptyList()) },
+                    onToggle = { on -> if (on) setDay(day, autoTimes) else setDay(day, emptyList()) },
                     onEditTime = { old -> openPicker(old) { new -> setDay(day, times - old + new) } },
                     onRemoveTime = { t -> setDay(day, times - t) },
                     onAddTime = { openPicker("12:00") { t -> setDay(day, times + t) } },
@@ -203,7 +251,13 @@ fun MedicationScheduleScreen(
             Spacer(Modifier.height(4.dp))
 
             GlossyButton(
-                onClick = { onSave(draft.copy(schedule = schedule)) },
+                onClick = {
+                    // If every active day ended up with the same number of times (e.g. the
+                    // user added one everywhere), keep the summary in step with reality.
+                    val counts = schedule.values.filter { it.isNotEmpty() }.map { it.size }.distinct()
+                    val finalConsumes = if (counts.size == 1) counts.first() else consumes
+                    onSave(draft.copy(schedule = schedule, consumesPerDay = finalConsumes))
+                },
                 enabled = hasAnyTime,
                 modifier = Modifier.fillMaxWidth(),
                 color = BrandBlue,

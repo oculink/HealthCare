@@ -1,7 +1,6 @@
 package com.fyp.healthcare
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -18,8 +17,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.Login
-import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.CircularProgressIndicator
@@ -36,7 +33,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -57,7 +53,6 @@ import com.fyp.healthcare.ui.theme.themed
 import kotlinx.coroutines.launch
 
 private val BrandBlue = Color(0xFF2A6DE1)
-private val BrandBlueDark = Color(0xFF1E50C8)
 private val ErrorRed = Color(0xFFD32F2F)
 private val TextDark: Color @Composable get() = themed(Color(0xFF1B1D23), Color(0xFFE8E9EC))
 private val LabelGray: Color @Composable get() = themed(Color(0xFF5F6673), Color(0xFF9BA1AC))
@@ -147,16 +142,8 @@ fun UsernameAuthScreen(
             }
         }
 
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(16.dp))
 
-        Box(
-            modifier = Modifier.size(88.dp).clip(RoundedCornerShape(26.dp)).background(BrandBlueDark),
-            contentAlignment = Alignment.Center,
-        ) {
-            val glyph = if (signingUp) Icons.Filled.PersonAdd else Icons.AutoMirrored.Filled.Login
-            Icon(glyph, contentDescription = null, tint = Color.White, modifier = Modifier.size(40.dp))
-        }
-        Spacer(Modifier.height(18.dp))
         Text(
             if (signingUp) "Create your account" else "Welcome back",
             color = Color.White,

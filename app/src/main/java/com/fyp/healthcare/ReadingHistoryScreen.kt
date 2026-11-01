@@ -516,8 +516,8 @@ private class MetricLine(
  * Heart rate, blood pressure and oxygen carry no unit here: the label already names them, those
  * three have only one unit each anywhere in medicine, and dropping them is what keeps the widest
  * row ("Blood pressure  184/126  Critical") inside a 320dp phone without the label wrapping.
- * Sugar and temperature keep theirs, because mg/dL-vs-mmol/L and °C-vs-°F are real differences
- * between the devices people come from.
+ * Sugar and temperature keep theirs, because the number alone doesn't identify the scale
+ * (mmol/L for UK glucose, °C for temperature).
  */
 private fun metricLines(r: HealthDataManager.Reading, onlyVitals: Set<String>?): List<MetricLine> {
     val out = ArrayList<MetricLine>(5)
@@ -551,7 +551,14 @@ private fun metricLines(r: HealthDataManager.Reading, onlyVitals: Set<String>?):
     }
     if (onlyVitals == null) {
         r.bloodSugar.trim().takeIf { it.isNotEmpty() }?.let { raw ->
-            out.add(MetricLine(Icons.Filled.Cookie, SugarTint, "Blood sugar", "$raw mg/dL", null))
+            val mmol = BloodSugar.formatStoredMmol(raw)
+            out.add(
+                MetricLine(
+                    Icons.Filled.Cookie, SugarTint, "Blood sugar",
+                    if (mmol != null) "$mmol mmol/L" else "$raw mg/dL",
+                    null,
+                )
+            )
         }
         r.temperature.trim().takeIf { it.isNotEmpty() }?.let { raw ->
             out.add(MetricLine(Icons.Filled.DeviceThermostat, TempTint, "Temperature", "$raw °C", null))

@@ -81,10 +81,12 @@ object HealthAnalysis {
             judge = { VitalRules.heartRate(it.roundToInt()) },
         )
         addNumeric(
-            metrics, prior, key = "sugar", label = "Blood Sugar", unit = "mg/dL",
-            value = latest.bloodSugarValue, display = latest.bloodSugarValue?.let(::trimNum),
+            metrics, prior, key = "sugar", label = "Blood Sugar", unit = "mmol/L",
+            value = latest.bloodSugarValue,
+            display = latest.bloodSugarValue?.let(BloodSugar::formatMmol),
             select = { it.bloodSugarValue },
             judge = { VitalRules.glucoseMgDl(it) },
+            format = BloodSugar::formatMmol,
         )
         addNumeric(
             metrics, prior, key = "oxy", label = "Oxygen (SpO₂)", unit = "%",
@@ -131,16 +133,17 @@ object HealthAnalysis {
         value: Float?, display: String?,
         select: (HealthDataManager.Reading) -> Float?,
         judge: (Float) -> VitalRules.Judgement,
+        format: (Float) -> String = ::trimNum,
     ) {
         value ?: return
         val j = judge(value)
         val priorValues = prior.mapNotNull(select)
         out += MetricAnalysis(
-            key = key, label = label, display = display ?: trimNum(value), unit = unit,
+            key = key, label = label, display = display ?: format(value), unit = unit,
             level = j.level, statusText = j.status,
             note = rangeNote(j, "$display $unit"),
             trend = trendOf(value, priorValues),
-            recentAvg = recentAvg(value, priorValues)?.let { "recent average ${trimNum(it)}" },
+            recentAvg = recentAvg(value, priorValues)?.let { "recent average ${format(it)}" },
         )
     }
 
@@ -179,7 +182,7 @@ object HealthAnalysis {
  *  - Blood pressure: ACC/AHA 2017 Hypertension Guideline
  *  - Heart rate: American Heart Association (resting adult 60-100 BPM)
  *  - SpO₂: WHO Pulse Oximetry Training Manual / BTS oxygen guideline
- *  - Blood glucose (casual / random, mg/dL): American Diabetes Association
+ *  - Blood glucose (casual / random, shown in mmol/L; stored as mg/dL): American Diabetes Association
  *  - Body temperature: NICE / standard clinical references
  * These are screening thresholds for a consumer app, not a diagnostic tool.
  */
@@ -212,7 +215,7 @@ object VitalRules {
     }
 
     fun glucoseMgDl(v: Float): Judgement {
-        val range = "70-140 mg/dL"
+        val range = "3.9-7.8 mmol/L"
         return when {
             v < 54f || v > 300f -> Judgement(VitalLevel.CRITICAL, "Critical", range)
             v < 70f -> Judgement(VitalLevel.WARNING, "Low", range)

@@ -78,6 +78,7 @@ import java.util.Locale
 private val BrandBlue = Color(0xFF2A6DE1)
 private val BrandBlueDark = Color(0xFF1E50C8)
 private val MonitoringGreen = Color(0xFF5DE0A6)
+private val GoalGreen = Color(0xFF1FA971)
 
 // The Quick Actions share the vital cards' treatment - white surface, coloured edge glow, glyph
 // and label in that same colour - so these are chosen as one set rather than picked one at a time.
@@ -165,6 +166,8 @@ fun HomeScreen(
         }
     }
     val steps: String? = stepCount?.let { formatCount(it) }
+    val stepGoal = remember(dataVersion) { activityData.stepGoal() }
+    val stepGoalHit = stepCount != null && stepCount >= stepGoal
     val calories: String? = stepCount?.takeIf { it > 0 }?.let { c ->
         val kcal = estimateWalkingCalories(
             steps = c,
@@ -397,7 +400,13 @@ fun HomeScreen(
                     .glossySurface(RoundedCornerShape(20.dp), CardWhite)
                     .padding(horizontal = 20.dp)
             ) {
-                SummaryRow(Icons.AutoMirrored.Filled.DirectionsWalk, "Steps Walked", steps, Color(0xFF2A6DE1))
+                SummaryRow(
+                    Icons.AutoMirrored.Filled.DirectionsWalk,
+                    "Steps Walked",
+                    steps,
+                    Color(0xFF2A6DE1),
+                    labelColor = if (stepGoalHit) GoalGreen else LabelGray,
+                )
                 Box(Modifier.fillMaxWidth().height(1.dp).background(Color(0xFFE5E8EE)))
                 SummaryRow(Icons.Filled.LocalFireDepartment, "Calories", calories, Color(0xFFEE7B2E))
                 Box(Modifier.fillMaxWidth().height(1.dp).background(Color(0xFFE5E8EE)))
@@ -563,12 +572,13 @@ private fun SummaryRow(
     value: String?,
     tint: Color,
     note: String? = null,
+    labelColor: Color = LabelGray,
 ) {
     Column(modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             com.fyp.healthcare.ui.theme.AppIconBadge(icon, tint, size = 30.dp, iconSize = 16.dp)
             Spacer(Modifier.width(12.dp))
-            Text(label, fontSize = 13.sp, color = LabelGray, modifier = Modifier.weight(1f))
+            Text(label, fontSize = 13.sp, color = labelColor, modifier = Modifier.weight(1f))
             Text(value ?: "--", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = TextDark)
         }
         if (note != null) {

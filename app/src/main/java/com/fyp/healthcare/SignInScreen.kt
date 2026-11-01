@@ -4,6 +4,7 @@ import com.fyp.healthcare.ui.theme.GlossyButton
 import com.fyp.healthcare.ui.theme.glossySurface
 import com.fyp.healthcare.ui.theme.themed
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -18,10 +19,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -35,6 +33,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -43,7 +42,6 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 
 private val BrandBlue = Color(0xFF2A6DE1)
-private val BrandBlueDark = Color(0xFF1E50C8)
 private val TextDark: Color @Composable get() = themed(Color(0xFF1B1D23), Color(0xFFE8E9EC))
 private val LabelGray: Color @Composable get() = themed(Color(0xFF5F6673), Color(0xFF9BA1AC))
 private val SeparatorGray: Color @Composable get() = themed(Color(0xFFE3E5E9), Color(0xFF33363E))
@@ -92,12 +90,11 @@ fun SignInScreen(
     ) {
         Spacer(Modifier.weight(1f))
 
-        Box(
-            modifier = Modifier.size(96.dp).clip(RoundedCornerShape(28.dp)).background(BrandBlueDark),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(Icons.Filled.Favorite, contentDescription = "CareApp", tint = Color.White, modifier = Modifier.size(44.dp))
-        }
+        Image(
+            painter = painterResource(R.drawable.ic_app_logo),
+            contentDescription = "CareApp",
+            modifier = Modifier.size(96.dp).clip(RoundedCornerShape(28.dp)),
+        )
         Spacer(Modifier.height(20.dp))
         Text("CareApp", color = Color.White, fontSize = 32.sp, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(6.dp))

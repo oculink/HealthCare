@@ -79,7 +79,9 @@ private val ErrRed = Color(0xFFD32F2F)
  * and later edits from the Profile page ([firstRun] = false).
  *
  * On first run: Name, Birth date, Height, Weight and Gender are required; Blood type is optional.
- * On a later edit everything is optional.
+ * On a later edit the health fields are optional. Emergency contacts are always required:
+ * at least one complete contact (name and phone) must exist so the Emergency Profile has
+ * someone to call.
  */
 @Composable
 fun EditProfileScreen(
@@ -105,6 +107,9 @@ fun EditProfileScreen(
     var showConditionPicker by remember { mutableStateOf(false) }
     val contacts = remember { mutableStateListOf<EmergencyContact>().apply { addAll(existing.emergencyContacts) } }
     var error by remember { mutableStateOf<String?>(null) }
+    // These fields are only enforced during onboarding; on a later edit they may be left blank,
+    // so the required marker appears only when it is actually true.
+    val requiredSuffix = if (firstRun) " *" else ""
 
     BackHandler(enabled = firstRun) { onBackClick() }
     BackHandler(enabled = showAllergyPicker) { showAllergyPicker = false }
@@ -190,9 +195,9 @@ fun EditProfileScreen(
                     .glossySurface(RoundedCornerShape(24.dp), CardWhite)
                     .padding(20.dp),
             ) {
-                Field("Name", name, { name = it }, "Your name")
+                Field("Name$requiredSuffix", name, { name = it }, "Your name")
 
-                Text("Date of birth", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = LabelGray)
+                Text("Date of birth$requiredSuffix", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = LabelGray)
                 Spacer(Modifier.height(6.dp))
                 Row(
                     modifier = Modifier
@@ -214,7 +219,7 @@ fun EditProfileScreen(
                 }
                 Spacer(Modifier.height(14.dp))
 
-                Text("Gender", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = LabelGray)
+                Text("Gender$requiredSuffix", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = LabelGray)
                 Spacer(Modifier.height(6.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                     listOf("Male", "Female", "Other").forEach { option ->
@@ -238,8 +243,8 @@ fun EditProfileScreen(
                 }
                 Spacer(Modifier.height(14.dp))
 
-                Field("Height (cm)", heightCm, { heightCm = it.filter(Char::isDigit).take(3) }, "e.g. 170", KeyboardType.Number)
-                Field("Weight (kg)", weightKg, { weightKg = it.filter { c -> c.isDigit() || c == '.' }.take(5) }, "e.g. 68", KeyboardType.Decimal)
+                Field("Height (cm)$requiredSuffix", heightCm, { heightCm = it.filter(Char::isDigit).take(3) }, "e.g. 170", KeyboardType.Number)
+                Field("Weight (kg)$requiredSuffix", weightKg, { weightKg = it.filter { c -> c.isDigit() || c == '.' }.take(5) }, "e.g. 68", KeyboardType.Decimal)
                 Field("Blood type (optional)", bloodType, { bloodType = it.take(3).uppercase() }, "e.g. O+")
 
                 SectionDivider("Emergency Profile")
@@ -261,9 +266,13 @@ fun EditProfileScreen(
                     onAdd = { showConditionPicker = true },
                 )
 
-                Text("Emergency contacts", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = LabelGray)
+                Text("Emergency contacts *", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = LabelGray)
                 Spacer(Modifier.height(2.dp))
-                Text("People to call from your Emergency Profile", fontSize = 11.sp, color = PlaceholderGray)
+                Text(
+                    "At least one person to call from your Emergency Profile",
+                    fontSize = 11.sp,
+                    color = PlaceholderGray,
+                )
                 Spacer(Modifier.height(10.dp))
 
                 contacts.forEachIndexed { index, contact ->
@@ -300,15 +309,22 @@ fun EditProfileScreen(
                     onClick = {
                         val heightVal = heightCm.toIntOrNull()
                         val weightVal = weightKg.toDoubleOrNull()
+                        // A contact is only useful on the Emergency Profile if there is both a
+                        // name to show and a number to dial.
+                        val hasEmergencyContact = contacts.any {
+                            it.name.isNotBlank() && it.phone.any(Char::isDigit)
+                        }
 
-                        error = if (firstRun) when {
-                            name.isBlank() -> "Enter your name"
-                            birthDate.isBlank() -> "Pick your date of birth"
-                            sex.isBlank() -> "Pick a gender"
-                            heightVal == null || heightVal !in 50..250 -> "Height must be 50-250 cm"
-                            weightVal == null || weightVal !in 1.0..400.0 -> "Weight must be 1-400 kg"
+                        error = when {
+                            firstRun && name.isBlank() -> "Enter your name"
+                            firstRun && birthDate.isBlank() -> "Pick your date of birth"
+                            firstRun && sex.isBlank() -> "Pick a gender"
+                            firstRun && (heightVal == null || heightVal !in 50..250) -> "Height must be 50-250 cm"
+                            firstRun && (weightVal == null || weightVal !in 1.0..400.0) -> "Weight must be 1-400 kg"
+                            !hasEmergencyContact ->
+                                "Add at least one emergency contact with a name and phone number"
                             else -> null
-                        } else null
+                        }
 
                         if (error != null) return@GlossyButton
 

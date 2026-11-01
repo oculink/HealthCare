@@ -60,6 +60,8 @@ class HealthDataManager(context: Context) {
     ) {
         val heartRateBpm: Int? get() = heartRate.trim().toIntOrNull()
         val bloodSugarValue: Float? get() = bloodSugar.trim().toFloatOrNull()
+        /** The same glucose reading in UK units, for display. */
+        val bloodSugarMmol: Float? get() = bloodSugarValue?.let(BloodSugar::mgDlToMmol)
         val oxygenValue: Float? get() = oxygen.trim().toFloatOrNull()
         val temperatureValue: Float? get() = temperature.trim().toFloatOrNull()
         /** Systolic reading from a "120/80" string. */
@@ -136,6 +138,11 @@ class HealthDataManager(context: Context) {
         analysis?.let {
             data["analysisLevel"] = it.overall.name
             data["analysisFlags"] = it.abnormal.map { m -> m.key }
+        }
+        // UK units alongside the legacy mg/dL field. Old installs keep reading
+        // `bloodSugar`; new ones can use this without converting.
+        bloodSugar.trim().toFloatOrNull()?.let {
+            data["bloodSugarMmol"] = BloodSugar.mmolForCloud(it)
         }
         Cloud.userDoc?.collection("readings")?.add(data)
         if (countInCommunity) {
@@ -231,7 +238,12 @@ class HealthDataManager(context: Context) {
                 ?: d.getLong("clientTime")
                 ?: 0L,
             bloodPressure = d.getString("bloodPressure").orEmpty(),
-            bloodSugar = d.getString("bloodSugar").orEmpty(),
+            bloodSugar = d.getString("bloodSugar").orEmpty().ifBlank {
+                // A doc written with only the UK field still has to be usable.
+                d.getDouble("bloodSugarMmol")
+                    ?.let { BloodSugar.storedMgDlFromMmol(it.toFloat()) }
+                    .orEmpty()
+            },
             heartRate = d.getString("heartRate").orEmpty(),
             temperature = d.getString("temperature").orEmpty(),
             oxygen = d.getString("oxygen").orEmpty(),

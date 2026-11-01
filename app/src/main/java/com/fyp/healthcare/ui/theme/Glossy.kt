@@ -10,12 +10,6 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Eco
-import androidx.compose.material.icons.outlined.Forest
-import androidx.compose.material.icons.outlined.Grass
-import androidx.compose.material.icons.outlined.LocalFlorist
-import androidx.compose.material.icons.outlined.Spa
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.runtime.Composable
@@ -28,67 +22,21 @@ import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.drawscope.rotate
-import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.luminance
-import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlin.math.abs
 import kotlin.math.sin
 import kotlin.random.Random
-
-/** The four nature icons stamped as a faint watermark on glossy cards. */
-private val NatureIcons
-    @Composable get() = listOf(
-        Icons.Outlined.LocalFlorist,
-        Icons.Outlined.Eco,
-        Icons.Outlined.Spa,
-        Icons.Outlined.Grass,
-        Icons.Outlined.Forest,
-    )
-
-/** One nature icon painter, chosen deterministically from [seed]. */
-@Composable
-private fun rememberNatureMotif(seed: Int): Painter {
-    val icons = NatureIcons
-    return rememberVectorPainter(icons[abs(seed) % icons.size])
-}
-
-/**
- * Offsets, as a fraction of the watermark's own size, that the motif is drawn at to soften it
- * out of focus: the centre plus a ring of eight. Compose has no per-draw blur - RenderEffect is
- * a whole-layer effect and needs API 31+ - so near-coincident copies approximate it instead.
- *
- * This pattern was measured against a real Gaussian rather than guessed: the same shape blurred
- * by hand and compared side by side, which is also what ruled out the obvious cheaper version.
- * Fewer copies spread further apart does not blur, it ghosts - the individual strokes stay crisp
- * and read as double vision. Nine at this spacing is the point where they merge.
- */
-private val MotifBlurTaps = listOf(
-    Offset.Zero,
-    Offset(1f, 0f),
-    Offset(0.707f, 0.707f),
-    Offset(0f, 1f),
-    Offset(-0.707f, 0.707f),
-    Offset(-1f, 0f),
-    Offset(-0.707f, -0.707f),
-    Offset(0f, -1f),
-    Offset(0.707f, -0.707f),
-)
 
 /**
  * Skeuomorphic "glossy" surface for cards and tappable tiles - a top-lit vertical
@@ -116,7 +64,6 @@ fun Modifier.glossySurface(
 ): Modifier {
     val dark = AppTheme.isDark
     val seed = remember { Random.nextInt() }
-    val motif = rememberNatureMotif(seed)
     val ring = glow?.let { it.copy(alpha = it.alpha * (if (dark) 0.62f else 0.48f)) }
 
     if (AppTheme.calm) {
@@ -154,7 +101,7 @@ fun Modifier.glossySurface(
     // alpha: Android paints one with setOutlineAmbient/SpotShadowColor, so a translucent
     // colour means no shadow at all, and a fading glow would quietly flatten the card at the
     // bottom of every cycle instead of returning it to its resting elevation.
-    val lift = if (AppTheme.rich) elevation + 2.dp else elevation
+    val lift = elevation
     val lifted = when {
         !AppTheme.shadows -> this
         glow == null -> this.shadow(lift, shape, clip = false)
@@ -169,7 +116,7 @@ fun Modifier.glossySurface(
     val surfaced = lifted
         .clip(shape)
         .background(fill, shape)
-        .satinTexture(dark, seed, color, motif, AppTheme.leafPatterns, AppTheme.rich)
+        .satinTexture(dark, seed, color)
         .border(1.dp, rim, shape)
     return if (ring == null) surfaced else surfaced.border(1.dp, ring, shape)
 }
@@ -203,7 +150,6 @@ fun Modifier.glossyTile(
 ): Modifier {
     val dark = AppTheme.isDark
     val seed = remember { Random.nextInt() }
-    val motif = rememberNatureMotif(seed)
     val c = tileFill(color)
 
     if (AppTheme.calm) {
@@ -234,12 +180,12 @@ fun Modifier.glossyTile(
         0.5f to Color.White.copy(alpha = 0f),
     )
     val lifted = if (AppTheme.shadows) {
-        this.shadow(if (AppTheme.rich) elevation + 2.dp else elevation, shape, clip = false)
+        this.shadow(elevation, shape, clip = false)
     } else this
     return lifted
         .clip(shape)
         .background(fill, shape)
-        .satinTexture(dark, seed, c, motif, AppTheme.leafPatterns, AppTheme.rich)
+        .satinTexture(dark, seed, c)
         .border(1.dp, rim, shape)
 }
 
@@ -296,9 +242,6 @@ private fun Modifier.satinTexture(
     dark: Boolean,
     seed: Int,
     base: Color,
-    motif: Painter,
-    leaf: Boolean = true,
-    rich: Boolean = false,
 ): Modifier = drawWithCache {
     val r = Random(seed)
     val w = size.width
@@ -330,7 +273,7 @@ private fun Modifier.satinTexture(
     val shadeInk = lerp(base, Color.Black, if (dark) 0.24f else 0.10f).copy(alpha = 0.40f)
 
     val bloomHi = lerp(base, Color.White, if (dark) 0.14f else 0.55f)
-        .copy(alpha = if (rich) 0.68f else 0.5f)
+        .copy(alpha = 0.5f)
     val bloom = Brush.radialGradient(
         listOf(bloomHi, bloomHi.copy(alpha = 0f)),
         center = Offset(w * (0.15f + r.nextFloat() * 0.5f), h * (r.nextFloat() * 0.28f)),
@@ -338,33 +281,10 @@ private fun Modifier.satinTexture(
     )
     val hair = Stroke(width = 1f)
 
-    val motifSize = minOf(w, h) * (0.5f + r.nextFloat() * 0.5f)
-    val motifX = w * (0.1f + r.nextFloat() * 0.8f) - motifSize / 2f
-    val motifY = h * (0.1f + r.nextFloat() * 0.8f) - motifSize / 2f
-    val motifRot = r.nextFloat() * 360f
-    val motifTint = ColorFilter.tint(if (dark) Color.White else Color.Black)
-    // Split across the taps so the overlapping copies add up to the same faintness as the
-    // single crisp draw this replaced - the blur softens the edges without darkening the mark.
-    val motifAlpha = (if (dark) 0.065f else 0.08f) / MotifBlurTaps.size
-    val motifSpread = motifSize * (if (rich) 0.032f else 0.02f)
-
     onDrawBehind {
         drawRect(bloom)
         drawPath(lightPath, lightInk, style = hair)
         drawPath(shadePath, shadeInk, style = hair)
-        if (leaf) {
-            translate(motifX, motifY) {
-                rotate(motifRot, pivot = Offset(motifSize / 2f, motifSize / 2f)) {
-                    with(motif) {
-                        MotifBlurTaps.forEach { tap ->
-                            translate(tap.x * motifSpread, tap.y * motifSpread) {
-                                draw(Size(motifSize, motifSize), alpha = motifAlpha, colorFilter = motifTint)
-                            }
-                        }
-                    }
-                }
-            }
-        }
     }
 }
 
@@ -385,7 +305,6 @@ fun GlossyButton(
 ) {
     val minimal = AppTheme.calm
     val seed = remember { Random.nextInt() }
-    val motif = rememberNatureMotif(seed)
     val c = if (enabled) color else lerp(color, Color(0xFF9AA7BD), 0.55f)
 
     val fillMod = if (minimal) {
@@ -421,7 +340,7 @@ fun GlossyButton(
             .then(fillMod)
             .then(
                 if (minimal) Modifier
-                else Modifier.satinTexture(AppTheme.isDark, seed, c, motif, AppTheme.leafPatterns, AppTheme.rich),
+                else Modifier.satinTexture(AppTheme.isDark, seed, c),
             )
             .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
             .heightIn(min = 56.dp)

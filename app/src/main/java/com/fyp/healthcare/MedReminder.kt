@@ -16,6 +16,25 @@ import androidx.work.workDataOf
 import java.util.Calendar
 import java.util.concurrent.TimeUnit
 
+/**
+ * Device-wide reminder switch, mirrored by the Notifications row on the Profile page.
+ * Kept in the theme's prefs file so it survives sign-out like the other device settings.
+ */
+object NotificationPrefs {
+
+    private const val PREFS = "app_prefs"
+    private const val KEY_ENABLED = "reminders_enabled"
+
+    fun isEnabled(context: Context): Boolean =
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .getBoolean(KEY_ENABLED, true)
+
+    fun setEnabled(context: Context, enabled: Boolean) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .edit().putBoolean(KEY_ENABLED, enabled).apply()
+    }
+}
+
 object NotificationHelper {
 
     private const val CHANNEL_ID = "med_reminders"
@@ -48,6 +67,7 @@ object NotificationHelper {
         text: String,
         channelId: String = CHANNEL_ID,
     ) {
+        if (!NotificationPrefs.isEnabled(context)) return
         ensureChannel(context)
 
         val openApp = PendingIntent.getActivity(
@@ -92,7 +112,7 @@ class ReminderWorker(
                 context = applicationContext,
                 notificationId = (medId.toInt() * 31) + hhmmMinutes(time),
                 title = "Time for ${med.name}",
-                text = "${med.dosageText} · ${formatTime12(time)}",
+                text = "${med.doseText} · ${formatTime12(time)}",
             )
         }
 

@@ -118,7 +118,7 @@ fun RecordDataScreen(
             Spacer(Modifier.height(20.dp))
 
             ReadingField(bloodPressure, { bloodPressure = it }, "Blood Pressure", "e.g. 120/80 mmHg", Icons.Filled.Bloodtype, KeyboardType.Text)
-            ReadingField(bloodSugar, { bloodSugar = it }, "Blood Sugar", "e.g. 95 mg/dL", Icons.Filled.Cookie, KeyboardType.Decimal)
+            ReadingField(bloodSugar, { bloodSugar = it }, "Blood Sugar (mmol/L)", "e.g. 5.5 mmol/L", Icons.Filled.Cookie, KeyboardType.Decimal)
             ReadingField(heartRate, { heartRate = it }, "Heart Rate", "e.g. 72 BPM", Icons.Filled.MonitorHeart, KeyboardType.Number)
             ReadingField(temperature, { temperature = it }, "Temperature", "e.g. 36.6 °C", Icons.Filled.DeviceThermostat, KeyboardType.Decimal)
             ReadingField(oxygen, { oxygen = it }, "Oxygen Level", "e.g. 98 %", Icons.Filled.Air, KeyboardType.Number)
@@ -155,8 +155,8 @@ fun RecordDataScreen(
                         problems.add("Oxygen Level must be a whole number between 50 and 100")
 
                     val sugar = bloodSugar.toDoubleOrNull()
-                    if (sugar == null || sugar !in 20.0..600.0)
-                        problems.add("Blood Sugar must be a number between 20 and 600")
+                    if (sugar == null || sugar !in 1.1..33.3)
+                        problems.add("Blood Sugar must be between 1.1 and 33.3 mmol/L")
 
                     val temp = temperature.toDoubleOrNull()
                     if (temp == null || temp !in 30.0..45.0)
@@ -166,8 +166,9 @@ fun RecordDataScreen(
                         errorMessage = problems.first()
                     } else {
                         healthData.saveReadings(
-                            bloodPressure, bloodSugar, heartRate,
-                            temperature, oxygen
+                            bloodPressure,
+                            sugar?.let { BloodSugar.storedMgDlFromMmol(it.toFloat()) }.orEmpty(),
+                            heartRate, temperature, oxygen
                         )
                         onSaved()
                     }

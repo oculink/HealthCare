@@ -34,6 +34,7 @@ import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Medication
 import androidx.compose.material.icons.filled.Numbers
+import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
@@ -48,6 +49,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -71,9 +73,9 @@ private val LabelGray: Color @Composable get() = themed(Color(0xFF5F6673), Color
 private val PlaceholderGray: Color @Composable get() = themed(Color(0xFFA6ACB8), Color(0xFF6A7079))
 
 /**
- * Step 1 of adding/editing a medication: name, route, strength, amount, description.
- * "Next" hands a draft [Medication] (schedule still empty) to [onNext] - the Reminder
- * Times screen fills in the weekly schedule and does the actual save.
+ * Step 1 of adding/editing a medication: name, route, description, how many units are
+ * taken each time, and how many times a day. "Next" hands a draft [Medication] to [onNext]
+ * - the Reminder Times screen fills in the daily schedule and does the actual save.
  *
  * The medication name can be chosen from [MedicationCatalog] via the picker screen
  * ([onChooseMedication]); its result comes back through [pickedName] / [pickedDescription]
@@ -96,32 +98,41 @@ fun AddMedicationScreen(
     val editing = remember(editId) { editId?.let { medManager.get(it) } }
     val isEdit = editing != null
 
-    var name by remember { mutableStateOf(editing?.name ?: "") }
-    var description by remember { mutableStateOf(editing?.description ?: "") }
-    var route by remember { mutableStateOf(MedRoute.of(editing?.route)) }
-    var customMode by remember { mutableStateOf(isEdit) }
+    // Saveable so going to the catalog (or ahead to Reminder Times and back) doesn't
+    // reset the form.
+    var name by rememberSaveable(editId) { mutableStateOf(editing?.name ?: "") }
+    var description by rememberSaveable(editId) { mutableStateOf(editing?.description ?: "") }
+    var routeName by rememberSaveable(editId) { mutableStateOf(MedRoute.of(editing?.route).name) }
+    var customMode by rememberSaveable(editId) { mutableStateOf(isEdit) }
+    val route = MedRoute.of(routeName)
 
     LaunchedEffect(pickedName, pickedDescription, pickedRoute, pickedCustom) {
         when {
             pickedCustom -> {
                 name = ""
                 description = ""
-                route = MedRoute.OTHER
+                routeName = MedRoute.OTHER.name
                 customMode = true
                 onPickConsumed()
             }
             pickedName != null -> {
                 name = pickedName
                 description = pickedDescription.orEmpty()
-                route = MedRoute.of(pickedRoute)
+                routeName = MedRoute.of(pickedRoute).name
                 customMode = true
                 onPickConsumed()
             }
         }
     }
 
-    var strength by remember { mutableStateOf(editing?.strength ?: "") }
-    var amount by remember { mutableStateOf(editing?.amount?.takeIf { it > 0 }?.toString() ?: "") }
+    // Saveable so picking a different medication (which leaves this screen for the
+    // catalog) doesn't wipe numbers the user has already typed.
+    var amount by rememberSaveable(editId) {
+        mutableStateOf(editing?.amount?.takeIf { it > 0 }?.toString() ?: "")
+    }
+    var consumes by rememberSaveable(editId) {
+        mutableStateOf((editing?.consumesPerDayOrDefault ?: 1).toString())
+    }
     var routeMenuOpen by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
@@ -232,7 +243,7 @@ fun AddMedicationScreen(
                             DropdownMenuItem(
                                 text = { Text(r.label) },
                                 leadingIcon = { Icon(r.icon, contentDescription = null, modifier = Modifier.size(20.dp)) },
-                                onClick = { route = r; routeMenuOpen = false },
+                                onClick = { routeName = r.name; routeMenuOpen = false },
                             )
                         }
                     }
@@ -245,29 +256,45 @@ fun AddMedicationScreen(
                     Icons.Filled.Description, singleLine = false,
                 )
 
-                val strengthLabel = when {
-                    route == MedRoute.OTHER -> "Strength / amount (optional)"
-                    route.strengthUnit.isEmpty() -> "Strength (optional)"
-                    else -> "Strength (${route.strengthUnit})"
-                }
-                val strengthHint = when (route) {
-                    MedRoute.ORAL, MedRoute.SUBLINGUAL, MedRoute.RECTAL -> "e.g. 500"
-                    MedRoute.INHALED, MedRoute.NASAL -> "e.g. 100"
-                    MedRoute.TRANSDERMAL -> "e.g. 25"
-                    MedRoute.TOPICAL, MedRoute.OPHTHALMIC -> "e.g. 0.5"
-                    MedRoute.INJECTABLE -> "e.g. 100"
-                    MedRoute.OTHER -> "e.g. 5 mg, 1 sachet"
-                }
-                MedField(
-                    strength,
-                    { strength = if (route == MedRoute.OTHER) it else it.filter { c -> c.isDigit() || c == '.' } },
-                    strengthLabel, strengthHint, Icons.Filled.Medication,
-                    if (route == MedRoute.OTHER) KeyboardType.Text else KeyboardType.Decimal,
-                )
                 MedField(
                     amount, { amount = it.filter(Char::isDigit) },
                     route.doseLabel, "e.g. 1", Icons.Filled.Numbers, KeyboardType.Number,
+                    hint = "How many you take at each reminder.",
                 )
+                MedField(
+                    consumes, { consumes = it.filter(Char::isDigit) },
+                    "Consumes per day", "e.g. 4", Icons.Filled.Repeat, KeyboardType.Number,
+                    hint = "How many times a day you take it. We'll space the reminders automatically.",
+                )
+
+                val amountPreview = amount.toIntOrNull()
+                val consumesPreview = consumes.toIntOrNull()
+                if (amountPreview != null && amountPreview > 0 &&
+                    consumesPreview != null && consumesPreview > 0
+                ) {
+                    val noun = if (amountPreview == 1) route.doseNoun else "${route.doseNoun}s"
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(BrandBlue.copy(alpha = 0.08f))
+                            .padding(12.dp),
+                    ) {
+                        Text(
+                            "$amountPreview $noun each time × $consumesPreview times a day",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = TextDark,
+                        )
+                        Spacer(Modifier.height(2.dp))
+                        Text(
+                            "= ${amountPreview * consumesPreview} $noun a day in total",
+                            fontSize = 12.sp,
+                            color = LabelGray,
+                        )
+                    }
+                    Spacer(Modifier.height(14.dp))
+                }
 
                 Spacer(Modifier.height(2.dp))
 
@@ -285,27 +312,34 @@ fun AddMedicationScreen(
                 GlossyButton(
                     onClick = {
                         val amt = amount.toIntOrNull()
-                        val strengthOk = strength.isBlank() ||
-                            route == MedRoute.OTHER ||
-                            (strength.toDoubleOrNull()?.let { it > 0.0 } == true)
+                        val cons = consumes.toIntOrNull()
                         errorMessage = when {
                             name.isBlank() -> "Enter a medication name"
-                            !strengthOk -> "Strength must be a positive number"
-                            amt == null || amt !in 1..99 -> "${route.doseLabel} must be a number between 1 and 99"
+                            amt == null || amt !in 1..99 ->
+                                "${route.doseLabel} must be a number between 1 and 99"
+                            cons == null || cons !in 1..MAX_CONSUMES_PER_DAY ->
+                                "Consumes per day must be a number between 1 and $MAX_CONSUMES_PER_DAY"
                             else -> null
                         }
                         if (errorMessage != null) return@GlossyButton
+
+                        // Changing the daily count makes the old times meaningless, so let
+                        // the next screen rebuild them from the automatic defaults.
+                        val countChanged = isEdit &&
+                            cons != editing?.consumesPerDayOrDefault
 
                         onNext(
                             Medication(
                                 id = editing?.id ?: medManager.nextId(),
                                 name = name.trim(),
-                                strength = strength.trim(),
+                                strength = editing?.strength.orEmpty(),
                                 amount = amt!!,
-                                schedule = editing?.schedule ?: emptyMap(),
+                                schedule = if (countChanged) emptyMap()
+                                else editing?.schedule ?: emptyMap(),
                                 log = editing?.log ?: emptyMap(),
                                 description = description.trim(),
                                 route = route.name,
+                                consumesPerDay = cons!!,
                             )
                         )
                     },
@@ -330,6 +364,7 @@ private fun MedField(
     icon: ImageVector,
     keyboardType: KeyboardType = KeyboardType.Text,
     singleLine: Boolean = true,
+    hint: String? = null,
 ) {
     Text(label, fontSize = 13.sp, fontWeight = FontWeight.Medium, color = LabelGray)
     Spacer(Modifier.height(6.dp))
@@ -346,5 +381,9 @@ private fun MedField(
         shape = RoundedCornerShape(14.dp),
         colors = glossyFieldColors(accent = BrandBlue),
     )
+    if (hint != null) {
+        Spacer(Modifier.height(6.dp))
+        Text(hint, fontSize = 12.sp, color = LabelGray)
+    }
     Spacer(Modifier.height(14.dp))
 }

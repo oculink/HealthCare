@@ -253,14 +253,14 @@ class UserManager(context: Context) {
 
     /**
      * Permanently deletes the signed-in account: its profile document, its readings,
-     * medications and appointments, any family code it owns, and its own entry in every
-     * caregiver list it appears in - then the Firebase Auth user itself.
+     * medications and appointments, any family code it owns, and its link to a patient it
+     * was caring for - then the Firebase Auth user itself.
      *
-     * Every write here is one the security rules already let a user make to their own data,
-     * so no Admin SDK or Cloud Function is needed. Two things it cannot undo: the counts this
-     * account added to the shared `stats/vitals` baseline, and whatever a linked caregiver has
-     * cached on their own phone (they stop seeing the patient, but their local copy ages out
-     * rather than being wiped by us).
+     * Every write here is one the security rules already let a user make to their own data
+     * or to a patient they are linked to, so no Admin SDK or Cloud Function is needed. Two
+     * things it cannot undo: the counts this account added to the shared `stats/vitals`
+     * baseline, and whatever a linked caregiver has cached on their own phone (they stop
+     * seeing the patient, but their local copy ages out rather than being wiped by us).
      */
     suspend fun deleteAccount(password: String): SignInResult {
         val user = auth.currentUser ?: return SignInResult.Failed("You're not signed in.")
@@ -283,7 +283,9 @@ class UserManager(context: Context) {
         return try {
             deleteOwnedCollections(uid)
             deleteOwnFamilyCode(uid)
-            removeSelfFromFamilyLinks(uid)
+            // Best-effort: the account must still be deletable if a stale/inconsistent link
+            // can't be cleaned up. Deleting the user doc above already removes all access.
+            runCatching { leaveLinkedPatient(uid) }
             db.collection("users").document(uid).delete().awaitResult()
             user.delete().awaitResult()
             GoogleHint.forget(appContext)
@@ -321,30 +323,37 @@ class UserManager(context: Context) {
         db.collection("familyCodes").document(code).delete().awaitResult()
     }
 
-    /** Leaves no dead links behind: pulls this uid out of every caregiver list it appears in. */
-    private suspend fun removeSelfFromFamilyLinks(uid: String) {
-        db.collection("users").whereArrayContains("caretakerUids", uid).get().awaitResult()
-            .documents.forEach { doc ->
-                doc.reference.update(
-                    mapOf(
-                        "caretakerUids" to (doc.get("caretakerUids") as? List<*>)
-                            .orEmpty().filterNot { it == uid },
-                        "caretakers" to (doc.get("caretakers") as? List<*>)
-                            .orEmpty().filterNot {
-                                (it as? Map<*, *>)?.get("uid") == uid
-                            },
-                    ),
-                ).awaitResult()
+    /**
+     * If this account is acting as a caregiver, remove it from that one patient's list.
+     *
+     * This deliberately uses the patient uid stored on the account's own doc instead of a
+     * `whereArrayContains` query across `users`/`familyCodes`. The security rules only let a
+     * signed-in user list their own documents (and family-code listing is denied outright),
+     * so those collection queries fail with PERMISSION_DENIED and used to block the whole
+     * deletion. The single link on this account is all that needs cleaning here.
+     */
+    private suspend fun leaveLinkedPatient(uid: String) {
+        val me = db.collection("users").document(uid).get().awaitResult()
+        val patientUid = me.getString("linkedPatientUid")?.takeIf { it.isNotBlank() } ?: return
+        val patient = db.collection("users").document(patientUid).get().awaitResult()
+        if (!patient.exists()) return
+
+        @Suppress("UNCHECKED_CAST")
+        val remaining = (patient.get("caretakers") as? List<Map<String, Any?>>).orEmpty()
+            .filterNot { it["uid"] == uid }
+        patient.reference.update(
+            mapOf(
+                "caretakerUids" to FieldValue.arrayRemove(uid),
+                "caretakers" to remaining,
+            ),
+        ).awaitResult()
+
+        patient.getString("familyCode")?.takeIf { it.isNotBlank() }?.let { code ->
+            runCatching {
+                db.collection("familyCodes").document(code)
+                    .update("caretakerUids", FieldValue.arrayRemove(uid)).awaitResult()
             }
-        db.collection("familyCodes").whereArrayContains("caretakerUids", uid).get().awaitResult()
-            .documents.forEach { doc ->
-                doc.reference.update(
-                    mapOf(
-                        "caretakerUids" to (doc.get("caretakerUids") as? List<*>)
-                            .orEmpty().filterNot { it == uid },
-                    ),
-                ).awaitResult()
-            }
+        }
     }
 
     /** The Credential Manager half of the Google flow, shared by sign-in and [connectGoogle]. */

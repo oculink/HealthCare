@@ -49,6 +49,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import java.util.Calendar
+import java.util.Locale
 import kotlin.math.ceil
 import kotlin.math.floor
 import kotlin.math.roundToInt
@@ -148,15 +149,24 @@ fun HealthTrendsScreen(
             val window = remember(selectedPeriod) { periodWindow(selectedPeriod) }
             val (startMs, slotCount) = window
 
+            // Community and local values are both stored in the metric's canonical unit
+            // (mg/dL for sugar); convert only here, at the display edge.
             val slots: List<Float?> = when (chartSource) {
-                ChartSource.GLOBAL -> slotsOf(metric.communityKey)
-                ChartSource.LOCAL -> localSlots(localReadings, startMs, slotCount, metric.select)
+                ChartSource.GLOBAL ->
+                    slotsOf(metric.communityKey).map { it?.let(metric.display) }
+                ChartSource.LOCAL ->
+                    localSlots(localReadings, startMs, slotCount, metric.select)
+                        .map { it?.let(metric.display) }
             }
             val stat: Stat? = when (chartSource) {
                 ChartSource.GLOBAL -> community[metric.communityKey]?.let {
                     Stat(it.min.toFloat(), it.avg.toFloat(), it.max.toFloat(), it.count.toInt())
                 }
                 ChartSource.LOCAL -> localStat(localReadings, startMs, slotCount, metric.select)
+            }?.let {
+                Stat(
+                    metric.display(it.min), metric.display(it.avg), metric.display(it.max), it.count
+                )
             }
             val isGlobal = chartSource == ChartSource.GLOBAL
             val sourceWord = if (isGlobal) "all users" else "you"
@@ -198,7 +208,7 @@ fun HealthTrendsScreen(
                     )
                     slots.lastOrNull { it != null }?.let {
                         Text(
-                            "Latest ${it.roundToInt()}",
+                            "Latest ${metricText(it, metric.decimals)}",
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
                             color = BrandBlue,
@@ -209,6 +219,8 @@ fun HealthTrendsScreen(
                 MetricChart(
                     points = slots,
                     labels = periodLabels(selectedPeriod),
+                    decimals = metric.decimals,
+                    pad = metric.pad,
                     emptyPrimary = if (isGlobal) "No community data yet for this period"
                         else "No ${metric.title.lowercase()} recorded for this period",
                     emptySecondary = if (isGlobal) "Averages appear as readings come in"
@@ -251,9 +263,9 @@ fun HealthTrendsScreen(
                 )
                 Spacer(Modifier.height(6.dp))
                 Row(Modifier.fillMaxWidth()) {
-                    StatCell("Min", stat?.min?.roundToInt()?.toString(), BrandBlue, Modifier.weight(1f))
-                    StatCell("Avg", stat?.avg?.roundToInt()?.toString(), GoodGreen, Modifier.weight(1f))
-                    StatCell("Max", stat?.max?.roundToInt()?.toString(), BadRed, Modifier.weight(1f))
+                    StatCell("Min", metricText(stat?.min, metric.decimals), BrandBlue, Modifier.weight(1f))
+                    StatCell("Avg", metricText(stat?.avg, metric.decimals), GoodGreen, Modifier.weight(1f))
+                    StatCell("Max", metricText(stat?.max, metric.decimals), BadRed, Modifier.weight(1f))
                 }
             }
 
@@ -281,10 +293,21 @@ private enum class Metric(
     val communityKey: String,
     /** pull this metric's value out of one recorded reading. */
     val select: (HealthDataManager.Reading) -> Float?,
+    /** convert a stored value into the unit shown on screen. */
+    val display: (Float) -> Float = { it },
+    /** decimal places used for Latest / Min / Avg / Max and the chart axis. */
+    val decimals: Int = 0,
+    /** minimum headroom above and below the plotted values, in display units. */
+    val pad: Float = 4f,
 ) {
     HEART_RATE("Heart Rate", "BPM", "hr", { it.heartRateBpm?.toFloat() }),
     BLOOD_PRESSURE("Blood Pressure", "systolic mmHg", "sys", { it.systolic?.toFloat() }),
-    BLOOD_SUGAR("Blood Sugar", "mg/dL", "sugar", { it.bloodSugarValue }),
+    BLOOD_SUGAR(
+        "Blood Sugar", "mmol/L", "sugar", { it.bloodSugarValue },
+        display = { BloodSugar.mgDlToMmol(it) },
+        decimals = 1,
+        pad = 0.5f,
+    ),
     OXYGEN("Oxygen Level", "%", "oxy", { it.oxygenValue });
 
     fun next(): Metric = entries[(ordinal + 1) % entries.size]
@@ -363,11 +386,17 @@ private fun periodLabels(period: String): List<String> {
 /** 1240 -> "1,240" */
 private fun formatCount(n: Long): String = "%,d".format(n)
 
+/** A metric value in display units: 0 decimals by default, 1 for mmol/L. */
+private fun metricText(v: Float?, decimals: Int): String? =
+    v?.let { String.format(Locale.US, "%.${decimals}f", it) }
+
 
 @Composable
 private fun MetricChart(
     points: List<Float?>,
     labels: List<String>,
+    decimals: Int = 0,
+    pad: Float = 4f,
     emptyPrimary: String = "No data yet for this period",
     emptySecondary: String = "Averages appear as readings come in",
 ) {
@@ -402,9 +431,9 @@ private fun MetricChart(
 
     val dMin = present.min()
     val dMax = present.max()
-    val pad = maxOf(4f, (dMax - dMin) * 0.2f)
-    val lo = floor(dMin - pad)
-    val hi = ceil(dMax + pad).let { if (it <= lo) lo + 1f else it }
+    val headroom = maxOf(pad, (dMax - dMin) * 0.2f)
+    val lo = floor(dMin - headroom)
+    val hi = ceil(dMax + headroom).let { if (it <= lo) lo + 1f else it }
 
     val gridColor = TrackGray
     val lineColor = BrandBlue
@@ -416,9 +445,9 @@ private fun MetricChart(
             verticalArrangement = Arrangement.SpaceBetween,
             horizontalAlignment = Alignment.End
         ) {
-            Text("${hi.roundToInt()}", fontSize = 10.sp, color = LabelGray)
-            Text("${((hi + lo) / 2f).roundToInt()}", fontSize = 10.sp, color = LabelGray)
-            Text("${lo.roundToInt()}", fontSize = 10.sp, color = LabelGray)
+            Text(metricText(hi, decimals) ?: "", fontSize = 10.sp, color = LabelGray)
+            Text(metricText((hi + lo) / 2f, decimals) ?: "", fontSize = 10.sp, color = LabelGray)
+            Text(metricText(lo, decimals) ?: "", fontSize = 10.sp, color = LabelGray)
         }
         Spacer(Modifier.width(6.dp))
         Column(modifier = Modifier.weight(1f)) {

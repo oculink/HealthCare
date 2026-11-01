@@ -1,7 +1,6 @@
 package com.fyp.healthcare
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -16,7 +15,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Diversity3
 import com.fyp.healthcare.ui.theme.GlossyButton
 import com.fyp.healthcare.ui.theme.glossyFieldColors
 import com.fyp.healthcare.ui.theme.glossyFieldWell
@@ -47,7 +45,6 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 
 private val BrandBlue = Color(0xFF2A6DE1)
-private val BrandBlueDark = Color(0xFF1E50C8)
 
 /**
  * Caretaker enters the patient's family code. On success the app switches into caretaker
@@ -89,13 +86,6 @@ fun CaretakerLinkScreen(
     ) {
         Spacer(Modifier.weight(1f))
 
-        Box(
-            modifier = Modifier.size(88.dp).clip(RoundedCornerShape(26.dp)).background(BrandBlueDark),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(Icons.Filled.Diversity3, contentDescription = null, tint = Color.White, modifier = Modifier.size(40.dp))
-        }
-        Spacer(Modifier.height(18.dp))
         Text("Link to a patient", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(6.dp))
         Text(

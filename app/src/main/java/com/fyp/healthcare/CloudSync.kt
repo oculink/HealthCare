@@ -85,6 +85,8 @@ object Cloud {
     // Health Trends screen can show "you vs. everyone". No individual reading and
     // no identity is stored here - only running count / sum / min / max per metric.
     // Metric keys: "hr" (BPM), "sys" (systolic), "sugar" (mg/dL), "oxy" (%).
+    // "sugar" deliberately stays mg/dL: every client, old or new, aggregates the same
+    // numbers, and the new app converts to mmol/L only when it displays them.
     //
     // Count + Sum are bumped with FieldValue.increment() - atomic on the server AND
     // offline-safe: the write queues in the on-device cache and flushes on reconnect

@@ -10,10 +10,12 @@ import org.json.JSONObject
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
+import kotlin.math.roundToInt
 
 /**
- * How a medication is taken. Drives the labels/units on the Add Medication form
- * (strength unit + what "one dose" is counted in) and how [Medication.dosageText] reads.
+ * How a medication is taken. Drives the amount label on the Add Medication form and the
+ * noun used by [Medication.doseText]. [strengthUnit] only formats strength values that
+ * were saved before the Strength field was retired.
  */
 enum class MedRoute(
     val label: String,
@@ -21,16 +23,16 @@ enum class MedRoute(
     val doseLabel: String,
     val doseNoun: String,
 ) {
-    ORAL("Oral", "mg", "Tablets / capsules per dose", "tablet"),
-    TOPICAL("Topical (cream / gel)", "%", "Applications per dose", "application"),
-    INJECTABLE("Injectable", "mg/mL", "mL per dose", "mL"),
-    INHALED("Inhaled", "mcg/puff", "Puffs per dose", "puff"),
-    SUBLINGUAL("Sublingual / buccal", "mg", "Tablets per dose", "tablet"),
-    NASAL("Nasal spray", "mcg/spray", "Sprays per dose", "spray"),
-    RECTAL("Rectal / vaginal", "mg", "Units per dose", "suppository"),
-    OPHTHALMIC("Eye / ear drops", "%", "Drops per dose", "drop"),
-    TRANSDERMAL("Transdermal patch", "mcg/hr", "Patches", "patch"),
-    OTHER("Other", "", "Amount per dose", "dose");
+    ORAL("Oral", "mg", "Capsules / tablets per consume", "tablet"),
+    TOPICAL("Topical (cream / gel)", "%", "Applications per consume", "application"),
+    INJECTABLE("Injectable", "mg/mL", "mL per injection", "mL"),
+    INHALED("Inhaled", "mcg/puff", "Puffs per consume", "puff"),
+    SUBLINGUAL("Sublingual / buccal", "mg", "Tablets per consume", "tablet"),
+    NASAL("Nasal spray", "mcg/spray", "Sprays per consume", "spray"),
+    RECTAL("Rectal / vaginal", "mg", "Suppositories per consume", "suppository"),
+    OPHTHALMIC("Eye / ear drops", "%", "Drops per consume", "drop"),
+    TRANSDERMAL("Transdermal patch", "mcg/hr", "Patches per consume", "patch"),
+    OTHER("Other", "", "Amount per consume", "dose");
 
     companion object {
         fun of(name: String?): MedRoute = entries.firstOrNull { it.name == name } ?: ORAL
@@ -43,6 +45,11 @@ enum class MedRoute(
  * [schedule] maps a day (0 = Sunday .. 6 = Saturday) to the list of times ("HH:mm")
  * the dose is due that day. A day that isn't a key (or has an empty list) is skipped.
  * So a medication can be, e.g. Mon 06:00 & 17:00, Tue 08:00, Fri 06:00/14:00/20:00.
+ *
+ * [amount] is how many units are taken at EACH intake ("3 capsules"), while
+ * [consumesPerDay] is how many intakes happen in a day ("4 times"). The reminder times
+ * in [schedule] are generated from [consumesPerDay] by [defaultTimesPerDay], then can be
+ * adjusted per day.
  *
  * [log] records what the user did for one specific dose:
  *   "yyyy-MM-dd HH:mm" -> "taken" | "missed".
@@ -58,6 +65,8 @@ data class Medication(
     val log: Map<String, String> = emptyMap(),
     val description: String = "",
     val route: String = "ORAL",
+    /** How many intakes a day, e.g. 4 for morning/afternoon/evening/night. 0 = infer. */
+    val consumesPerDay: Int = 0,
 ) {
     val medRoute: MedRoute get() = MedRoute.of(route)
 
@@ -80,18 +89,51 @@ data class Medication(
     fun weeklyPlan(): List<Pair<Int, List<String>>> =
         (0..6).mapNotNull { d -> timesOn(d).takeIf { it.isNotEmpty() }?.let { d to it } }
 
+    /** "3 capsules" - how much is taken at one reminder. */
+    val doseText: String
+        get() {
+            val noun = if (amount == 1) medRoute.doseNoun else "${medRoute.doseNoun}s"
+            return "$amount $noun"
+        }
+
+    /**
+     * Intakes a day. New medications store [consumesPerDay]; older ones fall back to the
+     * most common number of times across their scheduled days.
+     */
+    val consumeCount: Int
+        get() {
+            if (consumesPerDay > 0) return consumesPerDay
+            val counts = scheduledDays.map { timesOn(it).size }.filter { it > 0 }
+            if (counts.isEmpty()) return 0
+            return counts.groupingBy { it }.eachCount().maxByOrNull { it.value }?.key ?: 0
+        }
+
+    /** Count used by the add/edit form - at least once a day. */
+    val consumesPerDayOrDefault: Int
+        get() = consumeCount.coerceAtLeast(1)
+
+    /** "once a day" / "4 times a day"; blank when nothing is scheduled. */
+    val frequencyText: String
+        get() = when (val n = consumeCount) {
+            0 -> ""
+            1 -> "once a day"
+            else -> "$n times a day"
+        }
+
+    /** One-line summary for list rows and cards, e.g. "3 capsules · 4 times a day". */
     val dosageText: String
         get() {
             val r = medRoute
-            val noun = if (amount == 1) r.doseNoun else "${r.doseNoun}s"
-            val count = "$amount $noun"
-            if (strength.isBlank()) return count
-            val s = when {
-                r.strengthUnit.isEmpty() -> strength
-                r.strengthUnit == "%" -> "$strength%"
-                else -> "$strength ${r.strengthUnit}"
+            val strengthPart = if (strength.isBlank()) "" else {
+                when {
+                    r.strengthUnit.isEmpty() -> strength
+                    r.strengthUnit == "%" -> "$strength%"
+                    else -> "$strength ${r.strengthUnit}"
+                }
             }
-            return "$s · $count"
+            return listOf(strengthPart, doseText, frequencyText)
+                .filter { it.isNotBlank() }
+                .joinToString(" · ")
         }
 
     fun isScheduledOn(cal: Calendar): Boolean =
@@ -136,6 +178,41 @@ fun Medication.scheduleSummary(): String {
         }
     }
 }
+
+/** Upper bound for the Consumes per day field. */
+const val MAX_CONSUMES_PER_DAY = 12
+
+/**
+ * Sensible starting times for [count] intakes a day. These are only the defaults the
+ * Reminder Times screen fills in - every time can still be changed by the user.
+ *
+ * 1 -> 8am; 2 -> 8am/8pm; 3 -> 8am/2pm/8pm; 4 -> 8am/12pm/4pm/8pm (morning, afternoon,
+ * evening, night), and so on. Above eight intakes the times are spread evenly from
+ * 06:00 to 22:00.
+ */
+fun defaultTimesPerDay(count: Int): List<String> {
+    val n = count.coerceIn(1, MAX_CONSUMES_PER_DAY)
+    DEFAULT_DAILY_TIMES[n]?.let { return it }
+    val start = 6 * 60
+    val end = 22 * 60
+    val step = (end - start).toDouble() / (n - 1)
+    return (0 until n).map { i ->
+        val minutes = (start + i * step).roundToInt()
+        val rounded = (minutes / 5) * 5
+        "%02d:%02d".format(rounded / 60, rounded % 60)
+    }.distinct()
+}
+
+private val DEFAULT_DAILY_TIMES: Map<Int, List<String>> = mapOf(
+    1 to listOf("08:00"),
+    2 to listOf("08:00", "20:00"),
+    3 to listOf("08:00", "14:00", "20:00"),
+    4 to listOf("08:00", "12:00", "16:00", "20:00"),
+    5 to listOf("07:00", "10:30", "14:00", "17:30", "21:00"),
+    6 to listOf("06:00", "09:00", "12:00", "15:00", "18:00", "21:00"),
+    7 to listOf("06:00", "09:00", "12:00", "15:00", "18:00", "21:00", "23:00"),
+    8 to listOf("06:00", "08:00", "10:00", "12:00", "14:00", "16:00", "18:00", "20:00"),
+)
 
 val DAY_NAMES_SHORT = listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
 val DAY_NAMES_LONG =
@@ -261,6 +338,7 @@ class MedicationManager(context: Context, forSelf: Boolean = false) {
                 "strength" to m.strength,
                 "route" to m.route,
                 "amount" to m.amount,
+                "consumesPerDay" to m.consumesPerDay,
                 "schedule" to m.schedule.mapKeys { it.key.toString() },
                 "scheduledDays" to m.scheduledDays.sorted(),
                 "log" to m.log,
@@ -296,6 +374,7 @@ class MedicationManager(context: Context, forSelf: Boolean = false) {
                 put("strength", m.strength)
                 put("route", m.route)
                 put("amount", m.amount)
+                put("consumesPerDay", m.consumesPerDay)
                 put("schedule", JSONObject().apply {
                     m.schedule.forEach { (d, times) -> put(d.toString(), JSONArray(times)) }
                 })
@@ -346,6 +425,8 @@ class MedicationManager(context: Context, forSelf: Boolean = false) {
                 schedule = schedule,
                 log = log,
                 description = o.optString("desc"),
+                consumesPerDay = o.optInt("consumesPerDay", 0)
+                    .coerceIn(0, MAX_CONSUMES_PER_DAY),
             )
         }
     }.getOrDefault(emptyList())
@@ -369,6 +450,7 @@ class MedicationManager(context: Context, forSelf: Boolean = false) {
                 strength = mgRe.find(p[2])?.groupValues?.get(1).orEmpty(),
                 amount = amtRe.find(p[2])?.groupValues?.get(1)?.toIntOrNull() ?: 1,
                 schedule = days.associateWith { listOf(p[4]) },
+                consumesPerDay = 1,
             )
         }
     }
@@ -397,6 +479,8 @@ class MedicationManager(context: Context, forSelf: Boolean = false) {
                 log = log,
                 description = d.getString("description").orEmpty(),
                 route = d.getString("route")?.ifBlank { "ORAL" } ?: "ORAL",
+                consumesPerDay = (d.getLong("consumesPerDay") ?: 0L).toInt()
+                    .coerceIn(0, MAX_CONSUMES_PER_DAY),
             )
         }
     }
