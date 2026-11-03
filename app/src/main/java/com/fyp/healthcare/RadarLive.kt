@@ -1,5 +1,6 @@
 package com.fyp.healthcare
 
+import com.fyp.healthcare.i18n.Text
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
@@ -16,7 +17,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -170,13 +170,13 @@ fun LiveRadarCard() {
     fun connectAndListen() {
         scope.launch {
             connecting = true
-            message = "Sedang menyambung..."
+            message = "Connecting..."
             manager.connect()
                 .onSuccess {
                     RadarLiveTracker.start(manager)
                     message = ""
                 }
-                .onFailure { message = it.message ?: "Sambungan gagal" }
+                .onFailure { message = it.message ?: "Couldn't connect" }
             connecting = false
         }
     }
@@ -187,7 +187,7 @@ fun LiveRadarCard() {
         val ok = Build.VERSION.SDK_INT < Build.VERSION_CODES.S ||
                 results[Manifest.permission.BLUETOOTH_CONNECT] == true
         if (ok) connectAndListen()
-        else message = "Permission Bluetooth ditolak. Benarkan dalam Settings."
+        else message = "Bluetooth permission denied. Allow it in Settings."
     }
 
     fun onStartClick() {
@@ -220,10 +220,10 @@ fun LiveRadarCard() {
         )
         Text(
             when {
-                !listening -> "Tidak bersambung"
-                !live -> "Disambung, menunggu data radar..."
-                targets.isEmpty() -> "Tiada sesiapa dikesan"
-                else -> "${targets.size} sasaran dikesan"
+                !listening -> "Not connected"
+                !live -> "Connected, waiting for radar data..."
+                targets.isEmpty() -> "Nobody detected"
+                else -> "${targets.size} ${if (targets.size == 1) "target" else "targets"} detected"
             },
             fontSize = 12.sp, color = LabelGray
         )
@@ -239,18 +239,18 @@ fun LiveRadarCard() {
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(
-                    "Kemungkinan jatuh dikesan!",
+                    "Possible fall detected!",
                     fontSize = 15.sp, fontWeight = FontWeight.Bold,
                     color = Color(0xFFB3261E)
                 )
                 Text(
-                    "Amaran akan dihantar dalam ${secs} saat melainkan anda tekan Saya OK.",
+                    "Alert will be sent in $secs seconds unless you tap I'm OK.",
                     fontSize = 12.sp, color = Color(0xFF8A1C14)
                 )
                 Button(
                     onClick = { FallDetector.confirmOk() },
                     modifier = Modifier.fillMaxWidth()
-                ) { Text("Saya OK") }
+                ) { Text("I'm OK") }
             }
         }
 
@@ -309,12 +309,12 @@ fun LiveRadarCard() {
             }
         }
 
-        Text("Setiap cincin = 1 meter. Titik merah = sensor.", fontSize = 11.sp, color = LabelGray)
+        Text("Each ring is 1 metre. The red dot is the sensor.", fontSize = 11.sp, color = LabelGray)
 
         if (live) {
             targets.forEach { t ->
                 Text(
-                    "Sasaran ${t.id + 1}: %.1f m  |  %.2f m/s".format(
+                    "Target ${t.id + 1}: %.1f m  |  %.2f m/s".format(
                         t.distanceM, abs(t.speedCms) / 100f
                     ),
                     fontSize = 13.sp, color = TextDark
@@ -349,6 +349,6 @@ fun LiveRadarCard() {
         Button(
             onClick = { FallDetector.simulate() },
             modifier = Modifier.fillMaxWidth()
-        ) { Text("Uji amaran jatuh") }
+        ) { Text("Test fall alert") }
     }
 }

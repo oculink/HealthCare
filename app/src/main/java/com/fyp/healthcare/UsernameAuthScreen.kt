@@ -1,5 +1,6 @@
 package com.fyp.healthcare
 
+import com.fyp.healthcare.i18n.Text
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -23,9 +24,9 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -45,6 +46,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.fyp.healthcare.i18n.LanguageChip
 import com.fyp.healthcare.ui.theme.GlossyButton
 import com.fyp.healthcare.ui.theme.glossyFieldColors
 import com.fyp.healthcare.ui.theme.glossyFieldWell
@@ -79,9 +81,11 @@ fun UsernameAuthScreen(
     val scope = rememberCoroutineScope()
 
     var mode by remember { mutableStateOf(initialMode) }
-    var username by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-    var confirm by remember { mutableStateOf("") }
+    // State objects so the fields can read their own value: typing then repaints one field
+    // instead of recomposing the whole sign-in screen.
+    val username = remember { mutableStateOf("") }
+    val password = remember { mutableStateOf("") }
+    val confirm = remember { mutableStateOf("") }
     var showPassword by remember { mutableStateOf(false) }
     var loading by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
@@ -90,13 +94,16 @@ fun UsernameAuthScreen(
 
     fun submit() {
         if (loading) return
+        val u = username.value
+        val p = password.value
+        val c = confirm.value
         error = when {
-            username.isBlank() -> "Choose a username."
-            !isValidUsername(username) ->
+            u.isBlank() -> "Choose a username."
+            !isValidUsername(u) ->
                 "$MIN_USERNAME_LENGTH-$MAX_USERNAME_LENGTH letters, numbers, dot, underscore or dash."
-            password.length < MIN_PASSWORD_LENGTH ->
+            p.length < MIN_PASSWORD_LENGTH ->
                 "Password must be at least $MIN_PASSWORD_LENGTH characters."
-            signingUp && password != confirm -> "The two passwords don't match."
+            signingUp && p != c -> "The two passwords don't match."
             else -> null
         }
         if (error != null) return
@@ -104,9 +111,9 @@ fun UsernameAuthScreen(
         loading = true
         scope.launch {
             val result = if (signingUp) {
-                userManager.signUpWithUsername(username, password)
+                userManager.signUpWithUsername(u, p)
             } else {
-                userManager.signInWithUsername(username, password)
+                userManager.signInWithUsername(u, p)
             }
             when (result) {
                 is SignInResult.Success -> {
@@ -132,7 +139,10 @@ fun UsernameAuthScreen(
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Row(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             IconButton(onClick = onBack, enabled = !loading) {
                 Icon(
                     Icons.AutoMirrored.Filled.ArrowBack,
@@ -140,6 +150,9 @@ fun UsernameAuthScreen(
                     tint = Color.White,
                 )
             }
+            Spacer(Modifier.weight(1f))
+            // The sign-up/sign-in half of Get Started keeps the same top-right switcher.
+            LanguageChip(onColor = true)
         }
 
         Spacer(Modifier.height(16.dp))
@@ -178,7 +191,7 @@ fun UsernameAuthScreen(
                 onValueChange = {
                     // Anything outside the allowed set never reaches the field, so a typed
                     // space or emoji can't produce a username Firebase would reject.
-                    username = it.filter { c ->
+                    username.value = it.filter { c ->
                         c in 'a'..'z' || c in 'A'..'Z' || c in '0'..'9' || c in "._-"
                     }.take(MAX_USERNAME_LENGTH)
                     error = null
@@ -194,7 +207,7 @@ fun UsernameAuthScreen(
             AuthField(
                 value = password,
                 onValueChange = {
-                    password = it
+                    password.value = it
                     error = null
                 },
                 placeholder = "$MIN_PASSWORD_LENGTH+ characters",
@@ -221,7 +234,7 @@ fun UsernameAuthScreen(
                 AuthField(
                     value = confirm,
                     onValueChange = {
-                        confirm = it
+                        confirm.value = it
                         error = null
                     },
                     placeholder = "Type it again",
@@ -331,7 +344,7 @@ private fun FieldLabelRow(text: String, color: Color) {
  */
 @Composable
 private fun AuthField(
-    value: String,
+    value: State<String>,
     onValueChange: (String) -> Unit,
     placeholder: String,
     enabled: Boolean,
@@ -341,7 +354,7 @@ private fun AuthField(
     trailing: @Composable (() -> Unit)? = null,
 ) {
     OutlinedTextField(
-        value = value,
+        value = value.value,
         onValueChange = onValueChange,
         modifier = Modifier.fillMaxWidth().glossyFieldWell(RoundedCornerShape(14.dp)),
         placeholder = { Text(placeholder, color = Color(0xFFA6ACB8), fontSize = 16.sp) },

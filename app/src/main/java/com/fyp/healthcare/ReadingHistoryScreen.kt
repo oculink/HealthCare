@@ -1,5 +1,6 @@
 package com.fyp.healthcare
 
+import com.fyp.healthcare.i18n.Text
 import com.fyp.healthcare.ui.theme.AppIconBadge
 import com.fyp.healthcare.ui.theme.CheckRow
 import com.fyp.healthcare.ui.theme.GlossyButton
@@ -46,7 +47,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberModalBottomSheetState

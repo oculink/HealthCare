@@ -28,11 +28,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.fyp.healthcare.i18n.Language
 import com.fyp.healthcare.ui.theme.AppTheme
 import com.fyp.healthcare.ui.theme.HealthCareTheme
 import com.google.firebase.Firebase
@@ -60,6 +62,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         AppTheme.init(applicationContext)
+        Language.init(applicationContext)
         Session.init(applicationContext)
         if (Session.role.isBlank() && ProfileManager(applicationContext).isOnboarded()) {
             Session.setRole(applicationContext, "patient")
@@ -126,17 +129,13 @@ class MainActivity : ComponentActivity() {
                 // If the post-sign-in cloud sync lands after we first routed - e.g. a fresh
                 // device, where the profile wasn't in local storage yet - re-route now that it
                 // is, so an already-set-up account isn't stuck on role select / onboarding.
-                LaunchedEffect(Session.dataVersion, Session.role, Session.controlledPatientUid) {
-                    if (!userManager.isSignedIn()) return@LaunchedEffect
-                    val current = navController.currentBackStackEntry?.destination?.route
-                    if (current == null || current !in ENTRY_ROUTES) return@LaunchedEffect
-                    val dest = afterAuth()
-                    if (dest != current) {
-                        navController.navigate(dest) {
-                            popUpTo(navController.graph.id) { inclusive = true }
-                        }
-                    }
-                }
+                // Kept in its own composable so the dataVersion read re-runs only this effect
+                // instead of the whole NavHost above it.
+                SyncReRouter(
+                    navController = navController,
+                    destination = afterAuth,
+                    signedIn = userManager.isSignedIn(),
+                )
 
                 val clearBackStackTo = { route: String ->
                     navController.navigate(route) {
@@ -654,5 +653,31 @@ class MainActivity : ComponentActivity() {
         // hardware and we resample on the next open
         PatientMonitor.stop()
         StepTracker.stop()
+    }
+}
+
+/**
+ * Bounces the user off a pre-Home route once the cloud sync lands and their saved profile
+ * says they belong somewhere else (e.g. a fresh device where onboarding is already done).
+ *
+ * Its own composable on purpose: it reads [Session.dataVersion] / role / patient, and every
+ * bump of those would otherwise recompose - and rebuild - the entire NavHost below it.
+ */
+@Composable
+private fun SyncReRouter(
+    navController: NavHostController,
+    destination: () -> String,
+    signedIn: Boolean,
+) {
+    LaunchedEffect(Session.dataVersion, Session.role, Session.controlledPatientUid) {
+        if (!signedIn) return@LaunchedEffect
+        val current = navController.currentBackStackEntry?.destination?.route
+        if (current == null || current !in ENTRY_ROUTES) return@LaunchedEffect
+        val dest = destination()
+        if (dest != current) {
+            navController.navigate(dest) {
+                popUpTo(navController.graph.id) { inclusive = true }
+            }
+        }
     }
 }

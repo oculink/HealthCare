@@ -1,5 +1,8 @@
 package com.fyp.healthcare
 
+import com.fyp.healthcare.i18n.Text
+import com.fyp.healthcare.i18n.tr
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
@@ -15,7 +18,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MonitorHeart
 import androidx.compose.material3.Icon
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -76,7 +78,9 @@ private fun CaretakerModeCard(modifier: Modifier) {
         Column(modifier = Modifier.weight(1f)) {
             Text("Monitoring active", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = ActiveGreen)
             Text(
-                "Managing ${Session.controlledPatientName.ifBlank { "the patient" }}'s account",
+                tr("Managing ") +
+                    Session.controlledPatientName.ifBlank { tr("the patient") } +
+                    tr("'s account"),
                 fontSize = 12.sp,
                 color = LabelGray,
             )

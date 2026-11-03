@@ -1,5 +1,6 @@
 package com.fyp.healthcare
 
+import com.fyp.healthcare.i18n.Text
 import com.fyp.healthcare.ui.theme.appBackground
 import com.fyp.healthcare.ui.theme.glossyTopBar
 import com.fyp.healthcare.ui.theme.glossySurface
@@ -36,7 +37,6 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment

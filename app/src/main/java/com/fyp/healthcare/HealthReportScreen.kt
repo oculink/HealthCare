@@ -1,9 +1,11 @@
 package com.fyp.healthcare
 
+import com.fyp.healthcare.i18n.Text
 import com.fyp.healthcare.ui.theme.appBackground
 import com.fyp.healthcare.ui.theme.glossyTopBar
 import com.fyp.healthcare.ui.theme.glossySurface
 import com.fyp.healthcare.ui.theme.glossyBadge
+import com.fyp.healthcare.i18n.Language
 import com.fyp.healthcare.ui.theme.GlossyButton
 import com.fyp.healthcare.ui.theme.themed
 import android.widget.Toast
@@ -36,7 +38,6 @@ import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -123,8 +124,10 @@ fun HealthReportScreen(
     val patientId = remember(dataVersion, patientName, patientUid) {
         HealthReport.patientIdFor(patientUid, patientName)
     }
-    val monthLabel = remember { SimpleDateFormat("MMMM yyyy", Locale.getDefault()).format(Date()) }
-    val monthChips = remember { monthLabels(HealthReport.MAX_MONTHS) }
+    val monthLabel = remember(Language.current) {
+        SimpleDateFormat("MMMM yyyy", Locale.getDefault()).format(Date())
+    }
+    val monthChips = remember(Language.current) { monthLabels(HealthReport.MAX_MONTHS) }
 
     var rangeMonths by remember { mutableStateOf(HealthReport.MIN_MONTHS) }
     var reports by remember { mutableStateOf<List<HealthReport>>(emptyList()) }

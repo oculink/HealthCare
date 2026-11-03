@@ -1,5 +1,6 @@
 package com.fyp.healthcare
 
+import com.fyp.healthcare.i18n.Text
 import com.fyp.healthcare.ui.theme.appBackground
 import com.fyp.healthcare.ui.theme.glossyTopBar
 import com.fyp.healthcare.ui.theme.glossySurface
@@ -40,9 +41,8 @@ import androidx.compose.material.icons.filled.Vibration
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.State
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -267,16 +267,21 @@ private fun RadarActivityGauge(steps: Int?, goal: Int, modifier: Modifier = Modi
     val hasData = steps != null
     val progress = if (hasData) (steps!!.toFloat() / goal).coerceIn(0f, 1f) else 0f
 
-    val transition = rememberInfiniteTransition(label = "radar")
-    val sweepAngle by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = 360f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(3500, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart,
-        ),
-        label = "sweep",
-    )
+    // Only the "no data yet" state shows the swept beam, so only that state runs a clock -
+    // with readings on screen there is nothing to animate and no reason to hold the render
+    // thread at 60fps. Read inside the canvas, so the sweep repaints without recomposing.
+    val sweepAngle: State<Float>? = if (hasData) null else {
+        val transition = rememberInfiniteTransition(label = "radar")
+        transition.animateFloat(
+            initialValue = 0f,
+            targetValue = 360f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(3500, easing = LinearEasing),
+                repeatMode = RepeatMode.Restart,
+            ),
+            label = "sweep",
+        )
+    }
 
     val trackColor = TrackGray
 
@@ -312,7 +317,8 @@ private fun RadarActivityGauge(steps: Int?, goal: Int, modifier: Modifier = Modi
                     style = Stroke(width = stroke, cap = StrokeCap.Round),
                 )
             } else {
-                rotate(degrees = sweepAngle, pivot = c) {
+                val angle = sweepAngle?.value ?: 0f
+                rotate(degrees = angle, pivot = c) {
                     drawLine(
                         brush = Brush.horizontalGradient(
                             colors = listOf(BrandBlue.copy(alpha = 0f), BrandBlue.copy(alpha = 0.55f)),

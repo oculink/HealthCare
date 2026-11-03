@@ -1,5 +1,6 @@
 package com.fyp.healthcare
 
+import com.fyp.healthcare.i18n.Text
 import com.fyp.healthcare.ui.theme.appBackground
 import com.fyp.healthcare.ui.theme.glossyTopBar
 import com.fyp.healthcare.ui.theme.glossyFieldColors
@@ -39,8 +40,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -70,11 +71,14 @@ fun RecordDataScreen(
     onBackClick: () -> Unit,
     onSaved: () -> Unit
 ) {
-    var bloodPressure by remember { mutableStateOf("") }
-    var bloodSugar by remember { mutableStateOf("") }
-    var heartRate by remember { mutableStateOf("") }
-    var temperature by remember { mutableStateOf("") }
-    var oxygen by remember { mutableStateOf("") }
+    // Held as State objects rather than `by`: the fields below read them inside their own
+    // composable, so typing repaints one field instead of recomposing the whole screen (and
+    // rebuilding its card, backgrounds and shadow on every keystroke).
+    val bloodPressure = remember { mutableStateOf("") }
+    val bloodSugar = remember { mutableStateOf("") }
+    val heartRate = remember { mutableStateOf("") }
+    val temperature = remember { mutableStateOf("") }
+    val oxygen = remember { mutableStateOf("") }
 
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
@@ -117,11 +121,11 @@ fun RecordDataScreen(
             Text("Saved securely and analyzed for you", fontSize = 12.sp, color = LabelGray)
             Spacer(Modifier.height(20.dp))
 
-            ReadingField(bloodPressure, { bloodPressure = it }, "Blood Pressure", "e.g. 120/80 mmHg", Icons.Filled.Bloodtype, KeyboardType.Text)
-            ReadingField(bloodSugar, { bloodSugar = it }, "Blood Sugar (mmol/L)", "e.g. 5.5 mmol/L", Icons.Filled.Cookie, KeyboardType.Decimal)
-            ReadingField(heartRate, { heartRate = it }, "Heart Rate", "e.g. 72 BPM", Icons.Filled.MonitorHeart, KeyboardType.Number)
-            ReadingField(temperature, { temperature = it }, "Temperature", "e.g. 36.6 °C", Icons.Filled.DeviceThermostat, KeyboardType.Decimal)
-            ReadingField(oxygen, { oxygen = it }, "Oxygen Level", "e.g. 98 %", Icons.Filled.Air, KeyboardType.Number)
+            ReadingField(bloodPressure, { bloodPressure.value = it }, "Blood Pressure", "e.g. 120/80 mmHg", Icons.Filled.Bloodtype, KeyboardType.Text)
+            ReadingField(bloodSugar, { bloodSugar.value = it }, "Blood Sugar (mmol/L)", "e.g. 5.5 mmol/L", Icons.Filled.Cookie, KeyboardType.Decimal)
+            ReadingField(heartRate, { heartRate.value = it }, "Heart Rate", "e.g. 72 BPM", Icons.Filled.MonitorHeart, KeyboardType.Number)
+            ReadingField(temperature, { temperature.value = it }, "Temperature", "e.g. 36.6 °C", Icons.Filled.DeviceThermostat, KeyboardType.Decimal)
+            ReadingField(oxygen, { oxygen.value = it }, "Oxygen Level", "e.g. 98 %", Icons.Filled.Air, KeyboardType.Number)
 
             errorMessage?.let {
                 Text(
@@ -140,25 +144,33 @@ fun RecordDataScreen(
                 onClick = {
                     val problems = mutableListOf<String>()
 
-                    val hr = heartRate.toIntOrNull()
+                    // Snapshot the fields once; reading a State inside this click handler is
+                    // not a composition read, so it cannot cause a recomposition.
+                    val bpText = bloodPressure.value
+                    val sugarText = bloodSugar.value
+                    val hrText = heartRate.value
+                    val tempText = temperature.value
+                    val oxyText = oxygen.value
+
+                    val hr = hrText.toIntOrNull()
                     if (hr == null || hr !in 20..250)
                         problems.add("Heart Rate must be a whole number between 20 and 250")
 
-                    val bpParts = bloodPressure.split("/")
+                    val bpParts = bpText.split("/")
                     val sys = bpParts.getOrNull(0)?.trim()?.toIntOrNull()
                     val dia = bpParts.getOrNull(1)?.trim()?.toIntOrNull()
                     if (bpParts.size != 2 || sys == null || dia == null || sys !in 70..250 || dia !in 40..150)
                         problems.add("Blood Pressure must look like 120/80 (top 70-250, bottom 40-150)")
 
-                    val oxy = oxygen.toIntOrNull()
+                    val oxy = oxyText.toIntOrNull()
                     if (oxy == null || oxy !in 50..100)
                         problems.add("Oxygen Level must be a whole number between 50 and 100")
 
-                    val sugar = bloodSugar.toDoubleOrNull()
+                    val sugar = sugarText.toDoubleOrNull()
                     if (sugar == null || sugar !in 1.1..33.3)
                         problems.add("Blood Sugar must be between 1.1 and 33.3 mmol/L")
 
-                    val temp = temperature.toDoubleOrNull()
+                    val temp = tempText.toDoubleOrNull()
                     if (temp == null || temp !in 30.0..45.0)
                         problems.add("Temperature must be a number between 30 and 45")
 
@@ -166,9 +178,9 @@ fun RecordDataScreen(
                         errorMessage = problems.first()
                     } else {
                         healthData.saveReadings(
-                            bloodPressure,
+                            bpText,
                             sugar?.let { BloodSugar.storedMgDlFromMmol(it.toFloat()) }.orEmpty(),
-                            heartRate, temperature, oxygen
+                            hrText, tempText, oxyText
                         )
                         onSaved()
                     }
@@ -186,7 +198,7 @@ fun RecordDataScreen(
 
 @Composable
 private fun ReadingField(
-    value: String,
+    value: State<String>,
     onValueChange: (String) -> Unit,
     label: String,
     placeholder: String,
@@ -195,8 +207,10 @@ private fun ReadingField(
 ) {
     Text(label, fontSize = 13.sp, fontWeight = FontWeight.Medium, color = LabelGray)
     Spacer(Modifier.height(6.dp))
+    // Read here, not in the screen body: a keystroke invalidates this field's scope only.
+    val text = value.value
     OutlinedTextField(
-        value = value,
+        value = text,
         onValueChange = onValueChange,
         modifier = Modifier.fillMaxWidth().glossyFieldWell(RoundedCornerShape(14.dp)),
         singleLine = true,

@@ -1,5 +1,6 @@
 package com.fyp.healthcare
 
+import com.fyp.healthcare.i18n.Text
 import com.fyp.healthcare.ui.theme.appBackground
 import com.fyp.healthcare.ui.theme.glossyTopBar
 import com.fyp.healthcare.ui.theme.glossySurface
@@ -68,7 +69,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -783,7 +783,7 @@ private fun ClinicRow(
                 ) {
                     Box(Modifier.size(7.dp).clip(CircleShape).background(c))
                     Spacer(Modifier.width(6.dp))
-                    Text(if (isOpen) "Open" else "Closed", color = c, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text(if (isOpen) "Open now" else "Closed", color = c, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                 }
             }
         }

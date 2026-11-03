@@ -14,17 +14,16 @@ import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.lerp
@@ -35,8 +34,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlin.math.sin
-import kotlin.random.Random
 
 /**
  * Skeuomorphic "glossy" surface for cards and tappable tiles - a top-lit vertical
@@ -54,6 +51,11 @@ import kotlin.random.Random
  * pulse is a plain resting card. The flat [Decoration.CALM] fallback gets the ring only,
  * since its whole point is the absence of cast depth. Leave it null for a card that is in no
  * particular state.
+ *
+ * [glowPhase] is how a caller animates that ring without recomposing: pass a lambda that
+ * reads the animated value, and it is evaluated in the draw phase, so a pulsing card repaints
+ * but never rebuilds its modifier chain or its shadow. The cast shadow stays at the lit
+ * colour for the duration instead of breathing with the ring.
  */
 @Composable
 fun Modifier.glossySurface(
@@ -61,9 +63,9 @@ fun Modifier.glossySurface(
     color: Color = themed(Color(0xFFFFFFFF), Color(0xFF1C1D22)),
     elevation: Dp = 6.dp,
     glow: Color? = null,
+    glowPhase: (() -> Float)? = null,
 ): Modifier {
     val dark = AppTheme.isDark
-    val seed = remember { Random.nextInt() }
     val ring = glow?.let { it.copy(alpha = it.alpha * (if (dark) 0.62f else 0.48f)) }
 
     if (AppTheme.calm) {
@@ -72,7 +74,11 @@ fun Modifier.glossySurface(
             .clip(shape)
             .background(color, shape)
             .border(1.dp, if (dark) Color.White.copy(alpha = 0.10f) else Color.Black.copy(alpha = 0.08f), shape)
-        return if (ring == null) flat else flat.border(2.dp, ring, shape)
+        return when {
+            ring == null -> flat
+            glowPhase == null -> flat.border(2.dp, ring, shape)
+            else -> flat.glowingRing(shape, ring, 2.dp, glowPhase)
+        }
     }
 
     val fill = if (dark) {
@@ -116,9 +122,46 @@ fun Modifier.glossySurface(
     val surfaced = lifted
         .clip(shape)
         .background(fill, shape)
-        .satinTexture(dark, seed, color)
         .border(1.dp, rim, shape)
-    return if (ring == null) surfaced else surfaced.border(1.dp, ring, shape)
+    return when {
+        ring == null -> surfaced
+        glowPhase == null -> surfaced.border(1.dp, ring, shape)
+        else -> surfaced.glowingRing(shape, ring, 1.dp, glowPhase)
+    }
+}
+
+/**
+ * The animated form of `border(width, color, shape)`: draws the same ring, but reads its
+ * alpha from [phase] inside the draw phase, so a once-per-frame pulse repaints the card
+ * without recomposing it. Mirrors `Modifier.border`'s geometry exactly, so the ring looks
+ * identical at full strength.
+ */
+private fun Modifier.glowingRing(
+    shape: Shape,
+    color: Color,
+    width: Dp,
+    phase: () -> Float,
+): Modifier = this.drawWithContent {
+    drawContent()
+    val a = phase().coerceIn(0f, 1f)
+    if (a <= 0.001f) return@drawWithContent
+    val ink = color.copy(alpha = color.alpha * a)
+    val stroke = Stroke(width = width.toPx())
+    when (val outline = shape.createOutline(size, layoutDirection, this)) {
+        is Outline.Rectangle ->
+            drawRect(ink, topLeft = outline.rect.topLeft, size = outline.rect.size, style = stroke)
+        is Outline.Rounded -> {
+            val rr = outline.roundRect
+            drawRoundRect(
+                color = ink,
+                topLeft = Offset(rr.left, rr.top),
+                size = Size(rr.width, rr.height),
+                cornerRadius = rr.topLeftCornerRadius,
+                style = stroke,
+            )
+        }
+        is Outline.Generic -> drawPath(outline.path, ink, style = stroke)
+    }
 }
 
 /**
@@ -149,7 +192,6 @@ fun Modifier.glossyTile(
     elevation: Dp = 6.dp,
 ): Modifier {
     val dark = AppTheme.isDark
-    val seed = remember { Random.nextInt() }
     val c = tileFill(color)
 
     if (AppTheme.calm) {
@@ -185,7 +227,6 @@ fun Modifier.glossyTile(
     return lifted
         .clip(shape)
         .background(fill, shape)
-        .satinTexture(dark, seed, c)
         .border(1.dp, rim, shape)
 }
 
@@ -227,68 +268,6 @@ fun readableOn(color: Color, on: Color): Color {
 }
 
 /**
- * A "brushed satin" overlay for glossy surfaces, seeded per card so no two look
- * alike: a soft light bloom drifting in from a random point near the top and a
- * field of gently rippling horizontal fibres (each a soft sine wave).
- *
- * The fibre and bloom colours are derived from the surface's own [base] colour -
- * a hair lighter and a hair darker - so the weave reads correctly on a white
- * card, a blue button or a red banner, and in either light or dark appearance,
- * without ever looking like a grey film laid on top. One quiet layer, not two.
- * All randomness is resolved once (per size + seed) and baked into two [Path]s,
- * so it never shimmers.
- */
-private fun Modifier.satinTexture(
-    dark: Boolean,
-    seed: Int,
-    base: Color,
-): Modifier = drawWithCache {
-    val r = Random(seed)
-    val w = size.width
-    val h = size.height
-
-    val gap = (3.6f + r.nextFloat() * 2.6f).dp.toPx()
-    val amp = (0.7f + r.nextFloat() * 1.6f).dp.toPx()
-    val freq = (1.3f + r.nextFloat() * 2.4f) * (2f * Math.PI.toFloat() / w)
-    val phase = r.nextFloat() * 2f * Math.PI.toFloat()
-
-    val lightPath = Path()
-    val shadePath = Path()
-    val segs = 12
-    var y = gap * 0.5f
-    var i = 0
-    while (y < h) {
-        val target = if (i % 2 == 0) lightPath else shadePath
-        val yOff = y + (r.nextFloat() - 0.5f) * amp
-        target.moveTo(0f, yOff + amp * sin(phase + i * 0.5f))
-        for (s in 1..segs) {
-            val x = w * s / segs
-            target.lineTo(x, yOff + amp * sin(x * freq + phase + i * 0.5f))
-        }
-        y += gap
-        i++
-    }
-
-    val lightInk = lerp(base, Color.White, if (dark) 0.16f else 0.60f).copy(alpha = 0.55f)
-    val shadeInk = lerp(base, Color.Black, if (dark) 0.24f else 0.10f).copy(alpha = 0.40f)
-
-    val bloomHi = lerp(base, Color.White, if (dark) 0.14f else 0.55f)
-        .copy(alpha = 0.5f)
-    val bloom = Brush.radialGradient(
-        listOf(bloomHi, bloomHi.copy(alpha = 0f)),
-        center = Offset(w * (0.15f + r.nextFloat() * 0.5f), h * (r.nextFloat() * 0.28f)),
-        radius = size.maxDimension * (0.65f + r.nextFloat() * 0.7f),
-    )
-    val hair = Stroke(width = 1f)
-
-    onDrawBehind {
-        drawRect(bloom)
-        drawPath(lightPath, lightInk, style = hair)
-        drawPath(shadePath, shadeInk, style = hair)
-    }
-}
-
-/**
  * A large, glossy, high-contrast primary button for the app. Minimum 56dp tall
  * with 17sp semibold text so it stays comfortable for elderly users.
  */
@@ -304,7 +283,6 @@ fun GlossyButton(
     content: @Composable RowScope.() -> Unit,
 ) {
     val minimal = AppTheme.calm
-    val seed = remember { Random.nextInt() }
     val c = if (enabled) color else lerp(color, Color(0xFF9AA7BD), 0.55f)
 
     val fillMod = if (minimal) {
@@ -338,10 +316,6 @@ fun GlossyButton(
             )
             .clip(shape)
             .then(fillMod)
-            .then(
-                if (minimal) Modifier
-                else Modifier.satinTexture(AppTheme.isDark, seed, c),
-            )
             .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
             .heightIn(min = 56.dp)
             .padding(contentPadding),

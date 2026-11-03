@@ -1,11 +1,11 @@
 package com.fyp.healthcare
 
+import com.fyp.healthcare.i18n.Text
 import com.fyp.healthcare.ui.theme.appBackground
 import com.fyp.healthcare.ui.theme.glossyChip
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -25,7 +25,6 @@ import androidx.compose.material.icons.filled.MonitorHeart
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -37,6 +36,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fyp.healthcare.ui.theme.themed
@@ -86,27 +86,33 @@ fun BottomNavBar(currentRoute: String, onNavigate: (String) -> Unit) {
             }
             .navigationBarsPadding()
             .padding(top = 8.dp, bottom = 6.dp),
-        horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically,
     ) {
         items.forEach { (route, label, icon: ImageVector) ->
             val selected = currentRoute == route
             val interaction = remember { MutableInteractionSource() }
+            // weight(1f): every tab owns an equal slice of the bar whatever the screen width or
+            // density, so the selected tab's pill and its icon can never be squeezed by the
+            // neighbours the way a SpaceEvenly row allowed on a narrow phone.
             Column(
                 modifier = Modifier
+                    .weight(1f)
                     .clickable(
                         interactionSource = interaction,
                         indication = null,
                         role = Role.Button,
                         onClick = { if (!selected) onNavigate(route) },
                     )
-                    .padding(horizontal = 4.dp),
+                    .padding(vertical = 4.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
+                // Fixed footprint for the pill: same box for every tab, selected or not, so the
+                // icon sits on one baseline the whole width of the bar.
                 Box(
                     modifier = Modifier
-                        .glossyChip(selected, NavAccent, RoundedCornerShape(50))
-                        .padding(horizontal = 22.dp, vertical = 6.dp),
+                        .size(width = 56.dp, height = 34.dp)
+                        .glossyChip(selected, NavAccent, RoundedCornerShape(50)),
+                    contentAlignment = Alignment.Center,
                 ) {
                     Icon(
                         icon,
@@ -121,6 +127,9 @@ fun BottomNavBar(currentRoute: String, onNavigate: (String) -> Unit) {
                     fontSize = 11.sp,
                     fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
                     color = if (selected) NavAccent else idle,
+                    maxLines = 1,
+                    softWrap = false,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
         }

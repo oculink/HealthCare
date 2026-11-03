@@ -57,26 +57,26 @@ class BluetoothManager(private val context: Context) {
         try {
             if (adapter == null) {
                 return@withContext Result.failure(
-                    Exception("Bluetooth tidak disokong")
+                    Exception("Bluetooth isn't supported")
                 )
             }
 
             if (!hasBluetoothPermission()) {
                 return@withContext Result.failure(
-                    SecurityException("Kebenaran Bluetooth diperlukan")
+                    SecurityException("Bluetooth permission is required")
                 )
             }
 
             if (!adapter.isEnabled) {
                 return@withContext Result.failure(
-                    Exception("Sila hidupkan Bluetooth telefon")
+                    Exception("Please turn on Bluetooth")
                 )
             }
 
             // Jika sambungan masih aktif, gunakan sambungan sedia ada.
             if (socket?.isConnected == true) {
                 return@withContext Result.success(
-                    "Berjaya sambung ke $DEVICE_NAME"
+                    "Connected to $DEVICE_NAME"
                 )
             }
 
@@ -84,7 +84,7 @@ class BluetoothManager(private val context: Context) {
                 adapter.bondedDevices.firstOrNull {
                     it.name == DEVICE_NAME
                 } ?: return@withContext Result.failure(
-                    Exception("ESP32 belum dipair. Pair HealthCare_Radar dahulu.")
+                    Exception("ESP32 isn't paired yet. Pair HealthCare_Radar first.")
                 )
 
             try {
@@ -99,11 +99,11 @@ class BluetoothManager(private val context: Context) {
             newSocket.connect()
             socket = newSocket
 
-            Result.success("Berjaya sambung ke $DEVICE_NAME")
+            Result.success("Connected to $DEVICE_NAME")
 
         } catch (e: SecurityException) {
             Result.failure(
-                Exception("Kebenaran Bluetooth tidak diberikan")
+                Exception("Bluetooth permission was not granted")
             )
         } catch (e: Exception) {
             try {
@@ -113,7 +113,7 @@ class BluetoothManager(private val context: Context) {
             socket = null
 
             Result.failure(
-                Exception("Gagal sambung Bluetooth: ${e.message}")
+                Exception("Couldn't connect Bluetooth: ${e.message}")
             )
         }
     }
@@ -123,18 +123,18 @@ class BluetoothManager(private val context: Context) {
             try {
                 if (!hasBluetoothPermission()) {
                     return@withContext Result.failure(
-                        SecurityException("Kebenaran Bluetooth diperlukan")
+                        SecurityException("Bluetooth permission is required")
                     )
                 }
 
                 val currentSocket = socket
                     ?: return@withContext Result.failure(
-                        Exception("Bluetooth belum disambungkan")
+                        Exception("Bluetooth isn't connected")
                     )
 
                 if (!currentSocket.isConnected) {
                     return@withContext Result.failure(
-                        Exception("Bluetooth telah terputus")
+                        Exception("Bluetooth was disconnected")
                     )
                 }
 

@@ -22,9 +22,12 @@ android {
 
     buildTypes {
         release {
-            optimization {
-                enable = false
-            }
+            // R8: shrink + optimize the release APK. Without this the release build runs
+            // the same unoptimized bytecode as a debug build, which is a big part of why a
+            // Compose app feels sluggish on a mid-range phone.
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
         }
     }
 
@@ -36,6 +39,14 @@ android {
 
     buildFeatures {
         compose = true
+    }
+
+    lint {
+        // Compose-only app: it pulls in no fragment at all, but lint still flags
+        // registerForActivityResult() in a plain ComponentActivity as if it were on an old
+        // fragment version. The suggested "fix" is to add a fragment dependency the app
+        // does not use, so the check is silenced instead.
+        disable += "InvalidFragmentVersionForActivityResult"
     }
 }
 

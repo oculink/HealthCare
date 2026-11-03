@@ -1,5 +1,6 @@
 package com.fyp.healthcare
 
+import com.fyp.healthcare.i18n.Text
 import com.fyp.healthcare.ui.theme.appBackground
 import com.fyp.healthcare.ui.theme.glossyTopBar
 import com.fyp.healthcare.ui.theme.glossyFieldColors
@@ -43,9 +44,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -99,9 +100,11 @@ fun AddMedicationScreen(
     val isEdit = editing != null
 
     // Saveable so going to the catalog (or ahead to Reminder Times and back) doesn't
-    // reset the form.
-    var name by rememberSaveable(editId) { mutableStateOf(editing?.name ?: "") }
-    var description by rememberSaveable(editId) { mutableStateOf(editing?.description ?: "") }
+    // reset the form. Held as State objects, not `by`: each field reads its own value
+    // inside a small composable, so a keystroke repaints one field instead of
+    // recomposing the whole screen and rebuilding every card and shadow on it.
+    val name = rememberSaveable(editId) { mutableStateOf(editing?.name ?: "") }
+    val description = rememberSaveable(editId) { mutableStateOf(editing?.description ?: "") }
     var routeName by rememberSaveable(editId) { mutableStateOf(MedRoute.of(editing?.route).name) }
     var customMode by rememberSaveable(editId) { mutableStateOf(isEdit) }
     val route = MedRoute.of(routeName)
@@ -109,15 +112,15 @@ fun AddMedicationScreen(
     LaunchedEffect(pickedName, pickedDescription, pickedRoute, pickedCustom) {
         when {
             pickedCustom -> {
-                name = ""
-                description = ""
+                name.value = ""
+                description.value = ""
                 routeName = MedRoute.OTHER.name
                 customMode = true
                 onPickConsumed()
             }
             pickedName != null -> {
-                name = pickedName
-                description = pickedDescription.orEmpty()
+                name.value = pickedName
+                description.value = pickedDescription.orEmpty()
                 routeName = MedRoute.of(pickedRoute).name
                 customMode = true
                 onPickConsumed()
@@ -127,10 +130,10 @@ fun AddMedicationScreen(
 
     // Saveable so picking a different medication (which leaves this screen for the
     // catalog) doesn't wipe numbers the user has already typed.
-    var amount by rememberSaveable(editId) {
+    val amount = rememberSaveable(editId) {
         mutableStateOf(editing?.amount?.takeIf { it > 0 }?.toString() ?: "")
     }
-    var consumes by rememberSaveable(editId) {
+    val consumes = rememberSaveable(editId) {
         mutableStateOf((editing?.consumesPerDayOrDefault ?: 1).toString())
     }
     var routeMenuOpen by remember { mutableStateOf(false) }
@@ -181,17 +184,7 @@ fun AddMedicationScreen(
                 Text("Medication Name", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = LabelGray)
                 Spacer(Modifier.height(6.dp))
                 if (customMode) {
-                    OutlinedTextField(
-                        value = name,
-                        onValueChange = { name = it },
-                        modifier = Modifier.fillMaxWidth().glossyFieldWell(RoundedCornerShape(14.dp)),
-                        singleLine = true,
-                        textStyle = androidx.compose.ui.text.TextStyle(fontSize = 17.sp, color = TextDark),
-                        placeholder = { Text("e.g. Amlodipine", color = PlaceholderGray) },
-                        leadingIcon = { Icon(Icons.Filled.Medication, contentDescription = null, tint = LabelGray, modifier = Modifier.padding(start = 12.dp)) },
-                        shape = RoundedCornerShape(14.dp),
-                        colors = glossyFieldColors(accent = BrandBlue),
-                    )
+                    MedicationNameField(name) { name.value = it }
                     Spacer(Modifier.height(6.dp))
                     Text(
                         "Choose from medication list",
@@ -201,24 +194,7 @@ fun AddMedicationScreen(
                         modifier = Modifier.clickable(role = Role.Button) { onChooseMedication() },
                     )
                 } else {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .glossyFieldWell(RoundedCornerShape(12.dp))
-                            .clickable(role = Role.Button) { onChooseMedication() }
-                            .padding(horizontal = 12.dp, vertical = 16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Icon(Icons.Filled.Medication, contentDescription = null, tint = LabelGray, modifier = Modifier.size(20.dp))
-                        Spacer(Modifier.width(10.dp))
-                        Text(
-                            name.ifBlank { "Choose medication" },
-                            fontSize = 15.sp,
-                            color = if (name.isBlank()) PlaceholderGray else TextDark,
-                            modifier = Modifier.weight(1f),
-                        )
-                        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = LabelGray)
-                    }
+                    ChosenMedicationRow(name, onClick = onChooseMedication)
                 }
                 Spacer(Modifier.height(14.dp))
 
@@ -251,50 +227,23 @@ fun AddMedicationScreen(
                 Spacer(Modifier.height(14.dp))
 
                 MedField(
-                    description, { description = it },
+                    description, { description.value = it },
                     "Description (optional)", "What it's for, e.g. Blood pressure",
                     Icons.Filled.Description, singleLine = false,
                 )
 
                 MedField(
-                    amount, { amount = it.filter(Char::isDigit) },
+                    amount, { amount.value = it.filter(Char::isDigit) },
                     route.doseLabel, "e.g. 1", Icons.Filled.Numbers, KeyboardType.Number,
                     hint = "How many you take at each reminder.",
                 )
                 MedField(
-                    consumes, { consumes = it.filter(Char::isDigit) },
+                    consumes, { consumes.value = it.filter(Char::isDigit) },
                     "Consumes per day", "e.g. 4", Icons.Filled.Repeat, KeyboardType.Number,
                     hint = "How many times a day you take it. We'll space the reminders automatically.",
                 )
 
-                val amountPreview = amount.toIntOrNull()
-                val consumesPreview = consumes.toIntOrNull()
-                if (amountPreview != null && amountPreview > 0 &&
-                    consumesPreview != null && consumesPreview > 0
-                ) {
-                    val noun = if (amountPreview == 1) route.doseNoun else "${route.doseNoun}s"
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(BrandBlue.copy(alpha = 0.08f))
-                            .padding(12.dp),
-                    ) {
-                        Text(
-                            "$amountPreview $noun each time × $consumesPreview times a day",
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = TextDark,
-                        )
-                        Spacer(Modifier.height(2.dp))
-                        Text(
-                            "= ${amountPreview * consumesPreview} $noun a day in total",
-                            fontSize = 12.sp,
-                            color = LabelGray,
-                        )
-                    }
-                    Spacer(Modifier.height(14.dp))
-                }
+                DosePreview(amount, consumes, route)
 
                 Spacer(Modifier.height(2.dp))
 
@@ -311,10 +260,12 @@ fun AddMedicationScreen(
 
                 GlossyButton(
                     onClick = {
-                        val amt = amount.toIntOrNull()
-                        val cons = consumes.toIntOrNull()
+                        val amt = amount.value.toIntOrNull()
+                        val cons = consumes.value.toIntOrNull()
+                        val medName = name.value
+                        val medDescription = description.value
                         errorMessage = when {
-                            name.isBlank() -> "Enter a medication name"
+                            medName.isBlank() -> "Enter a medication name"
                             amt == null || amt !in 1..99 ->
                                 "${route.doseLabel} must be a number between 1 and 99"
                             cons == null || cons !in 1..MAX_CONSUMES_PER_DAY ->
@@ -331,13 +282,13 @@ fun AddMedicationScreen(
                         onNext(
                             Medication(
                                 id = editing?.id ?: medManager.nextId(),
-                                name = name.trim(),
+                                name = medName.trim(),
                                 strength = editing?.strength.orEmpty(),
                                 amount = amt!!,
                                 schedule = if (countChanged) emptyMap()
                                 else editing?.schedule ?: emptyMap(),
                                 log = editing?.log ?: emptyMap(),
-                                description = description.trim(),
+                                description = medDescription.trim(),
                                 route = route.name,
                                 consumesPerDay = cons!!,
                             )
@@ -356,8 +307,84 @@ fun AddMedicationScreen(
 }
 
 @Composable
+private fun MedicationNameField(value: State<String>, onValueChange: (String) -> Unit) {
+    // Read here, so typing invalidates this field's scope instead of the whole screen.
+    OutlinedTextField(
+        value = value.value,
+        onValueChange = onValueChange,
+        modifier = Modifier.fillMaxWidth().glossyFieldWell(RoundedCornerShape(14.dp)),
+        singleLine = true,
+        textStyle = androidx.compose.ui.text.TextStyle(fontSize = 17.sp, color = TextDark),
+        placeholder = { Text("e.g. Amlodipine", color = PlaceholderGray) },
+        leadingIcon = { Icon(Icons.Filled.Medication, contentDescription = null, tint = LabelGray, modifier = Modifier.padding(start = 12.dp)) },
+        shape = RoundedCornerShape(14.dp),
+        colors = glossyFieldColors(accent = BrandBlue),
+    )
+}
+
+/** The catalogue picker's read-only display row; reads the name in its own scope. */
+@Composable
+private fun ChosenMedicationRow(name: State<String>, onClick: () -> Unit) {
+    val picked = name.value
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .glossyFieldWell(RoundedCornerShape(12.dp))
+            .clickable(role = Role.Button) { onClick() }
+            .padding(horizontal = 12.dp, vertical = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(Icons.Filled.Medication, contentDescription = null, tint = LabelGray, modifier = Modifier.size(20.dp))
+        Spacer(Modifier.width(10.dp))
+        Text(
+            picked.ifBlank { "Choose medication" },
+            fontSize = 15.sp,
+            color = if (picked.isBlank()) PlaceholderGray else TextDark,
+            modifier = Modifier.weight(1f),
+        )
+        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = LabelGray)
+    }
+}
+
+/**
+ * The live "1 tablet × 4 times a day" summary. Reads the two counts in its own scope, so
+ * typing in the amount field re-runs this little block rather than the whole form.
+ */
+@Composable
+private fun DosePreview(amount: State<String>, consumes: State<String>, route: MedRoute) {
+    val amountPreview = amount.value.toIntOrNull()
+    val consumesPreview = consumes.value.toIntOrNull()
+    if (amountPreview != null && amountPreview > 0 &&
+        consumesPreview != null && consumesPreview > 0
+    ) {
+        val noun = if (amountPreview == 1) route.doseNoun else "${route.doseNoun}s"
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .background(BrandBlue.copy(alpha = 0.08f))
+                .padding(12.dp),
+        ) {
+            Text(
+                "$amountPreview $noun each time × $consumesPreview times a day",
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold,
+                color = TextDark,
+            )
+            Spacer(Modifier.height(2.dp))
+            Text(
+                "= ${amountPreview * consumesPreview} $noun a day in total",
+                fontSize = 12.sp,
+                color = LabelGray,
+            )
+        }
+        Spacer(Modifier.height(14.dp))
+    }
+}
+
+@Composable
 private fun MedField(
-    value: String,
+    value: State<String>,
     onValueChange: (String) -> Unit,
     label: String,
     placeholder: String,
@@ -369,7 +396,7 @@ private fun MedField(
     Text(label, fontSize = 13.sp, fontWeight = FontWeight.Medium, color = LabelGray)
     Spacer(Modifier.height(6.dp))
     OutlinedTextField(
-        value = value,
+        value = value.value,
         onValueChange = onValueChange,
         modifier = Modifier.fillMaxWidth().glossyFieldWell(RoundedCornerShape(14.dp)),
         singleLine = singleLine,

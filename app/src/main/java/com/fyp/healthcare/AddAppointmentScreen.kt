@@ -1,5 +1,6 @@
 package com.fyp.healthcare
 
+import com.fyp.healthcare.i18n.Text
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
 import android.text.format.DateFormat
@@ -38,7 +39,6 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -61,6 +61,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
+import com.fyp.healthcare.i18n.Language
 import com.fyp.healthcare.ui.theme.GlossyButton
 import com.fyp.healthcare.ui.theme.appBackground
 import com.fyp.healthcare.ui.theme.glossyChip
@@ -135,8 +136,10 @@ fun AddAppointmentScreen(
 
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
-    val dateFmt = remember { SimpleDateFormat("EEE, d MMM yyyy", Locale.getDefault()) }
-    val timeFmt = remember { SimpleDateFormat("h:mm a", Locale.getDefault()) }
+    // Keyed on the language: the month names come from the locale, so an in-app language
+    // switch has to rebuild the formatters or the dates would stay in the old language.
+    val dateFmt = remember(Language.current) { SimpleDateFormat("EEE, d MMM yyyy", Locale.getDefault()) }
+    val timeFmt = remember(Language.current) { SimpleDateFormat("h:mm a", Locale.getDefault()) }
 
     fun openDatePicker() {
         val c = Calendar.getInstance().apply { timeInMillis = startMillis }

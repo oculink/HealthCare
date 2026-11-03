@@ -1,5 +1,7 @@
 package com.fyp.healthcare
 
+import com.fyp.healthcare.i18n.tr
+
 import android.content.Context
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -141,8 +143,8 @@ object FallDetector {
         NotificationHelper.show(
             ctx,
             NOTIF_ID,
-            "Amaran jatuh dikesan",
-            "Radar mengesan kemungkinan jatuh. Sila semak dengan segera."
+            tr("Fall alert detected"),
+            tr("The radar detected a possible fall. Please check right away.")
         )
     }
 

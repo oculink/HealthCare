@@ -1,5 +1,6 @@
 package com.fyp.healthcare
 
+import com.fyp.healthcare.i18n.Text
 import com.fyp.healthcare.ui.theme.GlossyButton
 import com.fyp.healthcare.ui.theme.appBackground
 import com.fyp.healthcare.ui.theme.glossyChip
@@ -25,7 +26,6 @@ import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.SupervisorAccount
 import androidx.compose.material3.Icon
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Alignment
@@ -38,6 +38,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.fyp.healthcare.i18n.LanguageChip
 import com.fyp.healthcare.ui.theme.AppTheme
 import com.fyp.healthcare.ui.theme.Decoration
 import com.fyp.healthcare.ui.theme.ThemeMode
@@ -70,7 +71,13 @@ fun RoleSelectScreen(
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Spacer(Modifier.height(72.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End,
+        ) {
+            LanguageChip()
+        }
+        Spacer(Modifier.height(28.dp))
         Text("Who's using CareApp?", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = TextDark)
         Spacer(Modifier.height(8.dp))
         Text(

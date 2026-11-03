@@ -1,5 +1,6 @@
 package com.fyp.healthcare
 
+import com.fyp.healthcare.i18n.Text
 import android.content.Context
 import android.graphics.BitmapFactory
 import androidx.compose.foundation.Image
@@ -7,7 +8,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
@@ -74,6 +74,10 @@ fun AccountAvatar(
 
 private suspend fun loadAvatar(context: Context, url: String): ImageBitmap? =
     withContext(Dispatchers.IO) {
+        // One decode per photo per process: switching tabs re-enters this composable, and
+        // without a memory cache every entry would re-read the JPEG off disk and flash the
+        // initials while it did.
+        avatarMemory[url]?.let { return@withContext it }
         runCatching {
             val cacheFile = File(context.cacheDir, "avatar_${url.hashCode()}.jpg")
             if (!cacheFile.exists() || cacheFile.length() == 0L) {
@@ -87,5 +91,11 @@ private suspend fun loadAvatar(context: Context, url: String): ImageBitmap? =
                 }
             }
             BitmapFactory.decodeFile(cacheFile.absolutePath)?.asImageBitmap()
-        }.getOrNull()
+        }.getOrNull()?.also {
+            if (avatarMemory.size > 8) avatarMemory.clear()
+            avatarMemory[url] = it
+        }
     }
+
+/** Decoded avatars, keyed by URL. Small and bounded - a handful of 48dp circles. */
+private val avatarMemory = java.util.concurrent.ConcurrentHashMap<String, ImageBitmap>()

@@ -1,9 +1,14 @@
 package com.fyp.healthcare
 
+import com.fyp.healthcare.i18n.Text
 import com.fyp.healthcare.ui.theme.appBackground
 import com.fyp.healthcare.ui.theme.glossyTopBar
 import com.fyp.healthcare.ui.theme.GlossyButton
 import com.fyp.healthcare.ui.theme.glossySurface
+import com.fyp.healthcare.i18n.AppLanguage
+import com.fyp.healthcare.i18n.Language
+import com.fyp.healthcare.i18n.tr
+import com.fyp.healthcare.i18n.LanguageChip
 import com.fyp.healthcare.ui.theme.AppTheme
 import com.fyp.healthcare.ui.theme.Decoration
 import com.fyp.healthcare.ui.theme.ThemeMode
@@ -12,6 +17,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -38,6 +44,7 @@ import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FamilyRestroom
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.DarkMode
@@ -54,7 +61,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Switch
-import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -69,13 +75,18 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import java.text.SimpleDateFormat
@@ -132,6 +143,7 @@ fun ProfileScreen(
     val context = LocalContext.current
     var showGoalDialog by remember { mutableStateOf(false) }
     var showThemeDialog by remember { mutableStateOf(false) }
+    var showLanguageDialog by remember { mutableStateOf(false) }
     var showLookDialog by remember { mutableStateOf(false) }
     var showNotificationsDialog by remember { mutableStateOf(false) }
     var confirmSignOut by remember { mutableStateOf(false) }
@@ -272,7 +284,12 @@ fun ProfileScreen(
                 textAlign = TextAlign.Center,
                 modifier = Modifier.weight(1f),
             )
-            Spacer(Modifier.width(48.dp))
+            // The same switcher as Get Started, so the language can be changed from the
+            // settings page without hunting through a menu.
+            LanguageChip(
+                modifier = Modifier.padding(end = 10.dp),
+                onColor = true,
+            )
         }
 
         Column(
@@ -299,8 +316,9 @@ fun ProfileScreen(
                     )
                     Spacer(Modifier.width(8.dp))
                     Text(
-                        "You're viewing ${Session.controlledPatientName.ifBlank { "the patient" }}'s account · " +
-                            "changes save to their profile.",
+                        tr("You're viewing ") +
+                            Session.controlledPatientName.ifBlank { tr("the patient") } +
+                            tr("'s account · changes save to their profile."),
                         fontSize = 12.sp,
                         color = TextDark,
                     )
@@ -566,6 +584,14 @@ fun ProfileScreen(
                     .glossySurface(RoundedCornerShape(20.dp), CardWhite),
             ) {
                 NavRow(
+                    Icons.Filled.Language,
+                    "Language",
+                    Language.current.displayName,
+                    tint = Color(0xFF2A6DE1),
+                    onClick = { showLanguageDialog = true },
+                )
+                Divider()
+                NavRow(
                     Icons.AutoMirrored.Filled.DirectionsWalk,
                     "Daily step goal",
                     "%,d steps".format(stepGoal),
@@ -659,6 +685,41 @@ fun ProfileScreen(
             },
             confirmButton = {},
             dismissButton = { TextButton(onClick = { showThemeDialog = false }) { Text("Close") } },
+        )
+    }
+
+    if (showLanguageDialog) {
+        AlertDialog(
+            onDismissRequest = { showLanguageDialog = false },
+            title = { Text("Language") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    AppLanguage.entries.forEach { option ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(10.dp))
+                                .clickable(role = Role.RadioButton) {
+                                    Language.set(context, option)
+                                    showLanguageDialog = false
+                                }
+                                .padding(vertical = 8.dp, horizontal = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            RadioButton(selected = Language.current == option, onClick = null)
+                            Spacer(Modifier.width(10.dp))
+                            Text(
+                                option.displayName,
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = TextDark,
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = { TextButton(onClick = { showLanguageDialog = false }) { Text("Close") } },
         )
     }
 
@@ -1032,20 +1093,76 @@ private fun NavRow(
     tint: Color = BrandBlue,
     onClick: (() -> Unit)? = null,
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .then(if (onClick != null) Modifier.clickable(role = Role.Button, onClick = onClick) else Modifier)
-            .padding(16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        IconCircle(icon, tint)
-        Spacer(Modifier.width(12.dp))
-        Text(title, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = TextDark, modifier = Modifier.weight(1f))
-        Text(value, fontSize = 13.sp, color = LabelGray)
-        if (onClick != null) {
-            Spacer(Modifier.width(6.dp))
-            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = LabelGray, modifier = Modifier.size(18.dp))
+    // The value is measured before the weighted title, so a long one ("Erases this account and
+    // its data", a long email, the Malay translation) used to eat the whole row and squeeze the
+    // label down to one character per line on a narrow screen. Measure both strings as they will
+    // actually be rendered and only put them side by side when the pair genuinely fits; otherwise
+    // the value drops under the title, where both keep a full-width line.
+    val measurer = rememberTextMeasurer()
+    val density = LocalDensity.current
+    val titleStyle = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Medium)
+    val valueStyle = TextStyle(fontSize = 13.sp)
+    val titleWidth = with(density) { measurer.measure(AnnotatedString(tr(title)), titleStyle).size.width.toDp() }
+    val valueWidth = with(density) { measurer.measure(AnnotatedString(tr(value)), valueStyle).size.width.toDp() }
+
+    BoxWithConstraints(Modifier.fillMaxWidth()) {
+        // Row padding + icon + the two 12dp gaps + the chevron (6dp gap + 18dp glyph).
+        val fixedWidth = 32.dp + 38.dp + 12.dp + 12.dp + (if (onClick != null) 24.dp else 0.dp)
+        val sideBySide = titleWidth + valueWidth + 8.dp <= maxWidth - fixedWidth
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .then(if (onClick != null) Modifier.clickable(role = Role.Button, onClick = onClick) else Modifier)
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            IconCircle(icon, tint)
+            Spacer(Modifier.width(12.dp))
+            if (sideBySide) {
+                Text(
+                    title,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = TextDark,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
+                // The translations run longer than the English, so keep a gap between the label and
+                // its value instead of letting the two run together when the title fits on one line.
+                Spacer(Modifier.width(12.dp))
+                Text(
+                    value,
+                    fontSize = 13.sp,
+                    color = LabelGray,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            } else {
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        title,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = TextDark,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        value,
+                        fontSize = 13.sp,
+                        color = LabelGray,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+            if (onClick != null) {
+                Spacer(Modifier.width(6.dp))
+                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = LabelGray, modifier = Modifier.size(18.dp))
+            }
         }
     }
 }
@@ -1076,7 +1193,7 @@ private fun lookLabel(d: Decoration): String = when (d) {
 
 private fun lookHint(d: Decoration): String = when (d) {
     Decoration.CALM -> "Flat colours and thin edges, no texture or depth"
-    Decoration.STANDARD -> "Soft gradients, gentle shadows and a subtle satin texture"
+    Decoration.STANDARD -> "Soft gradients and gentle shadows"
 }
 
 /** A switch whose whole row is the tap target, with the label read out beside it. */

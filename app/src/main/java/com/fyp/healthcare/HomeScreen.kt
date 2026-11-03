@@ -1,11 +1,13 @@
 package com.fyp.healthcare
 
+import com.fyp.healthcare.i18n.Text
 import androidx.compose.animation.core.FastOutLinearInEasing
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.keyframes
 import androidx.compose.animation.core.rememberInfiniteTransition
+import com.fyp.healthcare.i18n.tr
 import com.fyp.healthcare.ui.theme.appBackground
 import com.fyp.healthcare.ui.theme.glossySurface
 import com.fyp.healthcare.ui.theme.glossySurfaceFloor
@@ -55,8 +57,8 @@ import androidx.compose.material.icons.filled.WbCloudy
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material.icons.filled.WbTwilight
 import androidx.compose.material3.Icon
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
@@ -64,6 +66,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
@@ -229,7 +232,7 @@ fun HomeScreen(
                         )
                         Spacer(Modifier.width(6.dp))
                         Text(
-                            "Good $part,",
+                            tr("Good $part,"),
                             color = Color.White.copy(alpha = 0.9f),
                             fontSize = 13.sp
                         )
@@ -252,8 +255,9 @@ fun HomeScreen(
                             )
                             Spacer(Modifier.width(6.dp))
                             Text(
-                                "Monitoring ${Session.controlledPatientName.ifBlank { "patient" }}" +
-                                        if (PatientMonitor.isLive) "  ·  live" else "",
+                                "${tr("Monitoring")} " +
+                                        Session.controlledPatientName.ifBlank { tr("patient") } +
+                                        if (PatientMonitor.isLive) "  ·  ${tr("live")}" else "",
                                 color = MonitoringGreen,
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.SemiBold,
@@ -374,7 +378,7 @@ fun HomeScreen(
                 QuickActionCard(Icons.Filled.Pets, "Emotional Support", QuickSupport, Modifier.weight(1f)) { onNavigate("emotional_support") }
             }
 
-            // Temporary Bluetooth test button
+            // Opens the radar/Bluetooth pairing screen.
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -386,7 +390,7 @@ fun HomeScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    "Bluetooth Test — Connect ESP32",
+                    "Connect Radar",
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = TextDark
@@ -473,13 +477,21 @@ private fun VitalCard(
     val statusTint = status?.let { vitalStatusColor(it) }
     // One phase drives the edge glow and the icon together, so the glyph dims with the outline
     // instead of sitting fully lit on a card whose glow has just faded. It bottoms out at 0.2
-    // rather than 0 to stay findable; with no status there is nothing to follow, so phase is 1
-    // and the icon stays as it was.
-    val phase = if (statusTint == null) 1f else statusGlowPulse()
-    val glow = statusTint?.let { it.copy(alpha = phase) }
+    // rather than 0 to stay findable; with no status there is nothing to follow, so phase is
+    // null and the icon stays as it was.
+    //
+    // The phase is a State, not a Float: it is only read inside draw/layer lambdas below, so
+    // the 2s pulse repaints the ring and the glyph without recomposing this card (and without
+    // rebuilding its shadow) 60 times a second.
+    val phase = if (statusTint == null) null else statusGlowPulse()
     Column(
         modifier = modifier
-            .glossySurface(RoundedCornerShape(20.dp), CardWhite, glow = glow)
+            .glossySurface(
+                RoundedCornerShape(20.dp),
+                CardWhite,
+                glow = statusTint,
+                glowPhase = phase?.let { p -> { p.value } },
+            )
             .clickable(role = Role.Button) { onClick() }
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -488,8 +500,13 @@ private fun VitalCard(
         Icon(
             icon,
             contentDescription = null,
-            tint = tint.copy(alpha = 0.2f + 0.8f * phase),
-            modifier = Modifier.size(30.dp),
+            tint = tint,
+            modifier = Modifier
+                .size(30.dp)
+                .then(
+                    if (phase == null) Modifier
+                    else Modifier.graphicsLayer { alpha = 0.2f + 0.8f * phase.value }
+                ),
         )
         Text(value ?: "--", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextDark)
         Text(unit, fontSize = 11.sp, color = LabelGray)
@@ -511,15 +528,18 @@ private fun VitalCard(
 /**
  * The breathing alpha behind a vital card's status glow and its icon, bouncing on a 2s cycle: a
  * 1.5s decay from fully lit to nothing, then a 0.5s snap back up, with no hold at either end.
- * [targetValue] is the lit end on purpose: when the system's animator duration scale is 0 the
- * infinite transition skips straight to it, so a card on such a device reads as fully glowing
- * rather than dark with a 0.2 icon. Only ever called for a card that actually has a status, so a
- * screen of "No data" cards starts no animation.
+ * Only ever called for a card that actually has a status, so a screen of "No data" cards starts
+ * no animation.
+ *
+ * Returns the [State] rather than its value on purpose: callers read it in draw/layer lambdas,
+ * so the animation costs a repaint per frame instead of a recomposition. When the system's
+ * animator duration scale is 0 an infinite transition settles on the first keyframe, so such a
+ * device still reads as fully glowing rather than dark.
  */
 @Composable
-private fun statusGlowPulse(): Float {
+private fun statusGlowPulse(): State<Float> {
     val pulse = rememberInfiniteTransition(label = "statusGlow")
-    val phase by pulse.animateFloat(
+    return pulse.animateFloat(
         initialValue = 1f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
@@ -532,7 +552,6 @@ private fun statusGlowPulse(): Float {
         ),
         label = "statusGlowPhase",
     )
-    return phase
 }
 
 @Composable

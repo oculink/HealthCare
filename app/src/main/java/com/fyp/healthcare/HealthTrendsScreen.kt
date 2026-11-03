@@ -1,5 +1,7 @@
 package com.fyp.healthcare
 
+import com.fyp.healthcare.i18n.Text
+import com.fyp.healthcare.i18n.tr
 import com.fyp.healthcare.ui.theme.appBackground
 import com.fyp.healthcare.ui.theme.glossyTopBar
 import com.fyp.healthcare.ui.theme.glossyBadge
@@ -30,7 +32,6 @@ import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material.icons.filled.Timeline
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -174,7 +175,7 @@ fun HealthTrendsScreen(
 
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    "${metric.title} (${metric.unit})",
+                    "${tr(metric.title)} (${metric.unit})",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     color = TextDark,
@@ -201,14 +202,14 @@ fun HealthTrendsScreen(
             ) {
                 Row(verticalAlignment = Alignment.Bottom) {
                     Text(
-                        "$periodWord · ${if (isGlobal) "all users" else "your readings"}",
+                        "${tr(periodWord)} · ${tr(if (isGlobal) "all users" else "your readings")}",
                         fontSize = 12.sp,
                         color = LabelGray,
                         modifier = Modifier.weight(1f),
                     )
                     slots.lastOrNull { it != null }?.let {
                         Text(
-                            "Latest ${metricText(it, metric.decimals)}",
+                            tr("Latest ") + metricText(it, metric.decimals),
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
                             color = BrandBlue,
@@ -255,7 +256,7 @@ fun HealthTrendsScreen(
                     .padding(16.dp)
             ) {
                 Text(
-                    (if (isGlobal) "All users" else "Your readings") +
+                    tr(if (isGlobal) "All users" else "Your readings") +
                         (stat?.let { "  ·  ${formatCount(it.count.toLong())} ${if (it.count == 1) "reading" else "readings"}" } ?: ""),
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
@@ -272,9 +273,11 @@ fun HealthTrendsScreen(
             if (slots.all { it == null } && stat == null) {
                 Text(
                     if (isGlobal)
-                        "No community readings for ${metric.title.lowercase()} in this period yet."
+                        tr("No community readings for ") + tr(metric.title).lowercase() +
+                            tr(" in this period yet.")
                     else
-                        "No ${metric.title.lowercase()} readings recorded for this period.",
+                        tr("No ") + tr(metric.title).lowercase() +
+                            tr(" readings recorded for this period."),
                     fontSize = 12.sp,
                     color = LabelGray,
                 )

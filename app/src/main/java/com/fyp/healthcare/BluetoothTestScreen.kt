@@ -1,5 +1,7 @@
 package com.fyp.healthcare
 
+import com.fyp.healthcare.i18n.Text
+import com.fyp.healthcare.i18n.tr
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
@@ -15,7 +17,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -42,7 +43,7 @@ fun BluetoothTestScreen() {
     }
 
     var status by remember {
-        mutableStateOf("Memeriksa sambungan Bluetooth...")
+        mutableStateOf("Checking Bluetooth connection...")
     }
 
     var connecting by remember {
@@ -52,9 +53,9 @@ fun BluetoothTestScreen() {
     // Periksa semula status apabila skrin dibuka.
     LaunchedEffect(bluetoothManager) {
         status = if (bluetoothManager.isConnected()) {
-            "Berjaya sambung ke HealthCare_Radar"
+            "Connected to HealthCare_Radar"
         } else {
-            "Bluetooth belum disambungkan"
+            "Bluetooth isn't connected"
         }
     }
 
@@ -75,7 +76,7 @@ fun BluetoothTestScreen() {
                 scope
             )
         } else {
-            status = "Permission Bluetooth ditolak. Benarkan dalam Settings."
+            status = "Bluetooth permission denied. Allow it in Settings."
         }
     }
 
@@ -100,12 +101,12 @@ fun BluetoothTestScreen() {
         )
 
         Text(text = "Device: HealthCare_Radar")
-        Text(text = "Status: $status")
+        Text(text = "Status: ${tr(status)}")
 
         Button(
             onClick = {
                 if (!bluetoothManager.isBluetoothSupported()) {
-                    status = "Telefon ini tidak menyokong Bluetooth."
+                    status = "This phone doesn't support Bluetooth."
                     return@Button
                 }
 
@@ -158,8 +159,7 @@ fun BluetoothTestScreen() {
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "Pastikan ESP32 hidup dan Bluetooth telah dipair " +
-                    "dengan telefon sebelum menekan Connect."
+            text = "Make sure the ESP32 is on and paired with the phone before you tap Connect."
         )
     }
 }
@@ -172,14 +172,14 @@ private fun connectBluetooth(
 ) {
     scope.launch {
         onConnecting(true)
-        onStatus("Sedang menyambung...")
+        onStatus("Connecting...")
 
         val result = bluetoothManager.connect()
 
         onStatus(
             result.fold(
                 onSuccess = { it },
-                onFailure = { it.message ?: "Sambungan gagal" }
+                onFailure = { it.message ?: "Couldn't connect" }
             )
         )
 

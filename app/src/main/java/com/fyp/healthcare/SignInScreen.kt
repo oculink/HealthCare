@@ -1,5 +1,8 @@
 package com.fyp.healthcare
 
+import com.fyp.healthcare.i18n.Text
+import com.fyp.healthcare.i18n.LanguageChip
+import com.fyp.healthcare.i18n.tr
 import com.fyp.healthcare.ui.theme.GlossyButton
 import com.fyp.healthcare.ui.theme.glossySurface
 import com.fyp.healthcare.ui.theme.themed
@@ -12,6 +15,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -21,7 +25,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -81,128 +84,143 @@ fun SignInScreen(
         }
     }
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(BrandBlue)
-            .padding(28.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
+            .background(BrandBlue),
     ) {
-        Spacer(Modifier.weight(1f))
-
-        Image(
-            painter = painterResource(R.drawable.ic_app_logo),
-            contentDescription = "CareApp",
-            modifier = Modifier.size(96.dp).clip(RoundedCornerShape(28.dp)),
-        )
-        Spacer(Modifier.height(20.dp))
-        Text("CareApp", color = Color.White, fontSize = 32.sp, fontWeight = FontWeight.Bold)
-        Spacer(Modifier.height(6.dp))
-        Text(
-            "Monitor health, stay safe",
-            color = Color.White.copy(alpha = 0.8f),
-            fontSize = 14.sp,
-        )
-
-        Spacer(Modifier.weight(1f))
-
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .glossySurface(RoundedCornerShape(24.dp))
-                .padding(24.dp),
+                .fillMaxSize()
+                .padding(28.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Text("Get Started", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = TextDark)
-            Spacer(Modifier.height(4.dp))
-            Text(
-                "Continue with Google, or use a username and password",
-                fontSize = 13.sp,
-                color = LabelGray,
-                textAlign = TextAlign.Center,
+            Spacer(Modifier.weight(1f))
+
+            Image(
+                painter = painterResource(R.drawable.ic_app_logo),
+                contentDescription = "CareApp",
+                modifier = Modifier.size(96.dp).clip(RoundedCornerShape(28.dp)),
             )
             Spacer(Modifier.height(20.dp))
-
-            OutlinedButton(
-                onClick = { startGoogleSignIn() },
-                enabled = !loading,
-                // heightIn, not height: at a large system font the label must be able to
-                // grow the button instead of being clipped by it.
-                modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
-                shape = RoundedCornerShape(14.dp),
-                border = BorderStroke(1.dp, Color(0xFFDADCE0)),
-            ) {
-                if (loading) {
-                    CircularProgressIndicator(strokeWidth = 2.dp, modifier = Modifier.size(20.dp), color = BrandBlue)
-                } else {
-                    GoogleGlyph()
-                    Spacer(Modifier.size(12.dp))
-                    // Naming the account this device used last is the guard against picking a
-                    // different Google account by habit and landing in someone else's
-                    // CareApp account. Still just a label - the picker decides.
-                    Text(
-                        GoogleHint.last(context)?.let { "Continue as $it" }
-                            ?: "Continue with Google",
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = TextDark,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f),
-                    )
-                }
-            }
-
-            error?.let {
-                Spacer(Modifier.height(14.dp))
-                Text(it, color = Color(0xFFD32F2F), fontSize = 12.sp, textAlign = TextAlign.Center)
-            }
-
-            Spacer(Modifier.height(18.dp))
-
-            // Line between the Google option and the email/password options.
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Box(Modifier.weight(1f).height(1.dp).background(SeparatorGray))
-                Text(" or ", fontSize = 12.sp, color = LabelGray)
-                Box(Modifier.weight(1f).height(1.dp).background(SeparatorGray))
-            }
-
-            Spacer(Modifier.height(18.dp))
-
-            GlossyButton(
-                onClick = onSignUp,
-                modifier = Modifier.fillMaxWidth(),
-                color = BrandBlue,
-            ) {
-                Text("Sign up", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color.White)
-            }
-
-            Spacer(Modifier.height(10.dp))
-
-            OutlinedButton(
-                onClick = onSignIn,
-                modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
-                shape = RoundedCornerShape(14.dp),
-                border = BorderStroke(1.dp, Color(0xFFDADCE0)),
-            ) {
-                Text("Sign in", fontSize = 15.sp, fontWeight = FontWeight.Medium, color = TextDark)
-            }
-
-            Spacer(Modifier.height(16.dp))
+            Text("CareApp", color = Color.White, fontSize = 32.sp, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(6.dp))
             Text(
-                "By continuing you agree to CareApp's Terms & Privacy Policy",
-                fontSize = 10.sp,
-                color = LabelGray,
-                textAlign = TextAlign.Center,
+                "Monitor health, stay safe",
+                color = Color.White.copy(alpha = 0.8f),
+                fontSize = 14.sp,
             )
+
+            Spacer(Modifier.weight(1f))
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .glossySurface(RoundedCornerShape(24.dp))
+                    .padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text("Get Started", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = TextDark)
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    "Continue with Google, or use a username and password",
+                    fontSize = 13.sp,
+                    color = LabelGray,
+                    textAlign = TextAlign.Center,
+                )
+                Spacer(Modifier.height(20.dp))
+
+                OutlinedButton(
+                    onClick = { startGoogleSignIn() },
+                    enabled = !loading,
+                    // heightIn, not height: at a large system font the label must be able to
+                    // grow the button instead of being clipped by it.
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    border = BorderStroke(1.dp, Color(0xFFDADCE0)),
+                ) {
+                    if (loading) {
+                        CircularProgressIndicator(strokeWidth = 2.dp, modifier = Modifier.size(20.dp), color = BrandBlue)
+                    } else {
+                        GoogleGlyph()
+                        Spacer(Modifier.size(12.dp))
+                        // Naming the account this device used last is the guard against picking a
+                        // different Google account by habit and landing in someone else's
+                        // CareApp account. Still just a label - the picker decides.
+                        Text(
+                            GoogleHint.last(context)?.let { "${tr("Continue as")} $it" }
+                                ?: tr("Continue with Google"),
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = TextDark,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                }
+
+                error?.let {
+                    Spacer(Modifier.height(14.dp))
+                    Text(it, color = Color(0xFFD32F2F), fontSize = 12.sp, textAlign = TextAlign.Center)
+                }
+
+                Spacer(Modifier.height(18.dp))
+
+                // Line between the Google option and the email/password options.
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Box(Modifier.weight(1f).height(1.dp).background(SeparatorGray))
+                    Text(" or ", fontSize = 12.sp, color = LabelGray)
+                    Box(Modifier.weight(1f).height(1.dp).background(SeparatorGray))
+                }
+
+                Spacer(Modifier.height(18.dp))
+
+                GlossyButton(
+                    onClick = onSignUp,
+                    modifier = Modifier.fillMaxWidth(),
+                    color = BrandBlue,
+                ) {
+                    Text("Sign up", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                }
+
+                Spacer(Modifier.height(10.dp))
+
+                OutlinedButton(
+                    onClick = onSignIn,
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    border = BorderStroke(1.dp, Color(0xFFDADCE0)),
+                ) {
+                    Text("Sign in", fontSize = 15.sp, fontWeight = FontWeight.Medium, color = TextDark)
+                }
+
+                Spacer(Modifier.height(16.dp))
+                Text(
+                    "By continuing you agree to CareApp's Terms & Privacy Policy",
+                    fontSize = 10.sp,
+                    color = LabelGray,
+                    textAlign = TextAlign.Center,
+                )
+            }
+
+            Spacer(Modifier.height(8.dp))
         }
 
-        Spacer(Modifier.height(8.dp))
+            // Language lives here as well as in Profile: someone who can't read the English
+            // sign-in card should be able to fix that before creating an account.
+            LanguageChip(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .statusBarsPadding()
+                    .padding(top = 8.dp, end = 20.dp),
+                onColor = true,
+            )
+        }
     }
-}
 
 /** A tiny four-colour "G" so we don't ship Google's trademarked asset. */
 @Composable
